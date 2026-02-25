@@ -193,6 +193,106 @@ export async function checkAvailability(
   return { available, nights: nightly.length, nightly };
 }
 
+// ─── getAvailableRoomTypes ────────────────────────────────────────────────────
+
+export type AvailableRoomType = {
+  roomTypeId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  baseOccupancy: number;
+  maxOccupancy: number;
+  available: number; // min available units across the stay
+  ratePerNightCents: number; // first night's effective rate
+  totalCents: number; // sum of all nightly rates
+  nights: number;
+  nightly: NightlyAvailability[];
+};
+
+/**
+ * Returns all active room types for a property with their availability
+ * for the given date range. Used by the booking engine step 2.
+ *
+ * Only returns room types where available > 0.
+ */
+export async function getAvailableRoomTypes(
+  propertyId: string,
+  checkIn: string,
+  checkOut: string
+): Promise<AvailableRoomType[]> {
+  const nights = buildNightList(checkIn, checkOut);
+  if (nights.length === 0) return [];
+
+  const [allRoomTypes, inventoryRows, allRatePlans] = await Promise.all([
+    db
+      .select()
+      .from(roomTypes)
+      .where(
+        and(eq(roomTypes.propertyId, propertyId), eq(roomTypes.status, "active"))
+      ),
+    db
+      .select()
+      .from(inventory)
+      .where(
+        and(
+          eq(inventory.propertyId, propertyId),
+          gte(inventory.date, checkIn),
+          lte(inventory.date, nights[nights.length - 1])
+        )
+      ),
+    db
+      .select()
+      .from(ratePlans)
+      .where(
+        and(
+          eq(ratePlans.propertyId, propertyId),
+          eq(ratePlans.status, "active")
+        )
+      ),
+  ]);
+
+  const results: AvailableRoomType[] = [];
+
+  for (const rt of allRoomTypes) {
+    const rtInventory = inventoryRows.filter((r) => r.roomTypeId === rt.id);
+    const rtPlans: RatePlanForPricing[] = allRatePlans
+      .filter((p) => p.roomTypeId === rt.id)
+      .map((p) => ({
+        id: p.id,
+        type: p.type,
+        dateStart: p.dateStart,
+        dateEnd: p.dateEnd,
+        rateCents: p.rateCents,
+        priority: p.priority,
+        status: p.status,
+      }));
+
+    const nightly = computeNightly(nights, rtInventory, rtPlans, rt.baseRateCents);
+    const { available } = computeAvailabilityResult(nightly);
+
+    if (available < 1) continue; // skip fully booked types
+
+    const totalCents = nightly.reduce((sum, n) => sum + n.rateCents, 0);
+    const ratePerNightCents = nightly[0]?.rateCents ?? rt.baseRateCents;
+
+    results.push({
+      roomTypeId: rt.id,
+      name: rt.name,
+      slug: rt.slug,
+      description: rt.description,
+      baseOccupancy: rt.baseOccupancy,
+      maxOccupancy: rt.maxOccupancy,
+      available,
+      ratePerNightCents,
+      totalCents,
+      nights: nightly.length,
+      nightly,
+    });
+  }
+
+  return results;
+}
+
 // ─── getCalendarAvailability ──────────────────────────────────────────────────
 
 /**

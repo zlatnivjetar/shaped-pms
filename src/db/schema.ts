@@ -46,6 +46,24 @@ export const ratePlanStatusEnum = pgEnum("rate_plan_status", [
   "inactive",
 ]);
 
+export const reservationStatusEnum = pgEnum("reservation_status", [
+  "pending",
+  "confirmed",
+  "checked_in",
+  "checked_out",
+  "cancelled",
+  "no_show",
+]);
+
+export const reservationChannelEnum = pgEnum("reservation_channel", [
+  "direct",
+  "booking_com",
+  "airbnb",
+  "expedia",
+  "walk_in",
+  "phone",
+]);
+
 // ─── Properties ───────────────────────────────────────────────────────────────
 
 export const properties = pgTable("properties", {
@@ -198,6 +216,103 @@ export const inventory = pgTable(
   ]
 );
 
+// ─── Guests ───────────────────────────────────────────────────────────────────
+
+export const guests = pgTable(
+  "guests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    phone: text("phone"),
+    country: text("country"),
+    notes: text("notes"),
+    totalStays: integer("total_stays").notNull().default(0),
+    totalSpentCents: integer("total_spent_cents").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("guests_property_email_idx").on(t.propertyId, t.email),
+    index("guests_property_id_idx").on(t.propertyId),
+  ]
+);
+
+// ─── Reservations ─────────────────────────────────────────────────────────────
+
+export const reservations = pgTable(
+  "reservations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    guestId: uuid("guest_id")
+      .notNull()
+      .references(() => guests.id),
+    confirmationCode: text("confirmation_code").notNull().unique(),
+    checkIn: date("check_in").notNull(),
+    checkOut: date("check_out").notNull(),
+    nights: integer("nights").notNull(),
+    adults: integer("adults").notNull().default(1),
+    children: integer("children").notNull().default(0),
+    status: reservationStatusEnum("status").notNull().default("confirmed"),
+    channel: reservationChannelEnum("channel").notNull().default("direct"),
+    totalCents: integer("total_cents").notNull(),
+    currency: text("currency").notNull().default("EUR"),
+    specialRequests: text("special_requests"),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancellationReason: text("cancellation_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("reservations_property_id_idx").on(t.propertyId),
+    index("reservations_guest_id_idx").on(t.guestId),
+    index("reservations_check_in_idx").on(t.checkIn),
+    index("reservations_status_idx").on(t.status),
+  ]
+);
+
+// ─── Reservation Rooms ────────────────────────────────────────────────────────
+
+export const reservationRooms = pgTable(
+  "reservation_rooms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    roomTypeId: uuid("room_type_id")
+      .notNull()
+      .references(() => roomTypes.id),
+    roomId: uuid("room_id").references(() => rooms.id),
+    ratePerNightCents: integer("rate_per_night_cents").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("reservation_rooms_reservation_id_idx").on(t.reservationId),
+    index("reservation_rooms_room_type_id_idx").on(t.roomTypeId),
+  ]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
@@ -205,6 +320,8 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
   rooms: many(rooms),
   ratePlans: many(ratePlans),
   inventory: many(inventory),
+  guests: many(guests),
+  reservations: many(reservations),
 }));
 
 export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
@@ -215,9 +332,10 @@ export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
   rooms: many(rooms),
   ratePlans: many(ratePlans),
   inventory: many(inventory),
+  reservationRooms: many(reservationRooms),
 }));
 
-export const roomsRelations = relations(rooms, ({ one }) => ({
+export const roomsRelations = relations(rooms, ({ one, many }) => ({
   property: one(properties, {
     fields: [rooms.propertyId],
     references: [properties.id],
@@ -226,6 +344,7 @@ export const roomsRelations = relations(rooms, ({ one }) => ({
     fields: [rooms.roomTypeId],
     references: [roomTypes.id],
   }),
+  reservationRooms: many(reservationRooms),
 }));
 
 export const ratePlansRelations = relations(ratePlans, ({ one }) => ({
@@ -250,6 +369,47 @@ export const inventoryRelations = relations(inventory, ({ one }) => ({
   }),
 }));
 
+export const guestsRelations = relations(guests, ({ one, many }) => ({
+  property: one(properties, {
+    fields: [guests.propertyId],
+    references: [properties.id],
+  }),
+  reservations: many(reservations),
+}));
+
+export const reservationsRelations = relations(
+  reservations,
+  ({ one, many }) => ({
+    property: one(properties, {
+      fields: [reservations.propertyId],
+      references: [properties.id],
+    }),
+    guest: one(guests, {
+      fields: [reservations.guestId],
+      references: [guests.id],
+    }),
+    reservationRooms: many(reservationRooms),
+  })
+);
+
+export const reservationRoomsRelations = relations(
+  reservationRooms,
+  ({ one }) => ({
+    reservation: one(reservations, {
+      fields: [reservationRooms.reservationId],
+      references: [reservations.id],
+    }),
+    roomType: one(roomTypes, {
+      fields: [reservationRooms.roomTypeId],
+      references: [roomTypes.id],
+    }),
+    room: one(rooms, {
+      fields: [reservationRooms.roomId],
+      references: [rooms.id],
+    }),
+  })
+);
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type Property = typeof properties.$inferSelect;
@@ -262,3 +422,9 @@ export type RatePlan = typeof ratePlans.$inferSelect;
 export type NewRatePlan = typeof ratePlans.$inferInsert;
 export type Inventory = typeof inventory.$inferSelect;
 export type NewInventory = typeof inventory.$inferInsert;
+export type Guest = typeof guests.$inferSelect;
+export type NewGuest = typeof guests.$inferInsert;
+export type Reservation = typeof reservations.$inferSelect;
+export type NewReservation = typeof reservations.$inferInsert;
+export type ReservationRoom = typeof reservationRooms.$inferSelect;
+export type NewReservationRoom = typeof reservationRooms.$inferInsert;
