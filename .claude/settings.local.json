@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tail:*)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && npx shadcn@latest init --defaults -y)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && npx shadcn@latest add button card input label badge select dialog table textarea separator skeleton toast sonner --yes 2>&1)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && npx shadcn@latest add button card input label badge select dialog table textarea separator skeleton sonner --yes 2>&1)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && npx shadcn@latest add sidebar dropdown-menu sheet tooltip --yes 2>&1)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && npx shadcn@latest add alert-dialog --yes 2>&1)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && npx tsc --noEmit 2>&1)",
+      "Bash(echo Type check passed:*)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && npm run db:migrate 2>&1)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && npx drizzle-kit generate 2>&1)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && npm run db:seed 2>&1)",
+      "Bash(sleep 4 && curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000 2>&1)",
+      "Bash(cd:*)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && git push origin main 2>&1)",
+      "WebFetch(domain:shaped-pms.vercel.app)",
+      "Bash(cd /c/Users/david/Desktop/shaped-pms && git add CLAUDE.md && git commit -m \"Update current milestone to 2\" && git push origin main 2>&1)"
+    ]
+  }
+}
