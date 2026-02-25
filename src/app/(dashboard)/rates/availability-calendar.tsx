@@ -179,7 +179,7 @@ export function AvailabilityCalendar({ propertyId, month, data }: Props) {
   });
 
   function goTo(newMonth: string) {
-    router.push(`/rates?tab=availability&month=${newMonth}`);
+    router.push(`/calendar?month=${newMonth}`);
   }
 
   // Build lookup: roomTypeId → date → cell data
