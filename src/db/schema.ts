@@ -6,6 +6,7 @@ import {
   timestamp,
   pgEnum,
   time,
+  date,
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -32,6 +33,17 @@ export const roomStatusEnum = pgEnum("room_status", [
   "available",
   "maintenance",
   "out_of_service",
+]);
+
+export const ratePlanTypeEnum = pgEnum("rate_plan_type", [
+  "seasonal",
+  "length_of_stay",
+  "occupancy",
+]);
+
+export const ratePlanStatusEnum = pgEnum("rate_plan_status", [
+  "active",
+  "inactive",
 ]);
 
 // ─── Properties ───────────────────────────────────────────────────────────────
@@ -118,11 +130,81 @@ export const rooms = pgTable(
   ]
 );
 
+// ─── Rate Plans ───────────────────────────────────────────────────────────────
+
+export const ratePlans = pgTable(
+  "rate_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    roomTypeId: uuid("room_type_id")
+      .notNull()
+      .references(() => roomTypes.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    type: ratePlanTypeEnum("type").notNull().default("seasonal"),
+    dateStart: date("date_start"),
+    dateEnd: date("date_end"),
+    minNights: integer("min_nights"),
+    rateCents: integer("rate_cents").notNull(),
+    priority: integer("priority").notNull().default(0),
+    status: ratePlanStatusEnum("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("rate_plans_property_id_idx").on(t.propertyId),
+    index("rate_plans_room_type_id_idx").on(t.roomTypeId),
+  ]
+);
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+
+export const inventory = pgTable(
+  "inventory",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    roomTypeId: uuid("room_type_id")
+      .notNull()
+      .references(() => roomTypes.id, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    totalUnits: integer("total_units").notNull(),
+    bookedUnits: integer("booked_units").notNull().default(0),
+    blockedUnits: integer("blocked_units").notNull().default(0),
+    rateOverrideCents: integer("rate_override_cents"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("inventory_property_room_type_date_idx").on(
+      t.propertyId,
+      t.roomTypeId,
+      t.date
+    ),
+    index("inventory_property_id_idx").on(t.propertyId),
+    index("inventory_date_idx").on(t.date),
+  ]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
   roomTypes: many(roomTypes),
   rooms: many(rooms),
+  ratePlans: many(ratePlans),
+  inventory: many(inventory),
 }));
 
 export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
@@ -131,6 +213,8 @@ export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
     references: [properties.id],
   }),
   rooms: many(rooms),
+  ratePlans: many(ratePlans),
+  inventory: many(inventory),
 }));
 
 export const roomsRelations = relations(rooms, ({ one }) => ({
@@ -144,6 +228,28 @@ export const roomsRelations = relations(rooms, ({ one }) => ({
   }),
 }));
 
+export const ratePlansRelations = relations(ratePlans, ({ one }) => ({
+  property: one(properties, {
+    fields: [ratePlans.propertyId],
+    references: [properties.id],
+  }),
+  roomType: one(roomTypes, {
+    fields: [ratePlans.roomTypeId],
+    references: [roomTypes.id],
+  }),
+}));
+
+export const inventoryRelations = relations(inventory, ({ one }) => ({
+  property: one(properties, {
+    fields: [inventory.propertyId],
+    references: [properties.id],
+  }),
+  roomType: one(roomTypes, {
+    fields: [inventory.roomTypeId],
+    references: [roomTypes.id],
+  }),
+}));
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type Property = typeof properties.$inferSelect;
@@ -152,3 +258,7 @@ export type RoomType = typeof roomTypes.$inferSelect;
 export type NewRoomType = typeof roomTypes.$inferInsert;
 export type Room = typeof rooms.$inferSelect;
 export type NewRoom = typeof rooms.$inferInsert;
+export type RatePlan = typeof ratePlans.$inferSelect;
+export type NewRatePlan = typeof ratePlans.$inferInsert;
+export type Inventory = typeof inventory.$inferSelect;
+export type NewInventory = typeof inventory.$inferInsert;

@@ -5,6 +5,7 @@ import { rooms, properties } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { upsertInventory } from "@/lib/inventory";
 
 const addRoomSchema = z.object({
   roomNumber: z.string().min(1, "Room number is required"),
@@ -49,6 +50,8 @@ export async function addRoom(
     status: parsed.data.status,
   });
 
+  await upsertInventory(propertyId, roomTypeId);
+
   revalidatePath("/rooms");
   return { success: true };
 }
@@ -65,6 +68,16 @@ export async function updateRoomStatus(
 }
 
 export async function deleteRoom(roomId: string): Promise<void> {
+  const [room] = await db
+    .select({ propertyId: rooms.propertyId, roomTypeId: rooms.roomTypeId })
+    .from(rooms)
+    .where(eq(rooms.id, roomId));
+
   await db.delete(rooms).where(eq(rooms.id, roomId));
+
+  if (room) {
+    await upsertInventory(room.propertyId, room.roomTypeId);
+  }
+
   revalidatePath("/rooms");
 }

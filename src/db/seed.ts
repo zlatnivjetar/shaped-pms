@@ -5,6 +5,7 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 import { randomBytes } from "crypto";
+import { eq, and, count } from "drizzle-orm";
 
 const sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(sql, { schema });
@@ -143,6 +144,124 @@ async function seed() {
   );
 
   console.log(`  ✓ Rooms: ${roomData.length} rooms created`);
+
+  // ── Inventory ─────────────────────────────────────────────────────────────
+
+  console.log("\n  Initializing inventory...");
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const inventoryDates = Array.from({ length: 365 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+
+  for (const rt of insertedRoomTypes) {
+    const [countResult] = await db
+      .select({ count: count() })
+      .from(schema.rooms)
+      .where(
+        and(
+          eq(schema.rooms.propertyId, property.id),
+          eq(schema.rooms.roomTypeId, rt.id)
+        )
+      );
+    const totalUnits = Number(countResult?.count ?? 0);
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < inventoryDates.length; i += BATCH_SIZE) {
+      const batch = inventoryDates.slice(i, i + BATCH_SIZE).map((date) => ({
+        propertyId: property.id,
+        roomTypeId: rt.id,
+        date,
+        totalUnits,
+      }));
+      await db
+        .insert(schema.inventory)
+        .values(batch)
+        .onConflictDoUpdate({
+          target: [schema.inventory.propertyId, schema.inventory.roomTypeId, schema.inventory.date],
+          set: { totalUnits, updatedAt: new Date() },
+        });
+    }
+    console.log(`  ✓ Inventory: ${rt.name} — 365 days (${totalUnits} units/day)`);
+  }
+
+  // ── Rate Plans ────────────────────────────────────────────────────────────
+
+  // Realistic seasonal pricing for Preelook Apartments (Rijeka, Croatia):
+  //   Summer high:    Jun 1 – Aug 31   (peak Adriatic season)
+  //   Shoulder:       Apr 1 – May 31   (spring)
+  //   Shoulder:       Sep 1 – Oct 31   (autumn)
+  //   Winter low:     Nov 1 – Mar 31   (off-season, no rate plan → base rate applies)
+
+  type RatePlanSeed = {
+    roomTypeSlug: string;
+    plans: Array<{
+      name: string;
+      dateStart: string;
+      dateEnd: string;
+      rateCents: number;
+      priority: number;
+    }>;
+  };
+
+  const ratePlanData: RatePlanSeed[] = [
+    {
+      roomTypeSlug: "studio",
+      plans: [
+        { name: "Studio — Summer 2026", dateStart: "2026-06-01", dateEnd: "2026-08-31", rateCents: 11000, priority: 10 },
+        { name: "Studio — Spring 2026", dateStart: "2026-04-01", dateEnd: "2026-05-31", rateCents: 8500, priority: 5 },
+        { name: "Studio — Autumn 2026", dateStart: "2026-09-01", dateEnd: "2026-10-31", rateCents: 8500, priority: 5 },
+      ],
+    },
+    {
+      roomTypeSlug: "one-bedroom",
+      plans: [
+        { name: "One-Bedroom — Summer 2026", dateStart: "2026-06-01", dateEnd: "2026-08-31", rateCents: 15000, priority: 10 },
+        { name: "One-Bedroom — Spring 2026", dateStart: "2026-04-01", dateEnd: "2026-05-31", rateCents: 12000, priority: 5 },
+        { name: "One-Bedroom — Autumn 2026", dateStart: "2026-09-01", dateEnd: "2026-10-31", rateCents: 12000, priority: 5 },
+      ],
+    },
+    {
+      roomTypeSlug: "two-bedroom",
+      plans: [
+        { name: "Two-Bedroom — Summer 2026", dateStart: "2026-06-01", dateEnd: "2026-08-31", rateCents: 22000, priority: 10 },
+        { name: "Two-Bedroom — Spring 2026", dateStart: "2026-04-01", dateEnd: "2026-05-31", rateCents: 17500, priority: 5 },
+        { name: "Two-Bedroom — Autumn 2026", dateStart: "2026-09-01", dateEnd: "2026-10-31", rateCents: 17500, priority: 5 },
+      ],
+    },
+    {
+      roomTypeSlug: "penthouse",
+      plans: [
+        { name: "Penthouse — Summer 2026", dateStart: "2026-06-01", dateEnd: "2026-08-31", rateCents: 32000, priority: 10 },
+        { name: "Penthouse — Spring 2026", dateStart: "2026-04-01", dateEnd: "2026-05-31", rateCents: 26000, priority: 5 },
+        { name: "Penthouse — Autumn 2026", dateStart: "2026-09-01", dateEnd: "2026-10-31", rateCents: 26000, priority: 5 },
+      ],
+    },
+  ];
+
+  let totalPlans = 0;
+  for (const { roomTypeSlug, plans } of ratePlanData) {
+    const rt = bySlug[roomTypeSlug];
+    await db.insert(schema.ratePlans).values(
+      plans.map((p) => ({
+        propertyId: property.id,
+        roomTypeId: rt.id,
+        name: p.name,
+        type: "seasonal" as const,
+        dateStart: p.dateStart,
+        dateEnd: p.dateEnd,
+        rateCents: p.rateCents,
+        priority: p.priority,
+        status: "active" as const,
+      }))
+    );
+    totalPlans += plans.length;
+    console.log(`  ✓ Rate plans: ${rt.name} (${plans.length} plans)`);
+  }
+  console.log(`  ✓ Total rate plans created: ${totalPlans}`);
+
   console.log("\n✅ Seed complete!");
   console.log(`\nProperty slug: ${property.slug}`);
   console.log(`API key: ${property.apiKey}`);
