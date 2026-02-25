@@ -77,7 +77,7 @@ export async function updateProperty(
     })
     .where(eq(properties.id, propertyId));
 
-  revalidatePath("/settings");
+  revalidatePath("/settings/property");
   revalidatePath("/dashboard");
 
   return { success: true };

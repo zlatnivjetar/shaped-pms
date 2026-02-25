@@ -52,7 +52,7 @@ export async function addRoom(
 
   await upsertInventory(propertyId, roomTypeId);
 
-  revalidatePath("/rooms");
+  revalidatePath("/settings/rooms");
   return { success: true };
 }
 
@@ -64,7 +64,7 @@ export async function updateRoomStatus(
     .update(rooms)
     .set({ status, updatedAt: new Date() })
     .where(eq(rooms.id, roomId));
-  revalidatePath("/rooms");
+  revalidatePath("/settings/rooms");
 }
 
 export async function deleteRoom(roomId: string): Promise<void> {
@@ -79,5 +79,5 @@ export async function deleteRoom(roomId: string): Promise<void> {
     await upsertInventory(room.propertyId, room.roomTypeId);
   }
 
-  revalidatePath("/rooms");
+  revalidatePath("/settings/rooms");
 }

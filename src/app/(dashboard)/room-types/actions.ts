@@ -59,8 +59,8 @@ export async function createRoomType(
     propertyId,
   });
 
-  revalidatePath("/room-types");
-  revalidatePath("/rooms");
+  revalidatePath("/settings/room-types");
+  revalidatePath("/settings/rooms");
   return { success: true };
 }
 
@@ -89,13 +89,13 @@ export async function updateRoomType(
     .set({ ...parsed.data, description: parsed.data.description || null, updatedAt: new Date() })
     .where(eq(roomTypes.id, roomTypeId));
 
-  revalidatePath("/room-types");
-  revalidatePath("/rooms");
+  revalidatePath("/settings/room-types");
+  revalidatePath("/settings/rooms");
   return { success: true };
 }
 
 export async function deleteRoomType(roomTypeId: string): Promise<void> {
   await db.delete(roomTypes).where(eq(roomTypes.id, roomTypeId));
-  revalidatePath("/room-types");
-  revalidatePath("/rooms");
+  revalidatePath("/settings/room-types");
+  revalidatePath("/settings/rooms");
 }

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { db } from "@/db";
 import {
   properties,
@@ -8,7 +7,6 @@ import {
   type RatePlan,
 } from "@/db/schema";
 import { asc, eq } from "drizzle-orm";
-import { getCalendarAvailability } from "@/lib/availability";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -23,44 +21,8 @@ import {
   EditRatePlanDialog,
   DeleteRatePlanButton,
 } from "./rate-plan-dialogs";
-import { AvailabilityCalendar } from "./availability-calendar";
 
-type SearchParams = Promise<{ tab?: string; month?: string }>;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function currentMonthStr(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function monthBounds(month: string): { startDate: string; endDate: string } {
-  const [y, m] = month.split("-").map(Number);
-  const end = new Date(y, m, 0); // last day of month
-  const fmt = (y: number, m: number, d: number) =>
-    `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-  return {
-    startDate: fmt(y, m, 1),
-    endDate: fmt(end.getFullYear(), end.getMonth() + 1, end.getDate()),
-  };
-}
-
-function tabClass(active: boolean) {
-  return active
-    ? "border-b-2 border-primary px-4 py-2 text-sm font-medium text-foreground"
-    : "border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground";
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-export default async function RatesPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const { tab = "plans", month = currentMonthStr() } = await searchParams;
-  const isPlans = tab !== "availability";
-
+export default async function RatesPage() {
   const [property] = await db.select().from(properties).limit(1);
   if (!property) {
     return <p className="text-muted-foreground">No property found.</p>;
@@ -72,57 +34,12 @@ export default async function RatesPage({
     .where(eq(roomTypes.propertyId, property.id))
     .orderBy(asc(roomTypes.sortOrder));
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Rates</h1>
-        <p className="text-muted-foreground">
-          Manage seasonal rate plans and view live availability.
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b flex gap-0">
-        <Link href="/rates?tab=plans" className={tabClass(isPlans)}>
-          Rate Plans
-        </Link>
-        <Link
-          href={`/rates?tab=availability&month=${month}`}
-          className={tabClass(!isPlans)}
-        >
-          Availability Calendar
-        </Link>
-      </div>
-
-      {isPlans ? (
-        <RatePlansTab propertyId={property.id} allRoomTypes={allRoomTypes} />
-      ) : (
-        <AvailabilityTab
-          propertyId={property.id}
-          month={month}
-          allRoomTypes={allRoomTypes}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─── Rate Plans Tab ───────────────────────────────────────────────────────────
-
-async function RatePlansTab({
-  propertyId,
-  allRoomTypes,
-}: {
-  propertyId: string;
-  allRoomTypes: RoomType[];
-}) {
   const plans: RatePlan[] = await db
     .select()
     .from(ratePlans)
-    .where(eq(ratePlans.propertyId, propertyId))
+    .where(eq(ratePlans.propertyId, property.id))
     .orderBy(asc(ratePlans.roomTypeId), asc(ratePlans.priority));
 
-  // Group plans by room type
   const plansByRoomType = new Map<string, RatePlan[]>();
   for (const plan of plans) {
     const existing = plansByRoomType.get(plan.roomTypeId) ?? [];
@@ -132,14 +49,18 @@ async function RatePlansTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Rates</h1>
+          <p className="text-muted-foreground">Manage seasonal rate plans.</p>
+        </div>
         <CreateRatePlanDialog roomTypes={allRoomTypes} />
       </div>
 
       {allRoomTypes.length === 0 ? (
         <p className="text-muted-foreground text-sm">No room types found.</p>
       ) : (
-        allRoomTypes.map((rt) => {
+        allRoomTypes.map((rt: RoomType) => {
           const typePlans = plansByRoomType.get(rt.id) ?? [];
           return (
             <div key={rt.id} className="space-y-2">
@@ -217,35 +138,5 @@ async function RatePlansTab({
         })
       )}
     </div>
-  );
-}
-
-// ─── Availability Tab ─────────────────────────────────────────────────────────
-
-async function AvailabilityTab({
-  propertyId,
-  month,
-  allRoomTypes: _allRoomTypes,
-}: {
-  propertyId: string;
-  month: string;
-  allRoomTypes: RoomType[];
-}) {
-  const monthRegex = /^\d{4}-\d{2}$/;
-  const safeMonth = monthRegex.test(month) ? month : currentMonthStr();
-  const { startDate, endDate } = monthBounds(safeMonth);
-
-  const calendarData = await getCalendarAvailability(
-    propertyId,
-    startDate,
-    endDate
-  );
-
-  return (
-    <AvailabilityCalendar
-      propertyId={propertyId}
-      month={safeMonth}
-      data={calendarData}
-    />
   );
 }
