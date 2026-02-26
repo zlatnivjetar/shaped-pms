@@ -1,3 +1,6 @@
+// TODO: implement Better Auth — protect this layout with session check,
+// redirect unauthenticated users to /login, and show logged-in user in header.
+// See: https://www.better-auth.com/docs/installation
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { Separator } from "@/components/ui/separator";
