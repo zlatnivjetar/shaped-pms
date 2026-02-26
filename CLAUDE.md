@@ -2,7 +2,7 @@
 
 You are helping build a PMS (Property Management System). Read the full build plan below before doing anything.
 
-Current milestone: 5
+Current milestone: 6
 
 ## Build Plan
 
