@@ -110,25 +110,30 @@ export async function createPaymentIntentForBooking(
   }
   if (!reservationCode) return { error: "Could not generate reservation code." };
 
-  const result = await createPaymentIntent({
-    amountCents: totalCents,
-    currency: property.currency,
-    paymentMode: property.paymentMode,
-    depositPercentage: property.depositPercentage,
-    metadata: {
-      reservation_code: reservationCode,
-      property_id: property.id,
-      room_type_id: params.roomTypeId,
-    },
-  });
+  try {
+    const result = await createPaymentIntent({
+      amountCents: totalCents,
+      currency: property.currency,
+      paymentMode: property.paymentMode,
+      depositPercentage: property.depositPercentage,
+      metadata: {
+        reservation_code: reservationCode,
+        property_id: property.id,
+        room_type_id: params.roomTypeId,
+      },
+    });
 
-  return {
-    clientSecret: result.clientSecret,
-    paymentIntentId: result.paymentIntentId,
-    chargedAmountCents: result.chargedAmountCents,
-    paymentType: result.paymentType,
-    reservationCode,
-  };
+    return {
+      clientSecret: result.clientSecret,
+      paymentIntentId: result.paymentIntentId,
+      chargedAmountCents: result.chargedAmountCents,
+      paymentType: result.paymentType,
+      reservationCode,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not set up payment.";
+    return { error: message };
+  }
 }
 
 // ─── createReservation ────────────────────────────────────────────────────────

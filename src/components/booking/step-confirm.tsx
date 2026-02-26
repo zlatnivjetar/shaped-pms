@@ -227,20 +227,26 @@ export default function StepConfirm({
   async function handleProceedToPayment() {
     setIsCreatingPI(true);
     setPaymentError(null);
-    const result = await createPaymentIntentForBooking(property.slug, {
-      roomTypeId,
-      checkIn,
-      checkOut,
-      adults,
-      children: childCount,
-    });
-    setIsCreatingPI(false);
-    if ("error" in result) {
-      setPaymentError(result.error);
-      return;
+    try {
+      const result = await createPaymentIntentForBooking(property.slug, {
+        roomTypeId,
+        checkIn,
+        checkOut,
+        adults,
+        children: childCount,
+      });
+      if ("error" in result) {
+        setPaymentError(result.error);
+        return;
+      }
+      setPaymentInfo(result);
+      setStage("payment");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not set up payment. Please try again.";
+      setPaymentError(message);
+    } finally {
+      setIsCreatingPI(false);
     }
-    setPaymentInfo(result);
-    setStage("payment");
   }
 
   function handleBack() {
