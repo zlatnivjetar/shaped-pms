@@ -14,10 +14,12 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
     "db:init-inventory": "tsx src/db/init-inventory.ts",
-    "db:seed-reservations": "tsx src/db/seed-reservations.ts"
+    "db:seed-reservations": "tsx src/db/seed-reservations.ts",
+    "db:seed-reviews": "tsx src/db/seed-reviews.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
+    "@react-email/components": "^1.0.8",
     "@stripe/react-stripe-js": "^5.6.0",
     "@stripe/stripe-js": "^8.8.0",
     "class-variance-authority": "^0.7.1",
@@ -31,6 +33,7 @@
     "radix-ui": "^1.4.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "resend": "^6.9.2",
     "sonner": "^2.0.7",
     "stripe": "^20.4.0",
     "tailwind-merge": "^3.5.0",

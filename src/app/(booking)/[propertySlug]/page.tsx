@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { properties, roomTypes, reservations } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { properties, roomTypes, reservations, reviews } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getAvailableRoomTypes, checkAvailability } from "@/lib/availability";
 import BookingFlow from "@/components/booking/booking-flow";
@@ -78,6 +78,23 @@ export default async function BookingPage({ params, searchParams }: Props) {
       })) ?? null;
   }
 
+  // Fetch published reviews + compute average rating
+  const publishedReviews = await db.query.reviews.findMany({
+    where: and(
+      eq(reviews.propertyId, property.id),
+      eq(reviews.status, "published")
+    ),
+    orderBy: [desc(reviews.createdAt)],
+    with: { guest: true },
+    limit: 5,
+  });
+
+  const avgRating =
+    publishedReviews.length > 0
+      ? publishedReviews.reduce((sum, r) => sum + r.rating, 0) /
+        publishedReviews.length
+      : null;
+
   return (
     <BookingFlow
       property={property}
@@ -92,6 +109,8 @@ export default async function BookingPage({ params, searchParams }: Props) {
       selectedRoomType={selectedRoomType}
       confirmTotal={confirmTotal}
       completedReservation={completedReservation}
+      publishedReviews={publishedReviews}
+      avgRating={avgRating}
     />
   );
 }

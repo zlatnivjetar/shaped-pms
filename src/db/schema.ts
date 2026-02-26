@@ -78,6 +78,22 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "refunded",
 ]);
 
+export const reviewStatusEnum = pgEnum("review_status", [
+  "pending",
+  "published",
+  "hidden",
+]);
+
+export const emailTypeEnum = pgEnum("email_type", [
+  "confirmation",
+  "pre_arrival",
+  "post_stay",
+  "review_request",
+  "cancellation",
+]);
+
+export const emailStatusEnum = pgEnum("email_status", ["sent", "failed"]);
+
 // ─── Properties ───────────────────────────────────────────────────────────────
 
 export const properties = pgTable("properties", {
@@ -359,6 +375,103 @@ export const payments = pgTable(
   ]
 );
 
+// ─── Review Tokens ────────────────────────────────────────────────────────────
+
+export const reviewTokens = pgTable(
+  "review_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("review_tokens_reservation_id_idx").on(t.reservationId),
+    index("review_tokens_property_id_idx").on(t.propertyId),
+    index("review_tokens_token_idx").on(t.token),
+  ]
+);
+
+// ─── Reviews ──────────────────────────────────────────────────────────────────
+
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    guestId: uuid("guest_id")
+      .notNull()
+      .references(() => guests.id, { onDelete: "cascade" }),
+    reviewTokenId: uuid("review_token_id")
+      .notNull()
+      .references(() => reviewTokens.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    title: text("title"),
+    body: text("body").notNull(),
+    stayDateStart: date("stay_date_start").notNull(),
+    stayDateEnd: date("stay_date_end").notNull(),
+    status: reviewStatusEnum("status").notNull().default("pending"),
+    propertyResponse: text("property_response"),
+    propertyRespondedAt: timestamp("property_responded_at", {
+      withTimezone: true,
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("reviews_property_id_idx").on(t.propertyId),
+    index("reviews_reservation_id_idx").on(t.reservationId),
+    index("reviews_guest_id_idx").on(t.guestId),
+    index("reviews_status_idx").on(t.status),
+  ]
+);
+
+// ─── Email Logs ───────────────────────────────────────────────────────────────
+
+export const emailLogs = pgTable(
+  "email_logs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    type: emailTypeEnum("type").notNull(),
+    recipientEmail: text("recipient_email").notNull(),
+    subject: text("subject").notNull(),
+    status: emailStatusEnum("status").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("email_logs_reservation_id_idx").on(t.reservationId),
+    index("email_logs_property_id_idx").on(t.propertyId),
+    index("email_logs_type_idx").on(t.type),
+  ]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
@@ -368,6 +481,9 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
   inventory: many(inventory),
   guests: many(guests),
   reservations: many(reservations),
+  reviews: many(reviews),
+  emailLogs: many(emailLogs),
+  reviewTokens: many(reviewTokens),
 }));
 
 export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
@@ -421,6 +537,7 @@ export const guestsRelations = relations(guests, ({ one, many }) => ({
     references: [properties.id],
   }),
   reservations: many(reservations),
+  reviews: many(reviews),
 }));
 
 export const reservationsRelations = relations(
@@ -436,6 +553,9 @@ export const reservationsRelations = relations(
     }),
     reservationRooms: many(reservationRooms),
     payments: many(payments),
+    reviewTokens: many(reviewTokens),
+    reviews: many(reviews),
+    emailLogs: many(emailLogs),
   })
 );
 
@@ -468,6 +588,51 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
   }),
 }));
 
+export const reviewTokensRelations = relations(
+  reviewTokens,
+  ({ one, many }) => ({
+    reservation: one(reservations, {
+      fields: [reviewTokens.reservationId],
+      references: [reservations.id],
+    }),
+    property: one(properties, {
+      fields: [reviewTokens.propertyId],
+      references: [properties.id],
+    }),
+    reviews: many(reviews),
+  })
+);
+
+export const reviewsRelations = relations(reviews, ({ one }) => ({
+  property: one(properties, {
+    fields: [reviews.propertyId],
+    references: [properties.id],
+  }),
+  reservation: one(reservations, {
+    fields: [reviews.reservationId],
+    references: [reservations.id],
+  }),
+  guest: one(guests, {
+    fields: [reviews.guestId],
+    references: [guests.id],
+  }),
+  reviewToken: one(reviewTokens, {
+    fields: [reviews.reviewTokenId],
+    references: [reviewTokens.id],
+  }),
+}));
+
+export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
+  reservation: one(reservations, {
+    fields: [emailLogs.reservationId],
+    references: [reservations.id],
+  }),
+  property: one(properties, {
+    fields: [emailLogs.propertyId],
+    references: [properties.id],
+  }),
+}));
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type Property = typeof properties.$inferSelect;
@@ -488,3 +653,9 @@ export type ReservationRoom = typeof reservationRooms.$inferSelect;
 export type NewReservationRoom = typeof reservationRooms.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
+export type ReviewToken = typeof reviewTokens.$inferSelect;
+export type NewReviewToken = typeof reviewTokens.$inferInsert;
+export type Review = typeof reviews.$inferSelect;
+export type NewReview = typeof reviews.$inferInsert;
+export type EmailLog = typeof emailLogs.$inferSelect;
+export type NewEmailLog = typeof emailLogs.$inferInsert;

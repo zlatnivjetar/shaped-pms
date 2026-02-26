@@ -20,6 +20,7 @@ import {
   createPaymentIntent,
   stripe as getStripe,
 } from "@/lib/payments";
+import { sendBookingConfirmation } from "@/lib/email";
 
 function buildNightList(checkIn: string, checkOut: string): string[] {
   const nights: string[] = [];
@@ -360,6 +361,35 @@ export async function createReservation(
         updatedAt: new Date(),
       })
       .where(eq(guests.id, guest.id));
+
+    // Fire-and-forget confirmation email
+    const property = await db.query.properties.findFirst({
+      where: eq(properties.slug, propertySlug),
+    });
+    if (property) {
+      void sendBookingConfirmation({
+        reservationId: reservation.id,
+        propertyId: data.propertyId,
+        guestEmail: data.email.toLowerCase(),
+        guestFirstName: data.firstName,
+        confirmationCode: reservationCode,
+        propertyName: property.name,
+        propertyAddress: [property.address, property.city, property.country]
+          .filter(Boolean)
+          .join(", "),
+        checkIn: data.checkIn,
+        checkOut: data.checkOut,
+        nights: nights.length,
+        roomTypeName: roomTypeData.name,
+        totalCents,
+        currency: property.currency,
+        amountPaidCents: pi.amount,
+        paymentType:
+          (pi.metadata?.payment_type as "deposit" | "full_payment") ??
+          "full_payment",
+        checkInTime: property.checkInTime ?? undefined,
+      });
+    }
 
     redirect(`/${propertySlug}?step=complete&code=${reservation.code}`);
   } catch (err) {

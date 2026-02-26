@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Property, RoomType } from "@/db/schema";
+import type { Property, RoomType, Review, Guest } from "@/db/schema";
 import type { AvailableRoomType } from "@/lib/availability";
 import StepSearch from "./step-search";
 import StepSelect from "./step-select";
@@ -30,6 +30,8 @@ export type CompletedReservation = {
   reservationRooms: Array<{ roomType: { name: string } | null }>;
 } | null;
 
+type PublishedReview = Review & { guest: Guest | null };
+
 interface Props {
   property: Property;
   step: string;
@@ -43,6 +45,8 @@ interface Props {
   selectedRoomType: RoomType | null;
   confirmTotal: number;
   completedReservation: CompletedReservation;
+  publishedReviews: PublishedReview[];
+  avgRating: number | null;
 }
 
 const STORAGE_KEY = "booking-guest-details";
@@ -108,6 +112,8 @@ export default function BookingFlow({
   selectedRoomType,
   confirmTotal,
   completedReservation,
+  publishedReviews,
+  avgRating,
 }: Props) {
   const [guestDetails, setGuestDetails] = useState<GuestDetails>({
     firstName: "",
@@ -229,6 +235,84 @@ export default function BookingFlow({
           <div className="text-center py-16">
             <p className="text-stone-500">Reservation not found.</p>
           </div>
+        )}
+
+        {/* Reviews section — visible on search step */}
+        {step === "search" && publishedReviews.length > 0 && (
+          <section className="mt-12 space-y-6">
+            <div className="flex items-baseline gap-3">
+              <h2 className="text-lg font-semibold text-stone-900">
+                Guest Reviews
+              </h2>
+              {avgRating !== null && (
+                <span className="text-sm text-stone-500">
+                  <span className="text-amber-400 font-medium">
+                    {"★".repeat(Math.round(avgRating))}
+                  </span>{" "}
+                  <span className="font-semibold text-stone-700">
+                    {avgRating.toFixed(1)}
+                  </span>{" "}
+                  from {publishedReviews.length} review
+                  {publishedReviews.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              {publishedReviews.map((review) => {
+                const guest = review.guest;
+                const initials = guest
+                  ? `${guest.firstName[0]}${guest.lastName[0]}`.toUpperCase()
+                  : "?";
+                const displayName = guest
+                  ? `${guest.firstName} ${guest.lastName[0]}.`
+                  : "Guest";
+                return (
+                  <div
+                    key={review.id}
+                    className="bg-white border border-stone-200 rounded-lg p-5 space-y-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-stone-800 text-white flex items-center justify-center text-xs font-semibold">
+                        {initials}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-stone-800">
+                          {displayName}
+                        </p>
+                        <p className="text-amber-400 text-xs leading-none">
+                          {"★".repeat(review.rating)}
+                          <span className="text-stone-200">
+                            {"★".repeat(5 - review.rating)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    {review.title && (
+                      <p className="text-sm font-semibold text-stone-800">
+                        {review.title}
+                      </p>
+                    )}
+                    <p className="text-sm text-stone-600">
+                      {review.body.length > 200
+                        ? review.body.slice(0, 200) + "…"
+                        : review.body}
+                    </p>
+                    {review.propertyResponse && (
+                      <div className="bg-stone-50 border border-stone-200 rounded-md px-3 py-2 mt-1">
+                        <p className="text-xs font-medium text-stone-500">
+                          {property.name}
+                        </p>
+                        <p className="text-xs text-stone-600">
+                          {review.propertyResponse}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         )}
       </main>
     </div>

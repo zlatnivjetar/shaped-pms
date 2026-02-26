@@ -1,7 +1,12 @@
 "use server";
 
 import { db } from "@/db";
-import { reservations, inventory, payments } from "@/db/schema";
+import {
+  reservations,
+  inventory,
+  payments,
+  reviewTokens,
+} from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import {
@@ -9,6 +14,16 @@ import {
   refundPayment,
   cancelPaymentIntent,
 } from "@/lib/payments";
+import {
+  sendCancellationConfirmation,
+  sendPostStay,
+} from "@/lib/email";
+import {
+  generateReviewToken,
+  getReviewTokenExpiry,
+  buildReviewUrl,
+} from "@/lib/reviews";
+import { formatCurrency } from "@/components/emails/shared";
 
 function buildNightList(checkIn: string, checkOut: string): string[] {
   const nights: string[] = [];
@@ -68,6 +83,43 @@ export async function checkOutReservation(id: string) {
     .update(reservations)
     .set({ status: "checked_out", updatedAt: new Date() })
     .where(eq(reservations.id, id));
+
+  // Generate review token + send post-stay email
+  const reservation = await db.query.reservations.findFirst({
+    where: eq(reservations.id, id),
+    with: {
+      guest: true,
+      reservationRooms: { with: { roomType: true }, limit: 1 },
+      property: true,
+    },
+  });
+
+  if (reservation?.guest && reservation.property) {
+    const token = generateReviewToken();
+    const [tokenRow] = await db
+      .insert(reviewTokens)
+      .values({
+        reservationId: id,
+        propertyId: reservation.propertyId,
+        token,
+        expiresAt: getReviewTokenExpiry(),
+      })
+      .returning({ id: reviewTokens.id });
+
+    if (tokenRow) {
+      void sendPostStay({
+        reservationId: id,
+        propertyId: reservation.propertyId,
+        guestEmail: reservation.guest.email,
+        guestFirstName: reservation.guest.firstName,
+        propertyName: reservation.property.name,
+        checkOut: reservation.checkOut,
+        reviewUrl: buildReviewUrl(token),
+        confirmationCode: reservation.confirmationCode,
+      });
+    }
+  }
+
   revalidatePath("/reservations");
   revalidatePath(`/reservations/${id}`);
 }
@@ -78,7 +130,7 @@ export async function cancelReservation(
 ): Promise<void> {
   const reservation = await db.query.reservations.findFirst({
     where: eq(reservations.id, id),
-    with: { reservationRooms: true },
+    with: { reservationRooms: true, guest: true, property: true },
   });
   if (!reservation) return;
 
@@ -97,6 +149,7 @@ export async function cancelReservation(
     where: eq(payments.reservationId, id),
   });
 
+  let refundNote: string | undefined;
   if (payment) {
     if (payment.status === "captured") {
       await refundPayment(payment.stripePaymentIntentId);
@@ -104,6 +157,7 @@ export async function cancelReservation(
         .update(payments)
         .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
         .where(eq(payments.id, payment.id));
+      refundNote = `A refund of ${formatCurrency(payment.amountCents, payment.currency)} has been initiated to your original payment method.`;
     } else if (payment.status === "requires_capture") {
       await cancelPaymentIntent(payment.stripePaymentIntentId);
       await db
@@ -122,6 +176,22 @@ export async function cancelReservation(
       updatedAt: new Date(),
     })
     .where(eq(reservations.id, id));
+
+  // Fire-and-forget cancellation email
+  if (reservation.guest && reservation.property) {
+    void sendCancellationConfirmation({
+      reservationId: id,
+      propertyId: reservation.propertyId,
+      guestEmail: reservation.guest.email,
+      guestFirstName: reservation.guest.firstName,
+      confirmationCode: reservation.confirmationCode,
+      propertyName: reservation.property.name,
+      checkIn: reservation.checkIn,
+      checkOut: reservation.checkOut,
+      cancellationReason: reason,
+      refundNote,
+    });
+  }
 
   revalidatePath("/reservations");
   revalidatePath(`/reservations/${id}`);
