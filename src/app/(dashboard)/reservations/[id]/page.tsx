@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ReservationActions from "./reservation-actions";
+import PaymentActions from "./payment-actions";
 
 const STATUS_VARIANTS: Record<
   string,
@@ -73,6 +74,7 @@ export default async function ReservationDetailPage({ params }: Props) {
           room: true,
         },
       },
+      payments: true,
     },
   });
 
@@ -187,14 +189,14 @@ export default async function ReservationDetailPage({ params }: Props) {
           </CardContent>
         </Card>
 
-        {/* Pricing */}
+        {/* Payment */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
               Payment
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className="space-y-3 text-sm">
             {rr && (
               <div className="flex justify-between text-muted-foreground">
                 <span>
@@ -207,9 +209,51 @@ export default async function ReservationDetailPage({ params }: Props) {
               <span>Total</span>
               <span>{formatCurrency(reservation.totalCents, reservation.currency)}</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Payment at property · {reservation.currency}
-            </p>
+            {reservation.payments.length > 0 ? (
+              reservation.payments.map((p) => {
+                const typeLabel =
+                  p.type === "deposit"
+                    ? "Deposit"
+                    : p.type === "full_payment"
+                      ? "Full payment"
+                      : "Refund";
+                const statusVariant: Record<
+                  string,
+                  "default" | "secondary" | "destructive" | "outline"
+                > = {
+                  pending: "outline",
+                  requires_capture: "secondary",
+                  captured: "default",
+                  failed: "destructive",
+                  refunded: "outline",
+                };
+                const statusLabel: Record<string, string> = {
+                  pending: "Pending",
+                  requires_capture: "Auth held",
+                  captured: "Paid",
+                  failed: "Failed",
+                  refunded: "Refunded",
+                };
+                return (
+                  <div key={p.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-muted-foreground">{typeLabel}</span>
+                        <span className="ml-2 font-medium">
+                          {formatCurrency(p.amountCents, p.currency)}
+                        </span>
+                      </div>
+                      <Badge variant={statusVariant[p.status] ?? "outline"}>
+                        {statusLabel[p.status] ?? p.status}
+                      </Badge>
+                    </div>
+                    <PaymentActions payment={p} reservationId={reservation.id} />
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-xs text-muted-foreground">No payment recorded</p>
+            )}
           </CardContent>
         </Card>
 

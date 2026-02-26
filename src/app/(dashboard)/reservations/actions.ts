@@ -1,9 +1,14 @@
 "use server";
 
 import { db } from "@/db";
-import { reservations, inventory } from "@/db/schema";
+import { reservations, inventory, payments } from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import {
+  capturePaymentIntent,
+  refundPayment,
+  cancelPaymentIntent,
+} from "@/lib/payments";
 
 function buildNightList(checkIn: string, checkOut: string): string[] {
   const nights: string[] = [];
@@ -87,6 +92,27 @@ export async function cancelReservation(
     );
   }
 
+  // Handle payment refund / cancellation
+  const payment = await db.query.payments.findFirst({
+    where: eq(payments.reservationId, id),
+  });
+
+  if (payment) {
+    if (payment.status === "captured") {
+      await refundPayment(payment.stripePaymentIntentId);
+      await db
+        .update(payments)
+        .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
+        .where(eq(payments.id, payment.id));
+    } else if (payment.status === "requires_capture") {
+      await cancelPaymentIntent(payment.stripePaymentIntentId);
+      await db
+        .update(payments)
+        .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
+        .where(eq(payments.id, payment.id));
+    }
+  }
+
   await db
     .update(reservations)
     .set({
@@ -124,4 +150,43 @@ export async function markNoShow(id: string): Promise<void> {
 
   revalidatePath("/reservations");
   revalidatePath(`/reservations/${id}`);
+}
+
+export async function capturePaymentAction(
+  paymentId: string,
+  stripePaymentIntentId: string,
+  reservationId: string
+): Promise<{ error?: string }> {
+  const result = await capturePaymentIntent(stripePaymentIntentId);
+  if (!result.success) {
+    return { error: result.error ?? "Capture failed." };
+  }
+  await db
+    .update(payments)
+    .set({ status: "captured", capturedAt: new Date(), updatedAt: new Date() })
+    .where(eq(payments.id, paymentId));
+
+  revalidatePath("/reservations");
+  revalidatePath(`/reservations/${reservationId}`);
+  return {};
+}
+
+export async function refundPaymentAction(
+  paymentId: string,
+  stripePaymentIntentId: string,
+  reservationId: string,
+  amountCents?: number
+): Promise<{ error?: string }> {
+  const result = await refundPayment(stripePaymentIntentId, amountCents);
+  if (!result.success) {
+    return { error: result.error ?? "Refund failed." };
+  }
+  await db
+    .update(payments)
+    .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
+    .where(eq(payments.id, paymentId));
+
+  revalidatePath("/reservations");
+  revalidatePath(`/reservations/${reservationId}`);
+  return {};
 }

@@ -95,6 +95,7 @@ export default async function ReservationsPage({ searchParams }: Props) {
       reservationRooms: {
         with: { roomType: true },
       },
+      payments: true,
     },
     orderBy: [desc(reservations.createdAt)],
   });
@@ -143,6 +144,7 @@ export default async function ReservationsPage({ searchParams }: Props) {
               <TableHead>Check-out</TableHead>
               <TableHead>Nts</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Payment</TableHead>
               <TableHead>Channel</TableHead>
               <TableHead className="text-right">Total</TableHead>
             </TableRow>
@@ -151,7 +153,7 @@ export default async function ReservationsPage({ searchParams }: Props) {
             {allReservations.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={9}
+                  colSpan={10}
                   className="text-center text-muted-foreground py-10 text-sm"
                 >
                   No reservations found.
@@ -164,6 +166,24 @@ export default async function ReservationsPage({ searchParams }: Props) {
                 const guestName = r.guest
                   ? `${r.guest.firstName} ${r.guest.lastName}`
                   : "—";
+                const payment = r.payments[0];
+                const paymentVariants: Record<
+                  string,
+                  "default" | "secondary" | "destructive" | "outline"
+                > = {
+                  pending: "outline",
+                  requires_capture: "secondary",
+                  captured: "default",
+                  failed: "destructive",
+                  refunded: "outline",
+                };
+                const paymentLabels: Record<string, string> = {
+                  pending: "Pending",
+                  requires_capture: "Auth held",
+                  captured: "Paid",
+                  failed: "Failed",
+                  refunded: "Refunded",
+                };
                 return (
                   <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50">
                     <TableCell>
@@ -199,6 +219,18 @@ export default async function ReservationsPage({ searchParams }: Props) {
                       >
                         {STATUS_LABELS[r.status] ?? r.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {payment ? (
+                        <Badge
+                          variant={paymentVariants[payment.status] ?? "outline"}
+                          className="whitespace-nowrap"
+                        >
+                          {paymentLabels[payment.status] ?? payment.status}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {CHANNEL_LABELS[r.channel] ?? r.channel}

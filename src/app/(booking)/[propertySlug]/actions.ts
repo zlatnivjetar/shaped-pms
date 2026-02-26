@@ -8,12 +8,18 @@ import {
   inventory,
   roomTypes,
   ratePlans,
+  properties,
+  payments,
 } from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { generateConfirmationCode } from "@/lib/confirmation-code";
 import { createReservationSchema } from "@/lib/validators";
 import { resolveRate } from "@/lib/pricing";
+import {
+  createPaymentIntent,
+  stripe as getStripe,
+} from "@/lib/payments";
 
 function buildNightList(checkIn: string, checkOut: string): string[] {
   const nights: string[] = [];
@@ -25,6 +31,107 @@ function buildNightList(checkIn: string, checkOut: string): string[] {
   }
   return nights;
 }
+
+// ─── createPaymentIntentForBooking ────────────────────────────────────────────
+
+export async function createPaymentIntentForBooking(
+  propertySlug: string,
+  params: {
+    roomTypeId: string;
+    checkIn: string;
+    checkOut: string;
+    adults: number;
+    children: number;
+  }
+): Promise<
+  | {
+      clientSecret: string;
+      paymentIntentId: string;
+      chargedAmountCents: number;
+      paymentType: "deposit" | "full_payment";
+      reservationCode: string;
+    }
+  | { error: string }
+> {
+  // Load property
+  const property = await db.query.properties.findFirst({
+    where: eq(properties.slug, propertySlug),
+  });
+  if (!property) return { error: "Property not found." };
+
+  const nights = buildNightList(params.checkIn, params.checkOut);
+  if (nights.length === 0) return { error: "Invalid dates." };
+
+  // Load room type + rate plans
+  const [roomTypeData, activePlans] = await Promise.all([
+    db.query.roomTypes.findFirst({
+      where: eq(roomTypes.id, params.roomTypeId),
+    }),
+    db
+      .select()
+      .from(ratePlans)
+      .where(
+        and(
+          eq(ratePlans.roomTypeId, params.roomTypeId),
+          eq(ratePlans.status, "active")
+        )
+      ),
+  ]);
+
+  if (!roomTypeData) return { error: "Room type not found." };
+
+  const plansForPricing = activePlans.map((p) => ({
+    id: p.id,
+    type: p.type,
+    dateStart: p.dateStart,
+    dateEnd: p.dateEnd,
+    rateCents: p.rateCents,
+    priority: p.priority,
+    status: p.status,
+  }));
+
+  const totalCents = nights.reduce(
+    (sum, date) =>
+      sum + resolveRate(roomTypeData.baseRateCents, date, plansForPricing),
+    0
+  );
+
+  // Pre-generate reservation code — stored in PI metadata for anti-tamper check
+  let reservationCode = "";
+  for (let i = 0; i < 10; i++) {
+    const candidate = generateConfirmationCode();
+    const existing = await db.query.reservations.findFirst({
+      where: eq(reservations.confirmationCode, candidate),
+    });
+    if (!existing) {
+      reservationCode = candidate;
+      break;
+    }
+  }
+  if (!reservationCode) return { error: "Could not generate reservation code." };
+
+  const result = await createPaymentIntent({
+    amountCents: totalCents,
+    currency: property.currency,
+    paymentMode: property.paymentMode,
+    depositPercentage: property.depositPercentage,
+    metadata: {
+      reservation_code: reservationCode,
+      property_id: property.id,
+      room_type_id: params.roomTypeId,
+    },
+  });
+
+  return {
+    clientSecret: result.clientSecret,
+    paymentIntentId: result.paymentIntentId,
+    chargedAmountCents: result.chargedAmountCents,
+    paymentType: result.paymentType,
+    reservationCode,
+  };
+}
+
+// ─── createReservation ────────────────────────────────────────────────────────
 
 export async function createReservation(
   _prevState: string | null,
@@ -52,6 +159,29 @@ export async function createReservation(
 
   const data = parsed.data;
   const propertySlug = String(formData.get("propertySlug") ?? "");
+  const paymentIntentId = String(formData.get("paymentIntentId") ?? "");
+  const reservationCode = String(formData.get("reservationCode") ?? "");
+
+  if (!paymentIntentId || !reservationCode) {
+    return "Payment information is missing. Please restart the booking.";
+  }
+
+  // Verify payment intent
+  let pi;
+  try {
+    pi = await getStripe().paymentIntents.retrieve(paymentIntentId);
+  } catch {
+    return "Could not verify payment. Please try again.";
+  }
+
+  if (pi.status !== "succeeded" && pi.status !== "requires_capture") {
+    return "Payment was not authorized. Please try again.";
+  }
+
+  if (pi.metadata?.reservation_code !== reservationCode) {
+    return "Payment verification failed. Please restart the booking.";
+  }
+
   const nights = buildNightList(data.checkIn, data.checkOut);
 
   if (nights.length === 0) {
@@ -84,7 +214,6 @@ export async function createReservation(
     status: p.status,
   }));
 
-  // Compute nightly rates and total
   const nightlyRates = nights.map((date) => ({
     date,
     rateCents: resolveRate(roomTypeData.baseRateCents, date, plansForPricing),
@@ -132,7 +261,6 @@ export async function createReservation(
     .returning({ date: inventory.date });
 
   if (updatedRows.length !== nights.length) {
-    // Partial update — undo what succeeded
     const updatedDates = updatedRows.map((r) => r.date);
     if (updatedDates.length > 0) {
       await db
@@ -174,29 +302,13 @@ export async function createReservation(
       })
       .returning({ id: guests.id });
 
-    // Generate unique confirmation code
-    let confirmationCode = "";
-    for (let i = 0; i < 10; i++) {
-      const candidate = generateConfirmationCode();
-      const existing = await db.query.reservations.findFirst({
-        where: eq(reservations.confirmationCode, candidate),
-      });
-      if (!existing) {
-        confirmationCode = candidate;
-        break;
-      }
-    }
-    if (!confirmationCode) {
-      throw new Error("Failed to generate unique confirmation code");
-    }
-
-    // Create reservation
+    // Create reservation using the pre-generated code from PI metadata
     const [reservation] = await db
       .insert(reservations)
       .values({
         propertyId: data.propertyId,
         guestId: guest.id,
-        confirmationCode,
+        confirmationCode: reservationCode,
         checkIn: data.checkIn,
         checkOut: data.checkOut,
         nights: nights.length,
@@ -205,7 +317,7 @@ export async function createReservation(
         status: "confirmed",
         channel: "direct",
         totalCents,
-        currency: roomTypeData.id ? "EUR" : "EUR",
+        currency: "EUR",
         specialRequests: data.specialRequests,
       })
       .returning({ id: reservations.id, code: reservations.confirmationCode });
@@ -215,6 +327,23 @@ export async function createReservation(
       reservationId: reservation.id,
       roomTypeId: data.roomTypeId,
       ratePerNightCents,
+    });
+
+    // Insert payment record
+    const paymentStatus =
+      pi.status === "succeeded" ? "captured" : "requires_capture";
+    const paymentType =
+      (pi.metadata?.payment_type as "deposit" | "full_payment") ?? "full_payment";
+
+    await db.insert(payments).values({
+      reservationId: reservation.id,
+      propertyId: data.propertyId,
+      stripePaymentIntentId: paymentIntentId,
+      type: paymentType,
+      amountCents: pi.amount,
+      currency: pi.currency.toUpperCase(),
+      status: paymentStatus,
+      capturedAt: pi.status === "succeeded" ? new Date() : null,
     });
 
     // Update guest stats
@@ -229,7 +358,6 @@ export async function createReservation(
 
     redirect(`/${propertySlug}?step=complete&code=${reservation.code}`);
   } catch (err) {
-    // Check if this is a Next.js redirect (not a real error)
     if (
       err instanceof Error &&
       (err.message === "NEXT_REDIRECT" ||

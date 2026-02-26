@@ -64,6 +64,20 @@ export const reservationChannelEnum = pgEnum("reservation_channel", [
   "phone",
 ]);
 
+export const paymentTypeEnum = pgEnum("payment_type", [
+  "deposit",
+  "full_payment",
+  "refund",
+]);
+
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "pending",
+  "requires_capture",
+  "captured",
+  "failed",
+  "refunded",
+]);
+
 // ─── Properties ───────────────────────────────────────────────────────────────
 
 export const properties = pgTable("properties", {
@@ -313,6 +327,38 @@ export const reservationRooms = pgTable(
   ]
 );
 
+// ─── Payments ─────────────────────────────────────────────────────────────────
+
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reservationId: uuid("reservation_id")
+      .notNull()
+      .references(() => reservations.id, { onDelete: "cascade" }),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    stripePaymentIntentId: text("stripe_payment_intent_id").notNull().unique(),
+    type: paymentTypeEnum("type").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull().default("EUR"),
+    status: paymentStatusEnum("status").notNull().default("pending"),
+    capturedAt: timestamp("captured_at", { withTimezone: true }),
+    refundedAt: timestamp("refunded_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("payments_reservation_id_idx").on(t.reservationId),
+    index("payments_property_id_idx").on(t.propertyId),
+  ]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
@@ -389,6 +435,7 @@ export const reservationsRelations = relations(
       references: [guests.id],
     }),
     reservationRooms: many(reservationRooms),
+    payments: many(payments),
   })
 );
 
@@ -410,6 +457,17 @@ export const reservationRoomsRelations = relations(
   })
 );
 
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  reservation: one(reservations, {
+    fields: [payments.reservationId],
+    references: [reservations.id],
+  }),
+  property: one(properties, {
+    fields: [payments.propertyId],
+    references: [properties.id],
+  }),
+}));
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type Property = typeof properties.$inferSelect;
@@ -428,3 +486,5 @@ export type Reservation = typeof reservations.$inferSelect;
 export type NewReservation = typeof reservations.$inferInsert;
 export type ReservationRoom = typeof reservationRooms.$inferSelect;
 export type NewReservationRoom = typeof reservationRooms.$inferInsert;
+export type Payment = typeof payments.$inferSelect;
+export type NewPayment = typeof payments.$inferInsert;
