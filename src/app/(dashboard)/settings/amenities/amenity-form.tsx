@@ -95,8 +95,8 @@ export function AmenityForm({ amenity, onSuccess }: AmenityFormProps) {
             placeholder="wifi"
           />
           <p className="text-xs text-muted-foreground">
-            Lucide icon name: wifi, car, utensils, waves, tv, thermometer,
-            wind, home, bath, coffee, tag…
+            Phosphor icon name (kebab-case): wifi-high, snowflake, waves,
+            cooking-pot, bathtub, dumbbell, leaf…
           </p>
           <FieldError errors={state.fieldErrors?.icon} />
         </div>
