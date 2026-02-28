@@ -61,6 +61,7 @@ export async function createAmenity(
   }
 
   revalidatePath("/settings/amenities");
+  revalidatePath("/settings/room-types");
   return { success: true };
 }
 
@@ -89,6 +90,7 @@ export async function updateAmenity(
     .where(eq(amenities.id, amenityId));
 
   revalidatePath("/settings/amenities");
+  revalidatePath("/settings/room-types");
   return { success: true };
 }
 
