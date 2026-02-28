@@ -30,7 +30,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
   let selectedRoomType = null;
   let confirmTotal = 0;
   let completedReservation = null;
-  let amenitiesByRoomType: Record<string, { id: string; name: string; icon: string }[]> = {};
+  const amenitiesByRoomType: Record<string, { id: string; name: string; icon: string }[]> = {};
 
   if (step === "select" && sp.check_in && sp.check_out) {
     availableRoomTypes = await getAvailableRoomTypes(
