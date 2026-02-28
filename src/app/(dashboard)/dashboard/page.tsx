@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { properties } from "@/db/schema";
 import {
   getDashboardKPIs,
-  getRecentBookings,
+  getRecentActivity,
   getRevenueMetrics,
 } from "@/lib/dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,9 +70,9 @@ export default async function DashboardPage() {
     return <p className="text-muted-foreground">No property found.</p>;
   }
 
-  const [kpis, recentBookings, revenue] = await Promise.all([
+  const [kpis, recentActivity, revenue] = await Promise.all([
     getDashboardKPIs(property.id),
-    getRecentBookings(property.id),
+    getRecentActivity(property.id),
     getRevenueMetrics(property.id),
   ]);
 
@@ -187,10 +187,10 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Bookings */}
+      {/* Recent Activity */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Recent Bookings</h2>
+          <h2 className="text-lg font-semibold">Recent Activity</h2>
           <Link
             href="/reservations"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentBookings.length === 0 ? (
+              {recentActivity.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={6}
@@ -222,7 +222,7 @@ export default async function DashboardPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                recentBookings.map((r) => {
+                recentActivity.map((r) => {
                   const guestName = r.guest
                     ? `${r.guest.firstName} ${r.guest.lastName}`
                     : "—";

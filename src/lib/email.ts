@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { render } from "@react-email/components";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { emailLogs } from "@/db/schema";
 import BookingConfirmation from "@/components/emails/booking-confirmation";
@@ -97,6 +98,15 @@ export async function sendBookingConfirmation(params: {
   paymentType: "deposit" | "full_payment";
   checkInTime?: string;
 }): Promise<boolean> {
+  // Guard: only send if no prior confirmation log for this reservation
+  const existing = await db.query.emailLogs.findFirst({
+    where: and(
+      eq(emailLogs.reservationId, params.reservationId),
+      eq(emailLogs.type, "confirmation")
+    ),
+  });
+  if (existing) return false;
+
   return sendAndLog({
     reservationId: params.reservationId,
     propertyId: params.propertyId,

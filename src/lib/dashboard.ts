@@ -80,12 +80,12 @@ export async function getDashboardKPIs(propertyId: string) {
   };
 }
 
-export async function getRecentBookings(propertyId: string) {
+export async function getRecentActivity(propertyId: string) {
   return db.query.reservations.findMany({
     where: eq(reservations.propertyId, propertyId),
     with: { guest: true },
-    orderBy: [desc(reservations.createdAt)],
-    limit: 8,
+    orderBy: [desc(reservations.updatedAt)],
+    limit: 10,
   });
 }
 
