@@ -75,6 +75,10 @@ import {
   Camera,
   CarSimple,
   SealCheck,
+  Tag,
+  Car,
+  House,
+  Wind,
 } from "@phosphor-icons/react";
 
 const ICON_MAP: Record<string, Icon> = {
@@ -156,6 +160,14 @@ const ICON_MAP: Record<string, Icon> = {
   "car-simple":              CarSimple,
   "seal-check":              SealCheck,
   "circle-dashed":           CircleDashed,
+  // Legacy Lucide icon name aliases (for backwards-compatibility with old seed data)
+  "tag":                     Tag,
+  "car":                     Car,
+  "home":                    House,
+  "wind":                    Wind,
+  "utensils":                ForkKnife,
+  "wifi":                    WifiHigh,
+  "tv":                      Television,
 };
 
 export function AmenityChip({ icon, name }: { icon: string; name: string }) {

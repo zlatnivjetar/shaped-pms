@@ -17,7 +17,8 @@
     "db:seed-reservations": "tsx src/db/seed-reservations.ts",
     "db:seed-reviews": "tsx src/db/seed-reviews.ts",
     "db:seed-amenities": "tsx src/db/seed-amenities.ts",
-    "db:seed-amenities-registry": "tsx src/db/seed-amenities-registry.ts"
+    "db:seed-amenities-registry": "tsx src/db/seed-amenities-registry.ts",
+    "db:fix-legacy-icons": "tsx src/db/fix-legacy-icons.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
