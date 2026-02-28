@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Users, LogIn, LogOut, BedDouble } from "lucide-react";
+import { Users, LogIn, LogOut, CalendarDays } from "lucide-react";
 import Link from "next/link";
 
 const STATUS_VARIANTS: Record<
@@ -84,7 +84,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -125,13 +125,26 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Tonight&apos;s Occupancy
+              7-Day Occupancy
             </CardTitle>
-            <BedDouble className="h-4 w-4 text-muted-foreground" />
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{kpis.occupancyPct}%</div>
-            <p className="text-xs text-muted-foreground">Occupancy tonight</p>
+            <div className="text-2xl font-bold">{kpis.occupancy7Days}%</div>
+            <p className="text-xs text-muted-foreground">Next 7 days</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              30-Day Occupancy
+            </CardTitle>
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{kpis.occupancy30Days}%</div>
+            <p className="text-xs text-muted-foreground">Next 30 days</p>
           </CardContent>
         </Card>
       </div>

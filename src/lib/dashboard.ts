@@ -1,11 +1,24 @@
 import { db } from "@/db";
-import { reservations, rooms } from "@/db/schema";
-import { eq, and, count, sum, notInArray, desc, sql } from "drizzle-orm";
+import { reservations, inventory } from "@/db/schema";
+import { eq, and, count, sum, notInArray, desc, sql, gte, lt } from "drizzle-orm";
+
+function addDays(days: number) {
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function occupancyPct(booked: string | null, total: string | null) {
+  const t = Number(total ?? 0);
+  return t > 0 ? Math.round((Number(booked ?? 0) / t) * 100) : 0;
+}
 
 export async function getDashboardKPIs(propertyId: string) {
   const today = new Date().toISOString().slice(0, 10);
+  const in7Days = addDays(7);
+  const in30Days = addDays(30);
 
-  const [arrivalsResult, departuresResult, inHouseResult, totalRoomsResult] =
+  const [arrivalsResult, departuresResult, inHouseResult, occ7Result, occ30Result] =
     await Promise.all([
       db
         .select({ count: count() })
@@ -37,23 +50,33 @@ export async function getDashboardKPIs(propertyId: string) {
           )
         ),
       db
-        .select({ count: count() })
-        .from(rooms)
-        .where(eq(rooms.propertyId, propertyId)),
+        .select({ booked: sum(inventory.bookedUnits), total: sum(inventory.totalUnits) })
+        .from(inventory)
+        .where(
+          and(
+            eq(inventory.propertyId, propertyId),
+            gte(inventory.date, today),
+            lt(inventory.date, in7Days)
+          )
+        ),
+      db
+        .select({ booked: sum(inventory.bookedUnits), total: sum(inventory.totalUnits) })
+        .from(inventory)
+        .where(
+          and(
+            eq(inventory.propertyId, propertyId),
+            gte(inventory.date, today),
+            lt(inventory.date, in30Days)
+          )
+        ),
     ]);
 
-  const arrivals = arrivalsResult[0]?.count ?? 0;
-  const departures = departuresResult[0]?.count ?? 0;
-  const inHouse = inHouseResult[0]?.count ?? 0;
-  const totalRooms = totalRoomsResult[0]?.count ?? 0;
-  const occupancyPct =
-    totalRooms > 0 ? Math.round((Number(inHouse) / Number(totalRooms)) * 100) : 0;
-
   return {
-    arrivals: Number(arrivals),
-    departures: Number(departures),
-    inHouse: Number(inHouse),
-    occupancyPct,
+    arrivals: Number(arrivalsResult[0]?.count ?? 0),
+    departures: Number(departuresResult[0]?.count ?? 0),
+    inHouse: Number(inHouseResult[0]?.count ?? 0),
+    occupancy7Days: occupancyPct(occ7Result[0]?.booked, occ7Result[0]?.total),
+    occupancy30Days: occupancyPct(occ30Result[0]?.booked, occ30Result[0]?.total),
   };
 }
 
