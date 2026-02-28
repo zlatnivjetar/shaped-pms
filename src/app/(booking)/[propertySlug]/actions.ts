@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { generateConfirmationCode } from "@/lib/confirmation-code";
 import { createReservationSchema } from "@/lib/validators";
 import { resolveRate } from "@/lib/pricing";
@@ -391,6 +392,7 @@ export async function createReservation(
       });
     }
 
+    revalidatePath("/dashboard");
     redirect(`/${propertySlug}?step=complete&code=${reservation.code}`);
   } catch (err) {
     if (

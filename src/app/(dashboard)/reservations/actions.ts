@@ -65,6 +65,7 @@ export async function confirmReservation(id: string) {
     .update(reservations)
     .set({ status: "confirmed", updatedAt: new Date() })
     .where(eq(reservations.id, id));
+  revalidatePath("/dashboard");
   revalidatePath("/reservations");
   revalidatePath(`/reservations/${id}`);
 }
@@ -74,6 +75,7 @@ export async function checkInReservation(id: string) {
     .update(reservations)
     .set({ status: "checked_in", updatedAt: new Date() })
     .where(eq(reservations.id, id));
+  revalidatePath("/dashboard");
   revalidatePath("/reservations");
   revalidatePath(`/reservations/${id}`);
 }
@@ -120,6 +122,7 @@ export async function checkOutReservation(id: string) {
     }
   }
 
+  revalidatePath("/dashboard");
   revalidatePath("/reservations");
   revalidatePath(`/reservations/${id}`);
 }
@@ -193,6 +196,7 @@ export async function cancelReservation(
     });
   }
 
+  revalidatePath("/dashboard");
   revalidatePath("/reservations");
   revalidatePath(`/reservations/${id}`);
 }
@@ -218,6 +222,7 @@ export async function markNoShow(id: string): Promise<void> {
     .set({ status: "no_show", updatedAt: new Date() })
     .where(eq(reservations.id, id));
 
+  revalidatePath("/dashboard");
   revalidatePath("/reservations");
   revalidatePath(`/reservations/${id}`);
 }
