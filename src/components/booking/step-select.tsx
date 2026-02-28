@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { AmenityChip } from "./amenity-chip";
 import type { AvailableRoomType } from "@/lib/availability";
+
+type AmenityInfo = { id: string; name: string; icon: string };
 
 interface Props {
   propertySlug: string;
@@ -11,6 +14,7 @@ interface Props {
   adults: number;
   childCount: number;
   availableRoomTypes: AvailableRoomType[];
+  amenitiesByRoomType: Record<string, AmenityInfo[]>;
 }
 
 function formatCurrency(cents: number, currency = "EUR") {
@@ -39,6 +43,7 @@ export default function StepSelect({
   adults,
   childCount,
   availableRoomTypes,
+  amenitiesByRoomType,
 }: Props) {
   const router = useRouter();
 
@@ -122,6 +127,13 @@ export default function StepSelect({
                       {rt.available} room{rt.available !== 1 ? "s" : ""} left
                     </span>
                   </div>
+                  {amenitiesByRoomType[rt.roomTypeId]?.length > 0 && (
+                    <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3">
+                      {amenitiesByRoomType[rt.roomTypeId].map((a) => (
+                        <AmenityChip key={a.id} icon={a.icon} name={a.name} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

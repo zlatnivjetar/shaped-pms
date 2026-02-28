@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { roomTypes, rooms } from "@/db/schema";
+import { roomTypes, rooms, amenities, roomTypeAmenities } from "@/db/schema";
 import { eq, count, asc } from "drizzle-orm";
 import {
   Table,
@@ -14,6 +14,7 @@ import {
   CreateRoomTypeDialog,
   EditRoomTypeDialog,
   DeleteRoomTypeButton,
+  ManageAmenitiesDialog,
 } from "../../room-types/room-type-dialogs";
 
 export default async function SettingsRoomTypesPage() {
@@ -28,6 +29,19 @@ export default async function SettingsRoomTypesPage() {
     .groupBy(rooms.roomTypeId);
 
   const countMap = new Map(roomCounts.map((r) => [r.roomTypeId, r.count]));
+
+  const allAmenities = await db
+    .select()
+    .from(amenities)
+    .orderBy(asc(amenities.sortOrder), asc(amenities.createdAt));
+
+  const assignments = await db.select().from(roomTypeAmenities);
+  const amenityIdsByRoomType = new Map<string, string[]>();
+  for (const a of assignments) {
+    const existing = amenityIdsByRoomType.get(a.roomTypeId) ?? [];
+    existing.push(a.amenityId);
+    amenityIdsByRoomType.set(a.roomTypeId, existing);
+  }
 
   return (
     <div className="space-y-6">
@@ -50,7 +64,7 @@ export default async function SettingsRoomTypesPage() {
               <TableHead>Base Rate</TableHead>
               <TableHead>Rooms</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              <TableHead className="w-[130px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -90,6 +104,13 @@ export default async function SettingsRoomTypesPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      <ManageAmenitiesDialog
+                        roomType={rt}
+                        allAmenities={allAmenities}
+                        currentAmenityIds={
+                          amenityIdsByRoomType.get(rt.id) ?? []
+                        }
+                      />
                       <EditRoomTypeDialog roomType={rt} />
                       <DeleteRoomTypeButton roomType={rt} />
                     </div>

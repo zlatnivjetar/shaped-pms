@@ -7,6 +7,7 @@ const tabs = [
   { label: "Property", href: "/settings/property" },
   { label: "Room Types", href: "/settings/room-types" },
   { label: "Rooms", href: "/settings/rooms" },
+  { label: "Amenities", href: "/settings/amenities" },
 ];
 
 export function SettingsNav() {

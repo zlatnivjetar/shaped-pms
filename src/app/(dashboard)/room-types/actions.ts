@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { roomTypes, properties } from "@/db/schema";
+import { roomTypes, properties, roomTypeAmenities } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -98,4 +98,30 @@ export async function deleteRoomType(roomTypeId: string): Promise<void> {
   await db.delete(roomTypes).where(eq(roomTypes.id, roomTypeId));
   revalidatePath("/settings/room-types");
   revalidatePath("/settings/rooms");
+}
+
+export type AmenityAssignState = {
+  success?: boolean;
+  error?: string;
+};
+
+export async function updateRoomTypeAmenities(
+  roomTypeId: string,
+  prevState: AmenityAssignState,
+  formData: FormData
+): Promise<AmenityAssignState> {
+  const amenityIds = formData.getAll("amenityIds") as string[];
+
+  await db
+    .delete(roomTypeAmenities)
+    .where(eq(roomTypeAmenities.roomTypeId, roomTypeId));
+
+  if (amenityIds.length > 0) {
+    await db
+      .insert(roomTypeAmenities)
+      .values(amenityIds.map((amenityId) => ({ roomTypeId, amenityId })));
+  }
+
+  revalidatePath("/settings/room-types");
+  return { success: true };
 }

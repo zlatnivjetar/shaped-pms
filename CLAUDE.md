@@ -2,8 +2,8 @@
   Property Management System replacing a WordPress hospitality stack (MotoPress Hotel Booking + Shaped Core plugin).                                                         
   ## Current Status                                                                                                                                                       
                                                                                                                                                                           
-  Milestones 1–6 complete. See `/docs/m[1-6]-summary.md` for what was built.
-  Milestones 7–20 defined in `/docs/gap-analysis.md` — produced by analyzing the
+  Milestones 1–7 complete. See `/docs/m[1-6]-summary.md` for what was built (M7 has no summary yet).
+  Milestones 8–20 defined in `/docs/gap-analysis.md` — produced by analyzing the
   Shaped Core plugin against this PMS to identify every missing feature.
 
   ## Reference Documents
@@ -217,6 +217,22 @@
   ├── sent_at
   ├── created_at
   └── updated_at
+
+  amenities
+  ├── id (uuid, pk)
+  ├── property_id (fk → properties)
+  ├── name (e.g. "Free Wi-Fi")
+  ├── slug (e.g. "wifi")
+  ├── icon (Lucide icon name, e.g. "wifi")
+  ├── sort_order (int)
+  ├── created_at
+  └── updated_at
+  UNIQUE: (property_id, slug)
+
+  room_type_amenities
+  ├── room_type_id (fk → room_types, cascade delete)
+  ├── amenity_id (fk → amenities, cascade delete)
+  PRIMARY KEY: (room_type_id, amenity_id)
 
   ## Project Structure
 

@@ -15,7 +15,8 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:init-inventory": "tsx src/db/init-inventory.ts",
     "db:seed-reservations": "tsx src/db/seed-reservations.ts",
-    "db:seed-reviews": "tsx src/db/seed-reviews.ts"
+    "db:seed-reviews": "tsx src/db/seed-reviews.ts",
+    "db:seed-amenities": "tsx src/db/seed-amenities.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

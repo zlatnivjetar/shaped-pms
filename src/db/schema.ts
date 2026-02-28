@@ -9,6 +9,7 @@ import {
   date,
   index,
   uniqueIndex,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -472,6 +473,45 @@ export const emailLogs = pgTable(
   ]
 );
 
+// ─── Amenities ────────────────────────────────────────────────────────────────
+
+export const amenities = pgTable(
+  "amenities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    icon: text("icon").notNull().default("tag"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("amenities_property_slug_idx").on(t.propertyId, t.slug),
+    index("amenities_property_id_idx").on(t.propertyId),
+  ]
+);
+
+export const roomTypeAmenities = pgTable(
+  "room_type_amenities",
+  {
+    roomTypeId: uuid("room_type_id")
+      .notNull()
+      .references(() => roomTypes.id, { onDelete: "cascade" }),
+    amenityId: uuid("amenity_id")
+      .notNull()
+      .references(() => amenities.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.roomTypeId, t.amenityId] })]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
@@ -484,6 +524,7 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
   reviews: many(reviews),
   emailLogs: many(emailLogs),
   reviewTokens: many(reviewTokens),
+  amenities: many(amenities),
 }));
 
 export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
@@ -495,6 +536,7 @@ export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
   ratePlans: many(ratePlans),
   inventory: many(inventory),
   reservationRooms: many(reservationRooms),
+  amenityLinks: many(roomTypeAmenities),
 }));
 
 export const roomsRelations = relations(rooms, ({ one, many }) => ({
@@ -633,6 +675,28 @@ export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
   }),
 }));
 
+export const amenitiesRelations = relations(amenities, ({ one, many }) => ({
+  property: one(properties, {
+    fields: [amenities.propertyId],
+    references: [properties.id],
+  }),
+  roomTypeLinks: many(roomTypeAmenities),
+}));
+
+export const roomTypeAmenitiesRelations = relations(
+  roomTypeAmenities,
+  ({ one }) => ({
+    roomType: one(roomTypes, {
+      fields: [roomTypeAmenities.roomTypeId],
+      references: [roomTypes.id],
+    }),
+    amenity: one(amenities, {
+      fields: [roomTypeAmenities.amenityId],
+      references: [amenities.id],
+    }),
+  })
+);
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type Property = typeof properties.$inferSelect;
@@ -659,3 +723,7 @@ export type Review = typeof reviews.$inferSelect;
 export type NewReview = typeof reviews.$inferInsert;
 export type EmailLog = typeof emailLogs.$inferSelect;
 export type NewEmailLog = typeof emailLogs.$inferInsert;
+export type Amenity = typeof amenities.$inferSelect;
+export type NewAmenity = typeof amenities.$inferInsert;
+export type RoomTypeAmenity = typeof roomTypeAmenities.$inferSelect;
+export type NewRoomTypeAmenity = typeof roomTypeAmenities.$inferInsert;

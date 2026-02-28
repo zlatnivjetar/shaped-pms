@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { properties, roomTypes, reservations, reviews } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { properties, roomTypes, reservations, reviews, roomTypeAmenities } from "@/db/schema";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getAvailableRoomTypes, checkAvailability } from "@/lib/availability";
 import BookingFlow from "@/components/booking/booking-flow";
@@ -30,6 +30,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
   let selectedRoomType = null;
   let confirmTotal = 0;
   let completedReservation = null;
+  let amenitiesByRoomType: Record<string, { id: string; name: string; icon: string }[]> = {};
 
   if (step === "select" && sp.check_in && sp.check_out) {
     availableRoomTypes = await getAvailableRoomTypes(
@@ -37,6 +38,23 @@ export default async function BookingPage({ params, searchParams }: Props) {
       sp.check_in,
       sp.check_out
     );
+
+    if (availableRoomTypes.length > 0) {
+      const rtIds = availableRoomTypes.map((rt) => rt.roomTypeId);
+      const links = await db.query.roomTypeAmenities.findMany({
+        where: inArray(roomTypeAmenities.roomTypeId, rtIds),
+        with: { amenity: true },
+      });
+      for (const link of links) {
+        const list = amenitiesByRoomType[link.roomTypeId] ?? [];
+        list.push({
+          id: link.amenity.id,
+          name: link.amenity.name,
+          icon: link.amenity.icon,
+        });
+        amenitiesByRoomType[link.roomTypeId] = list;
+      }
+    }
   }
 
   if (
@@ -111,6 +129,7 @@ export default async function BookingPage({ params, searchParams }: Props) {
       completedReservation={completedReservation}
       publishedReviews={publishedReviews}
       avgRating={avgRating}
+      amenitiesByRoomType={amenitiesByRoomType}
     />
   );
 }

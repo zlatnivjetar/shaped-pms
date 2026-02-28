@@ -32,6 +32,8 @@ export type CompletedReservation = {
 
 type PublishedReview = Review & { guest: Guest | null };
 
+type AmenityInfo = { id: string; name: string; icon: string };
+
 interface Props {
   property: Property;
   step: string;
@@ -47,6 +49,7 @@ interface Props {
   completedReservation: CompletedReservation;
   publishedReviews: PublishedReview[];
   avgRating: number | null;
+  amenitiesByRoomType: Record<string, AmenityInfo[]>;
 }
 
 const STORAGE_KEY = "booking-guest-details";
@@ -114,6 +117,7 @@ export default function BookingFlow({
   completedReservation,
   publishedReviews,
   avgRating,
+  amenitiesByRoomType,
 }: Props) {
   const [guestDetails, setGuestDetails] = useState<GuestDetails>({
     firstName: "",
@@ -191,6 +195,7 @@ export default function BookingFlow({
             adults={adults}
             childCount={childCount}
             availableRoomTypes={availableRoomTypes ?? []}
+            amenitiesByRoomType={amenitiesByRoomType}
           />
         )}
 

@@ -262,6 +262,50 @@ async function seed() {
   }
   console.log(`  ✓ Total rate plans created: ${totalPlans}`);
 
+  // ── Amenities ─────────────────────────────────────────────────────────────
+
+  const amenityData = [
+    { name: "Free Wi-Fi", slug: "wifi", icon: "wifi", sortOrder: 1 },
+    { name: "Air Conditioning", slug: "air-conditioning", icon: "thermometer", sortOrder: 2 },
+    { name: "Fully Equipped Kitchen", slug: "kitchen", icon: "utensils", sortOrder: 3 },
+    { name: "Free Parking", slug: "parking", icon: "car", sortOrder: 4 },
+    { name: "Sea View", slug: "sea-view", icon: "waves", sortOrder: 5 },
+    { name: "Balcony / Terrace", slug: "balcony", icon: "home", sortOrder: 6 },
+    { name: "Washing Machine", slug: "washing-machine", icon: "wind", sortOrder: 7 },
+    { name: "Smart TV", slug: "smart-tv", icon: "tv", sortOrder: 8 },
+  ];
+
+  const insertedAmenities = await db
+    .insert(schema.amenities)
+    .values(amenityData.map((a) => ({ ...a, propertyId: property.id })))
+    .returning();
+
+  console.log(`  ✓ Amenities: ${insertedAmenities.length} created`);
+
+  const amenityBySlug = new Map(insertedAmenities.map((a) => [a.slug, a.id]));
+
+  const amenityAssignments: Array<{ roomTypeId: string; amenityId: string }> = [];
+
+  const assign = (roomTypeSlug: string, amenitySlugs: string[]) => {
+    const rtId = bySlug[roomTypeSlug]?.id;
+    if (!rtId) return;
+    for (const slug of amenitySlugs) {
+      const amenityId = amenityBySlug.get(slug);
+      if (amenityId) amenityAssignments.push({ roomTypeId: rtId, amenityId });
+    }
+  };
+
+  assign("studio", ["wifi", "air-conditioning", "kitchen", "smart-tv"]);
+  assign("one-bedroom", ["wifi", "air-conditioning", "kitchen", "balcony", "washing-machine", "smart-tv"]);
+  assign("two-bedroom", ["wifi", "air-conditioning", "kitchen", "balcony", "sea-view", "washing-machine", "smart-tv", "parking"]);
+  assign("penthouse", ["wifi", "air-conditioning", "kitchen", "balcony", "sea-view", "smart-tv", "parking"]);
+
+  if (amenityAssignments.length > 0) {
+    await db.insert(schema.roomTypeAmenities).values(amenityAssignments);
+  }
+
+  console.log(`  ✓ Amenity assignments: ${amenityAssignments.length} created`);
+
   console.log("\n✅ Seed complete!");
   console.log(`\nProperty slug: ${property.slug}`);
   console.log(`API key: ${property.apiKey}`);
