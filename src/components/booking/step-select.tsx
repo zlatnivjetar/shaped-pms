@@ -107,59 +107,69 @@ export default function StepSelect({
         </div>
       ) : (
         <div className="space-y-4">
-          {availableRoomTypes.map((rt) => (
-            <div
-              key={rt.roomTypeId}
-              className="bg-white rounded-xl border border-stone-200 p-5"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-stone-900">{rt.name}</h3>
-                  {rt.description && (
-                    <p className="text-sm text-stone-500 mt-1 line-clamp-2">
-                      {rt.description}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-3 mt-3 text-sm text-stone-500">
-                    <span>Up to {rt.maxOccupancy} guests</span>
-                    <span>·</span>
-                    <span>
-                      {rt.available} room{rt.available !== 1 ? "s" : ""} left
-                    </span>
+          {availableRoomTypes.map((rt) => {
+            const blocked = rt.ruleViolation !== null;
+            return (
+              <div
+                key={rt.roomTypeId}
+                className={`rounded-xl border p-5 ${blocked ? "bg-stone-50 border-stone-200 opacity-70" : "bg-white border-stone-200"}`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-stone-900">{rt.name}</h3>
+                    {rt.description && (
+                      <p className="text-sm text-stone-500 mt-1 line-clamp-2">
+                        {rt.description}
+                      </p>
+                    )}
+                    {blocked ? (
+                      <p className="text-sm text-amber-600 mt-2 font-medium">
+                        {rt.ruleViolation}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-3 mt-3 text-sm text-stone-500">
+                        <span>Up to {rt.maxOccupancy} guests</span>
+                        <span>·</span>
+                        <span>
+                          {rt.available} room{rt.available !== 1 ? "s" : ""} left
+                        </span>
+                      </div>
+                    )}
+                    {!blocked && amenitiesByRoomType[rt.roomTypeId]?.length > 0 && (
+                      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3">
+                        {amenitiesByRoomType[rt.roomTypeId].map((a) => (
+                          <AmenityChip key={a.id} icon={a.icon} name={a.name} />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {amenitiesByRoomType[rt.roomTypeId]?.length > 0 && (
-                    <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3">
-                      {amenitiesByRoomType[rt.roomTypeId].map((a) => (
-                        <AmenityChip key={a.id} icon={a.icon} name={a.name} />
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </div>
 
-              <div className="mt-4 flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-lg font-semibold text-stone-900">
-                    {formatCurrency(rt.totalCents)}
-                    <span className="text-sm font-normal text-stone-500 ml-1">
-                      total
-                    </span>
-                  </p>
-                  <p className="text-xs text-stone-400">
-                    {formatCurrency(rt.ratePerNightCents)} /{" "}
-                    {nights === 1 ? "night" : "night"}
-                    {nights > 1 ? ` × ${nights} nights` : ""}
-                  </p>
+                <div className="mt-4 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-lg font-semibold text-stone-900">
+                      {formatCurrency(rt.totalCents)}
+                      <span className="text-sm font-normal text-stone-500 ml-1">
+                        total
+                      </span>
+                    </p>
+                    <p className="text-xs text-stone-400">
+                      {formatCurrency(rt.ratePerNightCents)} /{" "}
+                      {nights === 1 ? "night" : "night"}
+                      {nights > 1 ? ` × ${nights} nights` : ""}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => !blocked && handleSelect(rt.roomTypeId)}
+                    disabled={blocked}
+                    className="bg-stone-900 hover:bg-stone-700 text-white shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {blocked ? "Unavailable" : "Select"}
+                  </Button>
                 </div>
-                <Button
-                  onClick={() => handleSelect(rt.roomTypeId)}
-                  className="bg-stone-900 hover:bg-stone-700 text-white shrink-0"
-                >
-                  Select
-                </Button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

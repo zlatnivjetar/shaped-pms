@@ -130,5 +130,60 @@ export function constructWebhookEvent(
   return getStripe().webhooks.constructEvent(rawBody, signature, secret);
 }
 
+// ─── createSetupIntent ────────────────────────────────────────────────────────
+
+interface CreateSetupIntentResult {
+  clientSecret: string;
+  setupIntentId: string;
+}
+
+export async function createSetupIntent(
+  metadata: Record<string, string>
+): Promise<CreateSetupIntentResult> {
+  const si = await getStripe().setupIntents.create({
+    payment_method_types: ["card"],
+    metadata,
+  });
+  return {
+    clientSecret: si.client_secret!,
+    setupIntentId: si.id,
+  };
+}
+
+// ─── chargeWithSavedMethod ────────────────────────────────────────────────────
+
+interface ChargeWithSavedMethodResult {
+  success: boolean;
+  paymentIntentId?: string;
+  error?: string;
+}
+
+export async function chargeWithSavedMethod(
+  paymentMethodId: string,
+  amountCents: number,
+  currency: string,
+  reservationId: string
+): Promise<ChargeWithSavedMethodResult> {
+  try {
+    const pi = await getStripe().paymentIntents.create({
+      amount: amountCents,
+      currency: currency.toLowerCase(),
+      payment_method: paymentMethodId,
+      confirm: true,
+      off_session: true,
+      metadata: {
+        reservation_id: reservationId,
+        payment_source: "scheduled_charge",
+      },
+    });
+    return { success: true, paymentIntentId: pi.id };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Charge failed",
+    };
+  }
+}
+
 // Named export for direct Stripe access in booking actions
 export { getStripe as stripe };

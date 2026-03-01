@@ -18,8 +18,10 @@ import { generateConfirmationCode } from "@/lib/confirmation-code";
 import { createReservationSchema } from "@/lib/validators";
 import { resolveRate } from "@/lib/pricing";
 import { generateManageToken, buildManageUrl } from "@/lib/cancellation";
+import { checkBookingRules } from "@/lib/availability";
 import {
   createPaymentIntent,
+  createSetupIntent,
   stripe as getStripe,
 } from "@/lib/payments";
 import { sendBookingConfirmation } from "@/lib/email";
@@ -37,6 +39,25 @@ function buildNightList(checkIn: string, checkOut: string): string[] {
 
 // ─── createPaymentIntentForBooking ────────────────────────────────────────────
 
+export type PaymentIntentResult =
+  | {
+      type: "payment";
+      clientSecret: string;
+      paymentIntentId: string;
+      chargedAmountCents: number;
+      paymentType: "deposit" | "full_payment";
+      reservationCode: string;
+    }
+  | {
+      type: "setup";
+      clientSecret: string;
+      setupIntentId: string;
+      totalCents: number;
+      reservationCode: string;
+      scheduledChargeDate: string;
+    }
+  | { error: string };
+
 export async function createPaymentIntentForBooking(
   propertySlug: string,
   params: {
@@ -46,16 +67,7 @@ export async function createPaymentIntentForBooking(
     adults: number;
     children: number;
   }
-): Promise<
-  | {
-      clientSecret: string;
-      paymentIntentId: string;
-      chargedAmountCents: number;
-      paymentType: "deposit" | "full_payment";
-      reservationCode: string;
-    }
-  | { error: string }
-> {
+): Promise<PaymentIntentResult> {
   // Load property
   const property = await db.query.properties.findFirst({
     where: eq(properties.slug, propertySlug),
@@ -99,7 +111,7 @@ export async function createPaymentIntentForBooking(
     0
   );
 
-  // Pre-generate reservation code — stored in PI metadata for anti-tamper check
+  // Pre-generate reservation code — stored in intent metadata for anti-tamper check
   let reservationCode = "";
   for (let i = 0; i < 10; i++) {
     const candidate = generateConfirmationCode();
@@ -113,20 +125,57 @@ export async function createPaymentIntentForBooking(
   }
   if (!reservationCode) return { error: "Could not generate reservation code." };
 
+  const metadata = {
+    reservation_code: reservationCode,
+    property_id: property.id,
+    room_type_id: params.roomTypeId,
+  };
+
+  // Scheduled mode: if check-in is far enough away, save card instead of charging now
+  if (property.paymentMode === "scheduled") {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const checkInDate = new Date(params.checkIn + "T00:00:00Z");
+    const daysUntilCheckIn = Math.ceil(
+      (checkInDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const threshold = property.scheduledChargeThresholdDays ?? 7;
+
+    if (daysUntilCheckIn > threshold) {
+      try {
+        const si = await createSetupIntent(metadata);
+        const chargeDate = new Date(checkInDate);
+        chargeDate.setUTCDate(chargeDate.getUTCDate() - threshold);
+        return {
+          type: "setup",
+          clientSecret: si.clientSecret,
+          setupIntentId: si.setupIntentId,
+          totalCents,
+          reservationCode,
+          scheduledChargeDate: chargeDate.toISOString().slice(0, 10),
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not set up payment.";
+        return { error: message };
+      }
+    }
+  }
+
+  // Standard flow: immediate PaymentIntent
   try {
     const result = await createPaymentIntent({
       amountCents: totalCents,
       currency: property.currency,
-      paymentMode: property.paymentMode,
+      paymentMode:
+        property.paymentMode === "scheduled"
+          ? "full_at_booking"
+          : property.paymentMode,
       depositPercentage: property.depositPercentage,
-      metadata: {
-        reservation_code: reservationCode,
-        property_id: property.id,
-        room_type_id: params.roomTypeId,
-      },
+      metadata,
     });
 
     return {
+      type: "payment",
       clientSecret: result.clientSecret,
       paymentIntentId: result.paymentIntentId,
       chargedAmountCents: result.chargedAmountCents,
@@ -168,25 +217,50 @@ export async function createReservation(
   const data = parsed.data;
   const propertySlug = String(formData.get("propertySlug") ?? "");
   const paymentIntentId = String(formData.get("paymentIntentId") ?? "");
+  const setupIntentId = String(formData.get("setupIntentId") ?? "");
   const reservationCode = String(formData.get("reservationCode") ?? "");
+  const isSetupFlow = !!setupIntentId;
 
-  if (!paymentIntentId || !reservationCode) {
+  if (!reservationCode || (!paymentIntentId && !setupIntentId)) {
     return "Payment information is missing. Please restart the booking.";
   }
 
-  // Verify payment intent
-  let pi;
-  try {
-    pi = await getStripe().paymentIntents.retrieve(paymentIntentId);
-  } catch {
-    return "Could not verify payment. Please try again.";
+  // Verify payment/setup intent
+  let stripeMetadata: Record<string, string> = {};
+  let stripePaymentMethodId: string | undefined;
+  let stripeChargedAmountCents = 0;
+  let stripePaymentStatus = "";
+
+  if (isSetupFlow) {
+    let si;
+    try {
+      si = await getStripe().setupIntents.retrieve(setupIntentId);
+    } catch {
+      return "Could not verify payment setup. Please try again.";
+    }
+    if (si.status !== "succeeded") {
+      return "Card setup was not completed. Please try again.";
+    }
+    stripeMetadata = (si.metadata as Record<string, string>) ?? {};
+    stripePaymentMethodId = typeof si.payment_method === "string"
+      ? si.payment_method
+      : si.payment_method?.id;
+  } else {
+    let pi;
+    try {
+      pi = await getStripe().paymentIntents.retrieve(paymentIntentId);
+    } catch {
+      return "Could not verify payment. Please try again.";
+    }
+    if (pi.status !== "succeeded" && pi.status !== "requires_capture") {
+      return "Payment was not authorized. Please try again.";
+    }
+    stripeMetadata = (pi.metadata as Record<string, string>) ?? {};
+    stripeChargedAmountCents = pi.amount;
+    stripePaymentStatus = pi.status;
   }
 
-  if (pi.status !== "succeeded" && pi.status !== "requires_capture") {
-    return "Payment was not authorized. Please try again.";
-  }
-
-  if (pi.metadata?.reservation_code !== reservationCode) {
+  if (stripeMetadata?.reservation_code !== reservationCode) {
     return "Payment verification failed. Please restart the booking.";
   }
 
@@ -228,6 +302,17 @@ export async function createReservation(
   }));
   const totalCents = nightlyRates.reduce((sum, n) => sum + n.rateCents, 0);
   const ratePerNightCents = nightlyRates[0]?.rateCents ?? roomTypeData.baseRateCents;
+
+  // Check booking rules
+  const rulesResult = await checkBookingRules(
+    data.propertyId,
+    data.roomTypeId,
+    data.checkIn,
+    data.checkOut
+  );
+  if (!rulesResult.valid) {
+    return rulesResult.violations[0] ?? "Booking not allowed for these dates.";
+  }
 
   // Pre-check availability
   const inventoryCheck = await db
@@ -340,21 +425,44 @@ export async function createReservation(
     });
 
     // Insert payment record
-    const paymentStatus =
-      pi.status === "succeeded" ? "captured" : "requires_capture";
-    const paymentType =
-      (pi.metadata?.payment_type as "deposit" | "full_payment") ?? "full_payment";
+    if (isSetupFlow) {
+      // Scheduled flow: save card, charge later
+      const property2 = await db.query.properties.findFirst({
+        where: eq(properties.slug, propertySlug),
+      });
+      const threshold = property2?.scheduledChargeThresholdDays ?? 7;
+      const checkInDate = new Date(data.checkIn + "T00:00:00Z");
+      const scheduledChargeAt = new Date(checkInDate);
+      scheduledChargeAt.setUTCDate(scheduledChargeAt.getUTCDate() - threshold);
 
-    await db.insert(payments).values({
-      reservationId: reservation.id,
-      propertyId: data.propertyId,
-      stripePaymentIntentId: paymentIntentId,
-      type: paymentType,
-      amountCents: pi.amount,
-      currency: pi.currency.toUpperCase(),
-      status: paymentStatus,
-      capturedAt: pi.status === "succeeded" ? new Date() : null,
-    });
+      await db.insert(payments).values({
+        reservationId: reservation.id,
+        propertyId: data.propertyId,
+        stripeSetupIntentId: setupIntentId,
+        stripePaymentMethodId: stripePaymentMethodId,
+        type: "full_payment",
+        amountCents: totalCents,
+        currency: property2?.currency ?? "EUR",
+        status: "pending",
+        scheduledChargeAt,
+      });
+    } else {
+      const paymentStatus =
+        stripePaymentStatus === "succeeded" ? "captured" : "requires_capture";
+      const paymentType =
+        (stripeMetadata?.payment_type as "deposit" | "full_payment") ?? "full_payment";
+
+      await db.insert(payments).values({
+        reservationId: reservation.id,
+        propertyId: data.propertyId,
+        stripePaymentIntentId: paymentIntentId,
+        type: paymentType,
+        amountCents: stripeChargedAmountCents,
+        currency: "EUR",
+        status: paymentStatus,
+        capturedAt: stripePaymentStatus === "succeeded" ? new Date() : null,
+      });
+    }
 
     // Update guest stats
     await db
@@ -367,18 +475,18 @@ export async function createReservation(
       .where(eq(guests.id, guest.id));
 
     // Fire-and-forget confirmation email
-    const property = await db.query.properties.findFirst({
+    const propertyForEmail = await db.query.properties.findFirst({
       where: eq(properties.slug, propertySlug),
     });
-    if (property) {
+    if (propertyForEmail) {
       void sendBookingConfirmation({
         reservationId: reservation.id,
         propertyId: data.propertyId,
         guestEmail: data.email.toLowerCase(),
         guestFirstName: data.firstName,
         confirmationCode: reservationCode,
-        propertyName: property.name,
-        propertyAddress: [property.address, property.city, property.country]
+        propertyName: propertyForEmail.name,
+        propertyAddress: [propertyForEmail.address, propertyForEmail.city, propertyForEmail.country]
           .filter(Boolean)
           .join(", "),
         checkIn: data.checkIn,
@@ -386,12 +494,12 @@ export async function createReservation(
         nights: nights.length,
         roomTypeName: roomTypeData.name,
         totalCents,
-        currency: property.currency,
-        amountPaidCents: pi.amount,
-        paymentType:
-          (pi.metadata?.payment_type as "deposit" | "full_payment") ??
-          "full_payment",
-        checkInTime: property.checkInTime ?? undefined,
+        currency: propertyForEmail.currency,
+        amountPaidCents: isSetupFlow ? 0 : stripeChargedAmountCents,
+        paymentType: isSetupFlow
+          ? "full_payment"
+          : ((stripeMetadata?.payment_type as "deposit" | "full_payment") ?? "full_payment"),
+        checkInTime: propertyForEmail.checkInTime ?? undefined,
         manageUrl: buildManageUrl(reservationCode, manageToken),
       });
     }

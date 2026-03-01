@@ -13,9 +13,13 @@ export function apiResponse<T>(data: T, status = 200): NextResponse {
   );
 }
 
-export function apiError(message: string, status: number): NextResponse {
+export function apiError(
+  message: string,
+  status: number,
+  extra?: Record<string, unknown>
+): NextResponse {
   return NextResponse.json(
-    { error: message, meta: { timestamp: new Date().toISOString() } },
+    { error: message, ...extra, meta: { timestamp: new Date().toISOString() } },
     { status }
   );
 }

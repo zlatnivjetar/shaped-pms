@@ -18,7 +18,8 @@ const updatePropertySchema = z.object({
   checkInTime: z.string().optional(),
   checkOutTime: z.string().optional(),
   depositPercentage: z.coerce.number().int().min(0).max(100),
-  paymentMode: z.enum(["full_at_booking", "deposit_at_booking"]),
+  paymentMode: z.enum(["full_at_booking", "deposit_at_booking", "scheduled"]),
+  scheduledChargeThresholdDays: z.coerce.number().int().min(1).max(365).optional(),
   cancellationPolicy: z.enum(["flexible", "moderate", "strict"]),
   cancellationDeadlineDays: z.coerce.number().int().min(1).max(365),
 });
@@ -47,6 +48,7 @@ export async function updateProperty(
     checkOutTime: formData.get("checkOutTime"),
     depositPercentage: formData.get("depositPercentage"),
     paymentMode: formData.get("paymentMode"),
+    scheduledChargeThresholdDays: formData.get("scheduledChargeThresholdDays") || undefined,
     cancellationPolicy: formData.get("cancellationPolicy"),
     cancellationDeadlineDays: formData.get("cancellationDeadlineDays"),
   };
@@ -77,6 +79,7 @@ export async function updateProperty(
       checkOutTime: data.checkOutTime || null,
       depositPercentage: data.depositPercentage,
       paymentMode: data.paymentMode,
+      scheduledChargeThresholdDays: data.scheduledChargeThresholdDays ?? 7,
       cancellationPolicy: data.cancellationPolicy,
       cancellationDeadlineDays: data.cancellationDeadlineDays,
       updatedAt: new Date(),

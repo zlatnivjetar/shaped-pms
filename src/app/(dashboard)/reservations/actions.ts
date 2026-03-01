@@ -154,7 +154,7 @@ export async function cancelReservation(
 
   let refundNote: string | undefined;
   if (payment) {
-    if (payment.status === "captured") {
+    if (payment.status === "captured" && payment.stripePaymentIntentId) {
       const checkInDate = new Date(reservation.checkIn + "T00:00:00Z");
       const { refundCents, refundNote: computedNote } = calculateRefundAmount(
         reservation.property?.cancellationPolicy ?? "flexible",
@@ -178,12 +178,19 @@ export async function cancelReservation(
         .update(payments)
         .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
         .where(eq(payments.id, payment.id));
-    } else if (payment.status === "requires_capture") {
+    } else if (payment.status === "requires_capture" && payment.stripePaymentIntentId) {
       await cancelPaymentIntent(payment.stripePaymentIntentId);
       await db
         .update(payments)
         .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
         .where(eq(payments.id, payment.id));
+    } else if (payment.status === "pending" && payment.stripeSetupIntentId) {
+      // Scheduled payment not yet charged — just cancel it
+      await db
+        .update(payments)
+        .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
+        .where(eq(payments.id, payment.id));
+      refundNote = "Booking cancelled before scheduled charge date.";
     }
   }
 

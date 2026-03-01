@@ -50,6 +50,13 @@
       "when": 1772348527252,
       "tag": "0006_flashy_randall",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772352340335,
+      "tag": "0007_living_klaw",
+      "breakpoints": true
     }
   ]
 }

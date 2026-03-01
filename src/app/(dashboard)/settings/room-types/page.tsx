@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { roomTypes, rooms, amenities, roomTypeAmenities } from "@/db/schema";
+import { roomTypes, rooms, amenities, roomTypeAmenities, bookingRules } from "@/db/schema";
 import { eq, count, asc } from "drizzle-orm";
 import {
   Table,
@@ -15,6 +15,7 @@ import {
   EditRoomTypeDialog,
   DeleteRoomTypeButton,
   ManageAmenitiesDialog,
+  ManageBookingRulesDialog,
 } from "../../room-types/room-type-dialogs";
 
 export default async function SettingsRoomTypesPage() {
@@ -43,6 +44,14 @@ export default async function SettingsRoomTypesPage() {
     amenityIdsByRoomType.set(a.roomTypeId, existing);
   }
 
+  const allRules = await db.select().from(bookingRules);
+  const rulesByRoomType = new Map<string, (typeof allRules)[number][]>();
+  for (const rule of allRules) {
+    const existing = rulesByRoomType.get(rule.roomTypeId) ?? [];
+    existing.push(rule);
+    rulesByRoomType.set(rule.roomTypeId, existing);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -64,7 +73,7 @@ export default async function SettingsRoomTypesPage() {
               <TableHead>Base Rate</TableHead>
               <TableHead>Rooms</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[130px]">Actions</TableHead>
+              <TableHead className="w-[160px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -110,6 +119,10 @@ export default async function SettingsRoomTypesPage() {
                         currentAmenityIds={
                           amenityIdsByRoomType.get(rt.id) ?? []
                         }
+                      />
+                      <ManageBookingRulesDialog
+                        roomType={rt}
+                        rules={rulesByRoomType.get(rt.id) ?? []}
                       />
                       <EditRoomTypeDialog roomType={rt} />
                       <DeleteRoomTypeButton roomType={rt} />

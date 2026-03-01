@@ -74,7 +74,13 @@ export default async function ReservationDetailPage({ params }: Props) {
           room: true,
         },
       },
-      payments: true,
+      payments: {
+        with: {
+          scheduledChargeLogs: {
+            orderBy: (logs, { desc }) => [desc(logs.attemptedAt)],
+          },
+        },
+      },
     },
   });
 
@@ -234,6 +240,7 @@ export default async function ReservationDetailPage({ params }: Props) {
                   failed: "Failed",
                   refunded: "Refunded",
                 };
+                const isScheduled = !!p.stripeSetupIntentId;
                 return (
                   <div key={p.id} className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -247,6 +254,39 @@ export default async function ReservationDetailPage({ params }: Props) {
                         {statusLabel[p.status] ?? p.status}
                       </Badge>
                     </div>
+                    {isScheduled && p.status === "pending" && p.scheduledChargeAt && (
+                      <p className="text-xs text-blue-600">
+                        Charge scheduled for{" "}
+                        {new Date(p.scheduledChargeAt).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+                    )}
+                    {isScheduled && p.chargeAttempts > 0 && (
+                      <p className="text-xs text-amber-600">
+                        {p.chargeAttempts} charge attempt{p.chargeAttempts !== 1 ? "s" : ""} — last failed
+                      </p>
+                    )}
+                    {p.scheduledChargeLogs && p.scheduledChargeLogs.length > 0 && (
+                      <div className="text-xs text-muted-foreground space-y-0.5 border-t pt-1 mt-1">
+                        {p.scheduledChargeLogs.slice(0, 3).map((log) => (
+                          <p key={log.id}>
+                            {new Date(log.attemptedAt).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                            {" — "}
+                            <span className={log.status === "succeeded" ? "text-green-600" : "text-red-600"}>
+                              {log.status}
+                            </span>
+                            {log.errorMessage && `: ${log.errorMessage}`}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                     <PaymentActions payment={p} reservationId={reservation.id} />
                   </div>
                 );

@@ -6,8 +6,8 @@
  */
 
 import { db } from "@/db";
-import { inventory, ratePlans, roomTypes } from "@/db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { inventory, ratePlans, roomTypes, bookingRules } from "@/db/schema";
+import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
 import { resolveRate, type RatePlanForPricing } from "./pricing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -125,6 +125,79 @@ export function computeAvailabilityResult(
   };
 }
 
+// ─── checkBookingRules ────────────────────────────────────────────────────────
+
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export type BookingRuleResult = {
+  valid: boolean;
+  violations: string[];
+};
+
+/**
+ * Checks whether a stay violates any booking rules for the given room type.
+ * Rules with date ranges are only active if they overlap the stay.
+ */
+export async function checkBookingRules(
+  propertyId: string,
+  roomTypeId: string,
+  checkIn: string,
+  checkOut: string
+): Promise<BookingRuleResult> {
+  const nights = buildNightList(checkIn, checkOut);
+  const stayNights = nights.length;
+
+  // Fetch rules that overlap the stay's date range
+  const rules = await db
+    .select()
+    .from(bookingRules)
+    .where(
+      and(
+        eq(bookingRules.propertyId, propertyId),
+        eq(bookingRules.roomTypeId, roomTypeId),
+        or(isNull(bookingRules.dateStart), lte(bookingRules.dateStart, checkOut)),
+        or(isNull(bookingRules.dateEnd), gte(bookingRules.dateEnd, checkIn))
+      )
+    );
+
+  if (rules.length === 0) return { valid: true, violations: [] };
+
+  const violations: string[] = [];
+  const checkInDay = new Date(checkIn + "T00:00:00Z").getUTCDay();
+  const checkOutDay = new Date(checkOut + "T00:00:00Z").getUTCDay();
+
+  for (const rule of rules) {
+    if (rule.minNights !== null && stayNights < rule.minNights) {
+      violations.push(
+        `Minimum stay is ${rule.minNights} night${rule.minNights !== 1 ? "s" : ""}`
+      );
+    }
+    if (rule.maxNights !== null && stayNights > rule.maxNights) {
+      violations.push(
+        `Maximum stay is ${rule.maxNights} night${rule.maxNights !== 1 ? "s" : ""}`
+      );
+    }
+    if (
+      rule.allowedCheckInDays !== null &&
+      rule.allowedCheckInDays.length > 0 &&
+      !rule.allowedCheckInDays.includes(checkInDay)
+    ) {
+      violations.push(`Check-in not allowed on ${DAY_NAMES[checkInDay]}`);
+    }
+    if (
+      rule.allowedCheckOutDays !== null &&
+      rule.allowedCheckOutDays.length > 0 &&
+      !rule.allowedCheckOutDays.includes(checkOutDay)
+    ) {
+      violations.push(`Check-out not allowed on ${DAY_NAMES[checkOutDay]}`);
+    }
+  }
+
+  // Deduplicate violation messages
+  const unique = [...new Set(violations)];
+  return { valid: unique.length === 0, violations: unique };
+}
+
 // ─── checkAvailability ────────────────────────────────────────────────────────
 
 /**
@@ -207,6 +280,7 @@ export type AvailableRoomType = {
   totalCents: number; // sum of all nightly rates
   nights: number;
   nightly: NightlyAvailability[];
+  ruleViolation: string | null; // first violation message, or null if valid
 };
 
 /**
@@ -223,7 +297,7 @@ export async function getAvailableRoomTypes(
   const nights = buildNightList(checkIn, checkOut);
   if (nights.length === 0) return [];
 
-  const [allRoomTypes, inventoryRows, allRatePlans] = await Promise.all([
+  const [allRoomTypes, inventoryRows, allRatePlans, allRules] = await Promise.all([
     db
       .select()
       .from(roomTypes)
@@ -249,7 +323,48 @@ export async function getAvailableRoomTypes(
           eq(ratePlans.status, "active")
         )
       ),
+    db
+      .select()
+      .from(bookingRules)
+      .where(
+        and(
+          eq(bookingRules.propertyId, propertyId),
+          or(isNull(bookingRules.dateStart), lte(bookingRules.dateStart, checkOut)),
+          or(isNull(bookingRules.dateEnd), gte(bookingRules.dateEnd, checkIn))
+        )
+      ),
   ]);
+
+  const stayNights = nights.length;
+  const checkInDay = new Date(checkIn + "T00:00:00Z").getUTCDay();
+  const checkOutDay = new Date(checkOut + "T00:00:00Z").getUTCDay();
+
+  function getRuleViolation(roomTypeId: string): string | null {
+    const rtRules = allRules.filter((r) => r.roomTypeId === roomTypeId);
+    for (const rule of rtRules) {
+      if (rule.minNights !== null && stayNights < rule.minNights) {
+        return `Minimum stay is ${rule.minNights} night${rule.minNights !== 1 ? "s" : ""}`;
+      }
+      if (rule.maxNights !== null && stayNights > rule.maxNights) {
+        return `Maximum stay is ${rule.maxNights} night${rule.maxNights !== 1 ? "s" : ""}`;
+      }
+      if (
+        rule.allowedCheckInDays !== null &&
+        rule.allowedCheckInDays.length > 0 &&
+        !rule.allowedCheckInDays.includes(checkInDay)
+      ) {
+        return `Check-in not allowed on ${DAY_NAMES[checkInDay]}`;
+      }
+      if (
+        rule.allowedCheckOutDays !== null &&
+        rule.allowedCheckOutDays.length > 0 &&
+        !rule.allowedCheckOutDays.includes(checkOutDay)
+      ) {
+        return `Check-out not allowed on ${DAY_NAMES[checkOutDay]}`;
+      }
+    }
+    return null;
+  }
 
   const results: AvailableRoomType[] = [];
 
@@ -274,6 +389,7 @@ export async function getAvailableRoomTypes(
 
     const totalCents = nightly.reduce((sum, n) => sum + n.rateCents, 0);
     const ratePerNightCents = nightly[0]?.rateCents ?? rt.baseRateCents;
+    const ruleViolation = getRuleViolation(rt.id);
 
     results.push({
       roomTypeId: rt.id,
@@ -287,6 +403,7 @@ export async function getAvailableRoomTypes(
       totalCents,
       nights: nightly.length,
       nightly,
+      ruleViolation,
     });
   }
 

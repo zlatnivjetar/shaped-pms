@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { reservations, reviewTokens } from "@/db/schema";
-import { eq, and, inArray, isNull, gt } from "drizzle-orm";
+import { reservations, reviewTokens, payments, scheduledChargeLog } from "@/db/schema";
+import { eq, and, inArray, isNull, gt, lte, lt, isNotNull } from "drizzle-orm";
 import { sendPreArrival, sendReviewRequest } from "@/lib/email";
 import { buildReviewUrl } from "@/lib/reviews";
+import { chargeWithSavedMethod } from "@/lib/payments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -120,10 +121,85 @@ export async function GET(req: NextRequest) {
     reviewRequestCount++;
   }
 
+  // ─── Scheduled charges job ────────────────────────────────────────────────
+
+  let scheduledChargeCount = 0;
+  let scheduledChargeFailCount = 0;
+
+  const duePayments = await db.query.payments.findMany({
+    where: and(
+      isNotNull(payments.scheduledChargeAt),
+      lte(payments.scheduledChargeAt, now),
+      eq(payments.status, "pending"),
+      lt(payments.chargeAttempts, 3),
+      isNotNull(payments.stripePaymentMethodId)
+    ),
+    with: {
+      reservation: {
+        with: { guest: true, property: true },
+      },
+    },
+  });
+
+  for (const payment of duePayments) {
+    if (!payment.stripePaymentMethodId) continue;
+
+    const result = await chargeWithSavedMethod(
+      payment.stripePaymentMethodId,
+      payment.amountCents,
+      payment.currency,
+      payment.reservationId
+    );
+
+    if (result.success) {
+      await db
+        .update(payments)
+        .set({
+          status: "captured",
+          capturedAt: now,
+          stripePaymentIntentId: result.paymentIntentId ?? null,
+          updatedAt: now,
+        })
+        .where(eq(payments.id, payment.id));
+
+      await db.insert(scheduledChargeLog).values({
+        paymentId: payment.id,
+        status: "succeeded",
+      });
+
+      scheduledChargeCount++;
+    } else {
+      const newAttempts = payment.chargeAttempts + 1;
+      const backoffDays = Math.pow(2, newAttempts);
+      const nextChargeAt = new Date(now);
+      nextChargeAt.setUTCDate(nextChargeAt.getUTCDate() + backoffDays);
+
+      await db
+        .update(payments)
+        .set({
+          chargeAttempts: newAttempts,
+          scheduledChargeAt: newAttempts < 3 ? nextChargeAt : null,
+          status: newAttempts >= 3 ? "failed" : "pending",
+          updatedAt: now,
+        })
+        .where(eq(payments.id, payment.id));
+
+      await db.insert(scheduledChargeLog).values({
+        paymentId: payment.id,
+        status: "failed",
+        errorMessage: result.error ?? "Unknown error",
+      });
+
+      scheduledChargeFailCount++;
+    }
+  }
+
   return NextResponse.json({
     processed: {
       preArrival: preArrivalCount,
       reviewRequests: reviewRequestCount,
+      scheduledCharges: scheduledChargeCount,
+      scheduledChargeFails: scheduledChargeFailCount,
     },
   });
 }

@@ -14,7 +14,7 @@ export default function PaymentActions({ payment, reservationId }: Props) {
   const [isPending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
 
-  if (payment.status === "captured") {
+  if (payment.status === "captured" && payment.stripePaymentIntentId) {
     return (
       <div className="space-y-2">
         {actionError && (
@@ -29,7 +29,7 @@ export default function PaymentActions({ payment, reservationId }: Props) {
             startTransition(async () => {
               const result = await refundPaymentAction(
                 payment.id,
-                payment.stripePaymentIntentId,
+                payment.stripePaymentIntentId!,
                 reservationId
               );
               if (result.error) setActionError(result.error);
@@ -42,7 +42,7 @@ export default function PaymentActions({ payment, reservationId }: Props) {
     );
   }
 
-  if (payment.status === "requires_capture") {
+  if (payment.status === "requires_capture" && payment.stripePaymentIntentId) {
     return (
       <div className="space-y-2">
         {actionError && (
@@ -56,7 +56,7 @@ export default function PaymentActions({ payment, reservationId }: Props) {
             startTransition(async () => {
               const result = await capturePaymentAction(
                 payment.id,
-                payment.stripePaymentIntentId,
+                payment.stripePaymentIntentId!,
                 reservationId
               );
               if (result.error) setActionError(result.error);

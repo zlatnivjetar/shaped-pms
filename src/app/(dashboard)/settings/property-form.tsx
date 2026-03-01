@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { updateProperty, type UpdatePropertyState } from "./actions";
 import type { Property } from "@/db/schema";
@@ -37,6 +37,7 @@ export function PropertyForm({ property }: { property: Property }) {
     updateProperty.bind(null, property.id),
     {}
   );
+  const [paymentMode, setPaymentMode] = useState(property.paymentMode);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -170,28 +171,55 @@ export function PropertyForm({ property }: { property: Property }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <Label htmlFor="paymentMode">Payment Mode</Label>
-              <Select name="paymentMode" defaultValue={property.paymentMode}>
+              <Select
+                name="paymentMode"
+                defaultValue={property.paymentMode}
+                onValueChange={(v) => setPaymentMode(v as typeof paymentMode)}
+              >
                 <SelectTrigger id="paymentMode">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="full_at_booking">Full payment at booking</SelectItem>
                   <SelectItem value="deposit_at_booking">Deposit at booking</SelectItem>
+                  <SelectItem value="scheduled">Scheduled (charge before arrival)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="depositPercentage">Deposit Percentage</Label>
-              <Input
-                id="depositPercentage"
-                name="depositPercentage"
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={property.depositPercentage}
-              />
-              <FieldError errors={state.fieldErrors?.depositPercentage} />
-            </div>
+            {paymentMode === "deposit_at_booking" && (
+              <div className="space-y-1">
+                <Label htmlFor="depositPercentage">Deposit Percentage</Label>
+                <Input
+                  id="depositPercentage"
+                  name="depositPercentage"
+                  type="number"
+                  min={0}
+                  max={100}
+                  defaultValue={property.depositPercentage}
+                />
+                <FieldError errors={state.fieldErrors?.depositPercentage} />
+              </div>
+            )}
+            {paymentMode !== "deposit_at_booking" && (
+              <input type="hidden" name="depositPercentage" value={property.depositPercentage} />
+            )}
+            {paymentMode === "scheduled" && (
+              <div className="space-y-1">
+                <Label htmlFor="scheduledChargeThresholdDays">Charge X days before check-in</Label>
+                <Input
+                  id="scheduledChargeThresholdDays"
+                  name="scheduledChargeThresholdDays"
+                  type="number"
+                  min={1}
+                  max={365}
+                  defaultValue={property.scheduledChargeThresholdDays ?? 7}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Card saved at booking; charged this many days before arrival
+                </p>
+                <FieldError errors={state.fieldErrors?.scheduledChargeThresholdDays} />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

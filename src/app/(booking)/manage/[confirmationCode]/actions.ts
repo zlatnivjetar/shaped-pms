@@ -95,7 +95,7 @@ export async function guestCancelReservation(
 
   // Handle Stripe refund / cancellation
   if (capturedPayment) {
-    if (refundCents > 0) {
+    if (refundCents > 0 && capturedPayment.stripePaymentIntentId) {
       const result = await refundPayment(
         capturedPayment.stripePaymentIntentId,
         refundCents
@@ -108,13 +108,24 @@ export async function guestCancelReservation(
       .update(payments)
       .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
       .where(eq(payments.id, capturedPayment.id));
-  } else if (requiresCapturePayment) {
+  } else if (requiresCapturePayment?.stripePaymentIntentId) {
     // Deposit not yet captured — void it
     await cancelPaymentIntent(requiresCapturePayment.stripePaymentIntentId);
     await db
       .update(payments)
       .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
       .where(eq(payments.id, requiresCapturePayment.id));
+  }
+
+  // Handle scheduled payment (pending, card saved) — just cancel without Stripe call
+  const pendingScheduledPayment = reservation.payments.find(
+    (p) => p.status === "pending" && p.stripeSetupIntentId
+  );
+  if (pendingScheduledPayment) {
+    await db
+      .update(payments)
+      .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
+      .where(eq(payments.id, pendingScheduledPayment.id));
   }
 
   // Update reservation

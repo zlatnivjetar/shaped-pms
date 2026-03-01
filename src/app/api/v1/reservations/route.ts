@@ -10,7 +10,7 @@ import {
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { apiResponse, apiError, getAuthenticatedProperty } from "@/lib/api-utils";
 import { apiReservationSchema } from "@/lib/validators";
-import { checkAvailability } from "@/lib/availability";
+import { checkAvailability, checkBookingRules } from "@/lib/availability";
 import { generateConfirmationCode } from "@/lib/confirmation-code";
 import { sendBookingConfirmation } from "@/lib/email";
 
@@ -74,6 +74,17 @@ export async function POST(req: NextRequest) {
 
   if (availability.available < 1) {
     return apiError("No availability for the requested dates.", 409);
+  }
+
+  // Check booking rules
+  const rulesResult = await checkBookingRules(
+    property.id,
+    data.roomTypeId,
+    data.checkIn,
+    data.checkOut
+  );
+  if (!rulesResult.valid) {
+    return apiError("Booking rule violation", 400, { details: rulesResult.violations });
   }
 
   const totalCents = availability.nightly.reduce((sum, n) => sum + n.rateCents, 0);

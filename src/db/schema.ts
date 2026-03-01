@@ -24,6 +24,7 @@ export const propertyStatusEnum = pgEnum("property_status", [
 export const paymentModeEnum = pgEnum("payment_mode", [
   "full_at_booking",
   "deposit_at_booking",
+  "scheduled",
 ]);
 
 export const roomTypeStatusEnum = pgEnum("room_type_status", [
@@ -127,6 +128,9 @@ export const properties = pgTable("properties", {
     .notNull()
     .default("flexible"),
   cancellationDeadlineDays: integer("cancellation_deadline_days")
+    .notNull()
+    .default(7),
+  scheduledChargeThresholdDays: integer("scheduled_charge_threshold_days")
     .notNull()
     .default(7),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -370,13 +374,17 @@ export const payments = pgTable(
     propertyId: uuid("property_id")
       .notNull()
       .references(() => properties.id, { onDelete: "cascade" }),
-    stripePaymentIntentId: text("stripe_payment_intent_id").notNull().unique(),
+    stripePaymentIntentId: text("stripe_payment_intent_id").unique(),
+    stripeSetupIntentId: text("stripe_setup_intent_id"),
+    stripePaymentMethodId: text("stripe_payment_method_id"),
     type: paymentTypeEnum("type").notNull(),
     amountCents: integer("amount_cents").notNull(),
     currency: text("currency").notNull().default("EUR"),
     status: paymentStatusEnum("status").notNull().default("pending"),
     capturedAt: timestamp("captured_at", { withTimezone: true }),
     refundedAt: timestamp("refunded_at", { withTimezone: true }),
+    scheduledChargeAt: timestamp("scheduled_charge_at", { withTimezone: true }),
+    chargeAttempts: integer("charge_attempts").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -526,6 +534,58 @@ export const roomTypeAmenities = pgTable(
   (t) => [primaryKey({ columns: [t.roomTypeId, t.amenityId] })]
 );
 
+// ─── Booking Rules ────────────────────────────────────────────────────────────
+
+export const bookingRules = pgTable(
+  "booking_rules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    roomTypeId: uuid("room_type_id")
+      .notNull()
+      .references(() => roomTypes.id, { onDelete: "cascade" }),
+    minNights: integer("min_nights"),
+    maxNights: integer("max_nights"),
+    allowedCheckInDays: integer("allowed_check_in_days").array(),
+    allowedCheckOutDays: integer("allowed_check_out_days").array(),
+    dateStart: date("date_start"),
+    dateEnd: date("date_end"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("booking_rules_property_id_idx").on(t.propertyId),
+    index("booking_rules_room_type_id_idx").on(t.roomTypeId),
+  ]
+);
+
+// ─── Scheduled Charge Log ─────────────────────────────────────────────────────
+
+export const scheduledChargeLog = pgTable(
+  "scheduled_charge_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    paymentId: uuid("payment_id")
+      .notNull()
+      .references(() => payments.id, { onDelete: "cascade" }),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    status: text("status").notNull(),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("scheduled_charge_log_payment_id_idx").on(t.paymentId)]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
@@ -539,6 +599,7 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
   emailLogs: many(emailLogs),
   reviewTokens: many(reviewTokens),
   amenities: many(amenities),
+  bookingRules: many(bookingRules),
 }));
 
 export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
@@ -551,6 +612,7 @@ export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
   inventory: many(inventory),
   reservationRooms: many(reservationRooms),
   amenityLinks: many(roomTypeAmenities),
+  bookingRules: many(bookingRules),
 }));
 
 export const roomsRelations = relations(rooms, ({ one, many }) => ({
@@ -633,7 +695,7 @@ export const reservationRoomsRelations = relations(
   })
 );
 
-export const paymentsRelations = relations(payments, ({ one }) => ({
+export const paymentsRelations = relations(payments, ({ one, many }) => ({
   reservation: one(reservations, {
     fields: [payments.reservationId],
     references: [reservations.id],
@@ -642,7 +704,29 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
     fields: [payments.propertyId],
     references: [properties.id],
   }),
+  scheduledChargeLogs: many(scheduledChargeLog),
 }));
+
+export const bookingRulesRelations = relations(bookingRules, ({ one }) => ({
+  property: one(properties, {
+    fields: [bookingRules.propertyId],
+    references: [properties.id],
+  }),
+  roomType: one(roomTypes, {
+    fields: [bookingRules.roomTypeId],
+    references: [roomTypes.id],
+  }),
+}));
+
+export const scheduledChargeLogRelations = relations(
+  scheduledChargeLog,
+  ({ one }) => ({
+    payment: one(payments, {
+      fields: [scheduledChargeLog.paymentId],
+      references: [payments.id],
+    }),
+  })
+);
 
 export const reviewTokensRelations = relations(
   reviewTokens,
@@ -741,4 +825,9 @@ export type Amenity = typeof amenities.$inferSelect;
 export type NewAmenity = typeof amenities.$inferInsert;
 export type RoomTypeAmenity = typeof roomTypeAmenities.$inferSelect;
 export type NewRoomTypeAmenity = typeof roomTypeAmenities.$inferInsert;
+export type BookingRule = typeof bookingRules.$inferSelect;
+export type NewBookingRule = typeof bookingRules.$inferInsert;
+export type ScheduledChargeLog = typeof scheduledChargeLog.$inferSelect;
+export type NewScheduledChargeLog = typeof scheduledChargeLog.$inferInsert;
 export type CancellationPolicy = "flexible" | "moderate" | "strict";
+export type PaymentMode = "full_at_booking" | "deposit_at_booking" | "scheduled";

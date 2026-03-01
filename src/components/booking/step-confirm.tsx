@@ -16,6 +16,7 @@ import type { GuestDetails } from "./booking-flow";
 import {
   createReservation,
   createPaymentIntentForBooking,
+  type PaymentIntentResult,
 } from "@/app/(booking)/[propertySlug]/actions";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -34,13 +35,23 @@ interface Props {
   guestDetails: GuestDetails;
 }
 
-type PaymentInfo = {
-  clientSecret: string;
-  paymentIntentId: string;
-  chargedAmountCents: number;
-  paymentType: "deposit" | "full_payment";
-  reservationCode: string;
-};
+type PaymentInfo =
+  | {
+      type: "payment";
+      clientSecret: string;
+      paymentIntentId: string;
+      chargedAmountCents: number;
+      paymentType: "deposit" | "full_payment";
+      reservationCode: string;
+    }
+  | {
+      type: "setup";
+      clientSecret: string;
+      setupIntentId: string;
+      totalCents: number;
+      reservationCode: string;
+      scheduledChargeDate: string;
+    };
 
 function formatCurrency(cents: number, currency = "EUR") {
   return new Intl.NumberFormat("en-EU", {
@@ -113,6 +124,7 @@ function PaymentFormInner({
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
+  const isSetupFlow = paymentInfo.type === "setup";
 
   async function handlePay() {
     if (!stripe || !elements) return;
@@ -132,42 +144,65 @@ function PaymentFormInner({
     returnUrl.searchParams.set("adults", String(adults));
     returnUrl.searchParams.set("children", String(childCount));
     returnUrl.searchParams.set("room_type_id", roomTypeId);
-    returnUrl.searchParams.set("payment_intent", paymentInfo.paymentIntentId);
     returnUrl.searchParams.set("code", paymentInfo.reservationCode);
 
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: returnUrl.toString() },
-      redirect: "if_required",
-    });
-
-    if (error) {
-      onError(error.message ?? "Payment failed. Please try again.");
-      setIsProcessing(false);
-    } else if (
-      paymentIntent &&
-      (paymentIntent.status === "succeeded" ||
-        paymentIntent.status === "requires_capture")
-    ) {
-      onSuccess();
+    if (isSetupFlow) {
+      returnUrl.searchParams.set("setup_intent", paymentInfo.setupIntentId);
+      const { error, setupIntent } = await stripe.confirmSetup({
+        elements,
+        confirmParams: { return_url: returnUrl.toString() },
+        redirect: "if_required",
+      });
+      if (error) {
+        onError(error.message ?? "Card setup failed. Please try again.");
+        setIsProcessing(false);
+      } else if (setupIntent?.status === "succeeded") {
+        onSuccess();
+      } else {
+        onError("Unexpected setup state. Please try again.");
+        setIsProcessing(false);
+      }
     } else {
-      onError("Unexpected payment state. Please try again.");
-      setIsProcessing(false);
+      returnUrl.searchParams.set("payment_intent", paymentInfo.paymentIntentId);
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url: returnUrl.toString() },
+        redirect: "if_required",
+      });
+      if (error) {
+        onError(error.message ?? "Payment failed. Please try again.");
+        setIsProcessing(false);
+      } else if (
+        paymentIntent &&
+        (paymentIntent.status === "succeeded" ||
+          paymentIntent.status === "requires_capture")
+      ) {
+        onSuccess();
+      } else {
+        onError("Unexpected payment state. Please try again.");
+        setIsProcessing(false);
+      }
     }
   }
 
-  const isDeposit = paymentInfo.paymentType === "deposit";
+  const isDeposit = !isSetupFlow && paymentInfo.paymentType === "deposit";
   const busy = isProcessing || isActionPending;
 
   return (
     <div className="space-y-4">
-      {isDeposit && (
+      {isSetupFlow ? (
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
+          Your card will be saved now and charged{" "}
+          <strong>{formatCurrency(paymentInfo.totalCents, property.currency)}</strong>{" "}
+          on <strong>{paymentInfo.scheduledChargeDate}</strong>, before your arrival.
+        </div>
+      ) : isDeposit ? (
         <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
           You will be charged{" "}
           <strong>{formatCurrency(paymentInfo.chargedAmountCents)}</strong> now
           as a deposit. The remaining balance is due at check-in.
         </div>
-      )}
+      ) : null}
       <PaymentElement />
       <Button
         onClick={handlePay}
@@ -177,8 +212,10 @@ function PaymentFormInner({
         {isActionPending
           ? "Confirming booking…"
           : isProcessing
-            ? "Processing payment…"
-            : `Pay ${formatCurrency(paymentInfo.chargedAmountCents, property.currency)}${isDeposit ? " deposit" : ""}`}
+            ? isSetupFlow ? "Saving card…" : "Processing payment…"
+            : isSetupFlow
+              ? "Save card & confirm booking"
+              : `Pay ${formatCurrency(paymentInfo.chargedAmountCents, property.currency)}${isDeposit ? " deposit" : ""}`}
       </Button>
     </div>
   );
@@ -213,17 +250,29 @@ export default function StepConfirm({
       new Date(checkIn + "T00:00:00Z").getTime()) /
     86400000;
 
-  // Handle 3DS return: detect payment_intent + code params in URL
+  // Handle 3DS return: detect payment_intent or setup_intent + code params in URL
   useEffect(() => {
     const piId = searchParams.get("payment_intent");
+    const siId = searchParams.get("setup_intent");
     const code = searchParams.get("code");
     if (piId && code) {
       setPaymentInfo({
+        type: "payment",
         clientSecret: "",
         paymentIntentId: piId,
         chargedAmountCents: 0,
         paymentType: "full_payment",
         reservationCode: code,
+      });
+      setAutoSubmit(true);
+    } else if (siId && code) {
+      setPaymentInfo({
+        type: "setup",
+        clientSecret: "",
+        setupIntentId: siId,
+        totalCents: 0,
+        reservationCode: code,
+        scheduledChargeDate: "",
       });
       setAutoSubmit(true);
     }
@@ -252,7 +301,7 @@ export default function StepConfirm({
         setPaymentError(result.error);
         return;
       }
-      setPaymentInfo(result);
+      setPaymentInfo(result as PaymentInfo);
       setStage("payment");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not set up payment. Please try again.";
@@ -275,7 +324,7 @@ export default function StepConfirm({
   }
 
   // Show loading screen during 3DS auto-submit or action pending
-  if (autoSubmit || (isPending && paymentInfo?.clientSecret === "")) {
+  if (autoSubmit || (isPending && paymentInfo !== null && paymentInfo.clientSecret === "")) {
     return (
       <div className="text-center py-16">
         <p className="text-stone-600 text-sm">Completing your reservation…</p>
@@ -431,7 +480,12 @@ export default function StepConfirm({
         <input
           type="hidden"
           name="paymentIntentId"
-          value={paymentInfo?.paymentIntentId ?? ""}
+          value={paymentInfo?.type === "payment" ? paymentInfo.paymentIntentId : ""}
+        />
+        <input
+          type="hidden"
+          name="setupIntentId"
+          value={paymentInfo?.type === "setup" ? paymentInfo.setupIntentId : ""}
         />
         <input
           type="hidden"
