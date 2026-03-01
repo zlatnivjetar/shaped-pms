@@ -10,6 +10,7 @@ import {
   Preview,
   Row,
   Column,
+  Button,
 } from "@react-email/components";
 import { BRAND, MUTED, formatCurrency, formatEmailDate } from "./shared";
 
@@ -27,6 +28,7 @@ interface BookingConfirmationProps {
   amountPaidCents: number;
   paymentType: "deposit" | "full_payment";
   checkInTime?: string;
+  manageUrl?: string;
 }
 
 export default function BookingConfirmation({
@@ -43,6 +45,7 @@ export default function BookingConfirmation({
   amountPaidCents,
   paymentType,
   checkInTime,
+  manageUrl,
 }: BookingConfirmationProps) {
   return (
     <Html>
@@ -194,6 +197,48 @@ export default function BookingConfirmation({
                 {formatCurrency(totalCents - amountPaidCents, currency)} will be
                 collected at check-in.
               </Text>
+            )}
+
+            {/* Manage booking */}
+            {manageUrl && (
+              <>
+                <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
+                <Heading
+                  as="h3"
+                  style={{
+                    color: BRAND,
+                    fontSize: "14px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  MANAGE YOUR BOOKING
+                </Heading>
+                <Text
+                  style={{
+                    color: MUTED,
+                    fontSize: "14px",
+                    margin: "0 0 16px",
+                  }}
+                >
+                  Need to cancel or view your booking details? Use the link
+                  below.
+                </Text>
+                <Button
+                  href={manageUrl}
+                  style={{
+                    backgroundColor: BRAND,
+                    color: "#ffffff",
+                    borderRadius: "6px",
+                    padding: "12px 24px",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    textDecoration: "none",
+                    display: "inline-block",
+                  }}
+                >
+                  Manage Booking
+                </Button>
+              </>
             )}
           </Section>
 

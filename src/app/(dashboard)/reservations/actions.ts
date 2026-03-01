@@ -23,7 +23,7 @@ import {
   getReviewTokenExpiry,
   buildReviewUrl,
 } from "@/lib/reviews";
-import { formatCurrency } from "@/components/emails/shared";
+import { calculateRefundAmount } from "@/lib/cancellation";
 
 function buildNightList(checkIn: string, checkOut: string): string[] {
   const nights: string[] = [];
@@ -155,12 +155,29 @@ export async function cancelReservation(
   let refundNote: string | undefined;
   if (payment) {
     if (payment.status === "captured") {
-      await refundPayment(payment.stripePaymentIntentId);
+      const checkInDate = new Date(reservation.checkIn + "T00:00:00Z");
+      const { refundCents, refundNote: computedNote } = calculateRefundAmount(
+        reservation.property?.cancellationPolicy ?? "flexible",
+        reservation.property?.cancellationDeadlineDays ?? 7,
+        checkInDate,
+        payment.amountCents,
+        payment.currency
+      );
+      refundNote = computedNote;
+
+      if (refundCents > 0) {
+        const result = await refundPayment(
+          payment.stripePaymentIntentId,
+          refundCents
+        );
+        if (!result.success) {
+          console.error("[cancelReservation] Stripe refund failed:", result.error);
+        }
+      }
       await db
         .update(payments)
         .set({ status: "refunded", refundedAt: new Date(), updatedAt: new Date() })
         .where(eq(payments.id, payment.id));
-      refundNote = `A refund of ${formatCurrency(payment.amountCents, payment.currency)} has been initiated to your original payment method.`;
     } else if (payment.status === "requires_capture") {
       await cancelPaymentIntent(payment.stripePaymentIntentId);
       await db

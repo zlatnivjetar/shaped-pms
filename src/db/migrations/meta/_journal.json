@@ -43,6 +43,13 @@
       "when": 1772282911577,
       "tag": "0005_classy_microchip",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772348527252,
+      "tag": "0006_flashy_randall",
+      "breakpoints": true
     }
   ]
 }

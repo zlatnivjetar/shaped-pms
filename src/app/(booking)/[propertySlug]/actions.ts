@@ -17,6 +17,7 @@ import { revalidatePath } from "next/cache";
 import { generateConfirmationCode } from "@/lib/confirmation-code";
 import { createReservationSchema } from "@/lib/validators";
 import { resolveRate } from "@/lib/pricing";
+import { generateManageToken, buildManageUrl } from "@/lib/cancellation";
 import {
   createPaymentIntent,
   stripe as getStripe,
@@ -310,6 +311,7 @@ export async function createReservation(
       .returning({ id: guests.id });
 
     // Create reservation using the pre-generated code from PI metadata
+    const manageToken = generateManageToken();
     const [reservation] = await db
       .insert(reservations)
       .values({
@@ -326,6 +328,7 @@ export async function createReservation(
         totalCents,
         currency: "EUR",
         specialRequests: data.specialRequests,
+        manageToken,
       })
       .returning({ id: reservations.id, code: reservations.confirmationCode });
 
@@ -389,6 +392,7 @@ export async function createReservation(
           (pi.metadata?.payment_type as "deposit" | "full_payment") ??
           "full_payment",
         checkInTime: property.checkInTime ?? undefined,
+        manageUrl: buildManageUrl(reservationCode, manageToken),
       });
     }
 

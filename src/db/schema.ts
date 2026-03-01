@@ -2,6 +2,7 @@ import {
   pgTable,
   uuid,
   text,
+  varchar,
   integer,
   timestamp,
   pgEnum,
@@ -95,6 +96,12 @@ export const emailTypeEnum = pgEnum("email_type", [
 
 export const emailStatusEnum = pgEnum("email_status", ["sent", "failed"]);
 
+export const cancellationPolicyEnum = pgEnum("cancellation_policy", [
+  "flexible",
+  "moderate",
+  "strict",
+]);
+
 // ─── Properties ───────────────────────────────────────────────────────────────
 
 export const properties = pgTable("properties", {
@@ -116,6 +123,12 @@ export const properties = pgTable("properties", {
   status: propertyStatusEnum("status").notNull().default("active"),
   stripeAccountId: text("stripe_account_id"),
   apiKey: text("api_key").notNull().unique(),
+  cancellationPolicy: cancellationPolicyEnum("cancellation_policy")
+    .notNull()
+    .default("flexible"),
+  cancellationDeadlineDays: integer("cancellation_deadline_days")
+    .notNull()
+    .default(7),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -302,6 +315,7 @@ export const reservations = pgTable(
     specialRequests: text("special_requests"),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     cancellationReason: text("cancellation_reason"),
+    manageToken: varchar("manage_token", { length: 64 }).unique(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -727,3 +741,4 @@ export type Amenity = typeof amenities.$inferSelect;
 export type NewAmenity = typeof amenities.$inferInsert;
 export type RoomTypeAmenity = typeof roomTypeAmenities.$inferSelect;
 export type NewRoomTypeAmenity = typeof roomTypeAmenities.$inferInsert;
+export type CancellationPolicy = "flexible" | "moderate" | "strict";

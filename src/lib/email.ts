@@ -97,6 +97,7 @@ export async function sendBookingConfirmation(params: {
   amountPaidCents: number;
   paymentType: "deposit" | "full_payment";
   checkInTime?: string;
+  manageUrl?: string;
 }): Promise<boolean> {
   // Guard: only send if no prior confirmation log for this reservation
   const existing = await db.query.emailLogs.findFirst({
@@ -127,6 +128,7 @@ export async function sendBookingConfirmation(params: {
       amountPaidCents: params.amountPaidCents,
       paymentType: params.paymentType,
       checkInTime: params.checkInTime,
+      manageUrl: params.manageUrl,
     }),
   });
 }

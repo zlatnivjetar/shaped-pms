@@ -19,6 +19,8 @@ const updatePropertySchema = z.object({
   checkOutTime: z.string().optional(),
   depositPercentage: z.coerce.number().int().min(0).max(100),
   paymentMode: z.enum(["full_at_booking", "deposit_at_booking"]),
+  cancellationPolicy: z.enum(["flexible", "moderate", "strict"]),
+  cancellationDeadlineDays: z.coerce.number().int().min(1).max(365),
 });
 
 export type UpdatePropertyState = {
@@ -45,6 +47,8 @@ export async function updateProperty(
     checkOutTime: formData.get("checkOutTime"),
     depositPercentage: formData.get("depositPercentage"),
     paymentMode: formData.get("paymentMode"),
+    cancellationPolicy: formData.get("cancellationPolicy"),
+    cancellationDeadlineDays: formData.get("cancellationDeadlineDays"),
   };
 
   const parsed = updatePropertySchema.safeParse(raw);
@@ -73,6 +77,8 @@ export async function updateProperty(
       checkOutTime: data.checkOutTime || null,
       depositPercentage: data.depositPercentage,
       paymentMode: data.paymentMode,
+      cancellationPolicy: data.cancellationPolicy,
+      cancellationDeadlineDays: data.cancellationDeadlineDays,
       updatedAt: new Date(),
     })
     .where(eq(properties.id, propertyId));

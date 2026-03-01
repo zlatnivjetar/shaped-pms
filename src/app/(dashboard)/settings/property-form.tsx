@@ -196,6 +196,63 @@ export function PropertyForm({ property }: { property: Property }) {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Cancellation Policy</CardTitle>
+          <CardDescription>
+            Determines what refund guests receive when they cancel.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="cancellationPolicy">Policy</Label>
+              <Select
+                name="cancellationPolicy"
+                defaultValue={property.cancellationPolicy}
+              >
+                <SelectTrigger id="cancellationPolicy">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flexible">
+                    Flexible — full refund before deadline
+                  </SelectItem>
+                  <SelectItem value="moderate">
+                    Moderate — 50% refund before deadline
+                  </SelectItem>
+                  <SelectItem value="strict">
+                    Strict — no refund
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError errors={state.fieldErrors?.cancellationPolicy} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="cancellationDeadlineDays">
+                Deadline (days before check-in)
+              </Label>
+              <Input
+                id="cancellationDeadlineDays"
+                name="cancellationDeadlineDays"
+                type="number"
+                min={1}
+                max={365}
+                defaultValue={property.cancellationDeadlineDays}
+              />
+              <p className="text-xs text-muted-foreground">
+                Refund applies when cancelled this many days before check-in
+              </p>
+              <FieldError
+                errors={state.fieldErrors?.cancellationDeadlineDays}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Separator className="sr-only" />
+
       <div className="flex justify-end">
         <SubmitButton />
       </div>
