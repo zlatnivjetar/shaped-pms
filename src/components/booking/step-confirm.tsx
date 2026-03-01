@@ -51,6 +51,19 @@ function formatCurrency(cents: number, currency = "EUR") {
   }).format(cents / 100);
 }
 
+function cancellationPolicyLabel(
+  policy: string,
+  days: number
+): string {
+  if (policy === "flexible") {
+    return `Free cancellation up to ${days} day${days !== 1 ? "s" : ""} before arrival`;
+  }
+  if (policy === "moderate") {
+    return `50% refund if cancelled up to ${days} day${days !== 1 ? "s" : ""} before arrival; no refund after`;
+  }
+  return "Non-refundable";
+}
+
 function formatDate(dateStr: string) {
   return new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
     weekday: "short",
@@ -336,6 +349,12 @@ export default function StepConfirm({
               {formatCurrency(totalCents, property.currency)}
             </span>
           </div>
+          <p className="text-xs text-stone-400 mt-2">
+            {cancellationPolicyLabel(
+              property.cancellationPolicy,
+              property.cancellationDeadlineDays
+            )}
+          </p>
         </div>
       </div>
 
