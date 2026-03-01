@@ -293,6 +293,7 @@
   6. **When stuck, isolate.** Build logic in a standalone file, verify it, then integrate.
   7. **This schema is the source of truth.** Change this document first, then change the code.
   8. **Read the gap analysis** before starting any milestone M7+. It contains architecture decisions, spec references, and acceptance criteria.
+  9. **Push to GitHub after every successful implementation**
 
   ## Seed Data: Preelook Apartments
 
