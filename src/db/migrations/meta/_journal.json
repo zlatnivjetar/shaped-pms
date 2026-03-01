@@ -57,6 +57,13 @@
       "when": 1772352340335,
       "tag": "0007_living_klaw",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772367154516,
+      "tag": "0008_lonely_boomer",
+      "breakpoints": true
     }
   ]
 }

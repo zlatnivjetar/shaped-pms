@@ -52,6 +52,7 @@ export type PaymentIntentResult =
       type: "setup";
       clientSecret: string;
       setupIntentId: string;
+      customerId: string;
       totalCents: number;
       reservationCode: string;
       scheduledChargeDate: string;
@@ -66,6 +67,8 @@ export async function createPaymentIntentForBooking(
     checkOut: string;
     adults: number;
     children: number;
+    guestEmail?: string;
+    guestName?: string;
   }
 ): Promise<PaymentIntentResult> {
   // Load property
@@ -143,13 +146,18 @@ export async function createPaymentIntentForBooking(
 
     if (daysUntilCheckIn > threshold) {
       try {
-        const si = await createSetupIntent(metadata);
+        const si = await createSetupIntent(
+          params.guestEmail ?? "",
+          params.guestName ?? "",
+          metadata
+        );
         const chargeDate = new Date(checkInDate);
         chargeDate.setUTCDate(chargeDate.getUTCDate() - threshold);
         return {
           type: "setup",
           clientSecret: si.clientSecret,
           setupIntentId: si.setupIntentId,
+          customerId: si.customerId,
           totalCents,
           reservationCode,
           scheduledChargeDate: chargeDate.toISOString().slice(0, 10),
@@ -218,6 +226,7 @@ export async function createReservation(
   const propertySlug = String(formData.get("propertySlug") ?? "");
   const paymentIntentId = String(formData.get("paymentIntentId") ?? "");
   const setupIntentId = String(formData.get("setupIntentId") ?? "");
+  const stripeCustomerId = String(formData.get("stripeCustomerId") ?? "");
   const reservationCode = String(formData.get("reservationCode") ?? "");
   const isSetupFlow = !!setupIntentId;
 
@@ -230,6 +239,8 @@ export async function createReservation(
   let stripePaymentMethodId: string | undefined;
   let stripeChargedAmountCents = 0;
   let stripePaymentStatus = "";
+
+  let stripeCustomerIdFromStripe: string | undefined;
 
   if (isSetupFlow) {
     let si;
@@ -245,6 +256,10 @@ export async function createReservation(
     stripePaymentMethodId = typeof si.payment_method === "string"
       ? si.payment_method
       : si.payment_method?.id;
+    // Prefer customerId from form (no-redirect flow); fall back to what Stripe has on the SI
+    stripeCustomerIdFromStripe = stripeCustomerId || (
+      typeof si.customer === "string" ? si.customer : si.customer?.id
+    ) || undefined;
   } else {
     let pi;
     try {
@@ -440,6 +455,7 @@ export async function createReservation(
         propertyId: data.propertyId,
         stripeSetupIntentId: setupIntentId,
         stripePaymentMethodId: stripePaymentMethodId,
+        stripeCustomerId: stripeCustomerIdFromStripe ?? null,
         type: "full_payment",
         amountCents: totalCents,
         currency: property2?.currency ?? "EUR",

@@ -377,6 +377,7 @@ export const payments = pgTable(
     stripePaymentIntentId: text("stripe_payment_intent_id").unique(),
     stripeSetupIntentId: text("stripe_setup_intent_id"),
     stripePaymentMethodId: text("stripe_payment_method_id"),
+    stripeCustomerId: text("stripe_customer_id"),
     type: paymentTypeEnum("type").notNull(),
     amountCents: integer("amount_cents").notNull(),
     currency: text("currency").notNull().default("EUR"),

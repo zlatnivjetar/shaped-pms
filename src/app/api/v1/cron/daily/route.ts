@@ -132,7 +132,8 @@ export async function GET(req: NextRequest) {
       lte(payments.scheduledChargeAt, now),
       eq(payments.status, "pending"),
       lt(payments.chargeAttempts, 3),
-      isNotNull(payments.stripePaymentMethodId)
+      isNotNull(payments.stripePaymentMethodId),
+      isNotNull(payments.stripeCustomerId)
     ),
     with: {
       reservation: {
@@ -142,9 +143,10 @@ export async function GET(req: NextRequest) {
   });
 
   for (const payment of duePayments) {
-    if (!payment.stripePaymentMethodId) continue;
+    if (!payment.stripePaymentMethodId || !payment.stripeCustomerId) continue;
 
     const result = await chargeWithSavedMethod(
+      payment.stripeCustomerId,
       payment.stripePaymentMethodId,
       payment.amountCents,
       payment.currency,

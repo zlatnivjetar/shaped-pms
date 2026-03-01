@@ -48,6 +48,7 @@ type PaymentInfo =
       type: "setup";
       clientSecret: string;
       setupIntentId: string;
+      customerId: string;
       totalCents: number;
       reservationCode: string;
       scheduledChargeDate: string;
@@ -270,6 +271,7 @@ export default function StepConfirm({
         type: "setup",
         clientSecret: "",
         setupIntentId: siId,
+        customerId: "",
         totalCents: 0,
         reservationCode: code,
         scheduledChargeDate: "",
@@ -296,6 +298,8 @@ export default function StepConfirm({
         checkOut,
         adults,
         children: childCount,
+        guestEmail: guestDetails.email,
+        guestName: `${guestDetails.firstName} ${guestDetails.lastName}`,
       });
       if ("error" in result) {
         setPaymentError(result.error);
@@ -486,6 +490,11 @@ export default function StepConfirm({
           type="hidden"
           name="setupIntentId"
           value={paymentInfo?.type === "setup" ? paymentInfo.setupIntentId : ""}
+        />
+        <input
+          type="hidden"
+          name="stripeCustomerId"
+          value={paymentInfo?.type === "setup" ? paymentInfo.customerId : ""}
         />
         <input
           type="hidden"

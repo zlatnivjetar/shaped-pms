@@ -135,18 +135,34 @@ export function constructWebhookEvent(
 interface CreateSetupIntentResult {
   clientSecret: string;
   setupIntentId: string;
+  customerId: string;
 }
 
 export async function createSetupIntent(
+  guestEmail: string,
+  guestName: string,
   metadata: Record<string, string>
 ): Promise<CreateSetupIntentResult> {
-  const si = await getStripe().setupIntents.create({
-    payment_method_types: ["card"],
+  const stripe = getStripe();
+
+  // Create a Stripe Customer so the saved payment method can be charged off-session
+  const customer = await stripe.customers.create({
+    email: guestEmail,
+    name: guestName,
     metadata,
   });
+
+  const si = await stripe.setupIntents.create({
+    customer: customer.id,
+    payment_method_types: ["card"],
+    usage: "off_session",
+    metadata,
+  });
+
   return {
     clientSecret: si.client_secret!,
     setupIntentId: si.id,
+    customerId: customer.id,
   };
 }
 
@@ -159,6 +175,7 @@ interface ChargeWithSavedMethodResult {
 }
 
 export async function chargeWithSavedMethod(
+  customerId: string,
   paymentMethodId: string,
   amountCents: number,
   currency: string,
@@ -168,6 +185,7 @@ export async function chargeWithSavedMethod(
     const pi = await getStripe().paymentIntents.create({
       amount: amountCents,
       currency: currency.toLowerCase(),
+      customer: customerId,
       payment_method: paymentMethodId,
       confirm: true,
       off_session: true,
