@@ -97,6 +97,11 @@ export const emailTypeEnum = pgEnum("email_type", [
 
 export const emailStatusEnum = pgEnum("email_status", ["sent", "failed"]);
 
+export const discountStatusEnum = pgEnum("discount_status", [
+  "active",
+  "inactive",
+]);
+
 export const cancellationPolicyEnum = pgEnum("cancellation_policy", [
   "flexible",
   "moderate",
@@ -320,6 +325,7 @@ export const reservations = pgTable(
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     cancellationReason: text("cancellation_reason"),
     manageToken: varchar("manage_token", { length: 64 }).unique(),
+    checkoutStartedAt: timestamp("checkout_started_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -587,6 +593,36 @@ export const scheduledChargeLog = pgTable(
   (t) => [index("scheduled_charge_log_payment_id_idx").on(t.paymentId)]
 );
 
+// ─── Discounts ────────────────────────────────────────────────────────────────
+
+export const discounts = pgTable(
+  "discounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    roomTypeId: uuid("room_type_id").references(() => roomTypes.id, {
+      onDelete: "cascade",
+    }),
+    name: text("name").notNull(),
+    percentage: integer("percentage").notNull(),
+    dateStart: date("date_start"),
+    dateEnd: date("date_end"),
+    status: discountStatusEnum("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("discounts_property_id_idx").on(t.propertyId),
+    index("discounts_room_type_id_idx").on(t.roomTypeId),
+  ]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
@@ -601,6 +637,7 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
   reviewTokens: many(reviewTokens),
   amenities: many(amenities),
   bookingRules: many(bookingRules),
+  discounts: many(discounts),
 }));
 
 export const roomTypesRelations = relations(roomTypes, ({ one, many }) => ({
@@ -719,6 +756,17 @@ export const bookingRulesRelations = relations(bookingRules, ({ one }) => ({
   }),
 }));
 
+export const discountsRelations = relations(discounts, ({ one }) => ({
+  property: one(properties, {
+    fields: [discounts.propertyId],
+    references: [properties.id],
+  }),
+  roomType: one(roomTypes, {
+    fields: [discounts.roomTypeId],
+    references: [roomTypes.id],
+  }),
+}));
+
 export const scheduledChargeLogRelations = relations(
   scheduledChargeLog,
   ({ one }) => ({
@@ -832,3 +880,5 @@ export type ScheduledChargeLog = typeof scheduledChargeLog.$inferSelect;
 export type NewScheduledChargeLog = typeof scheduledChargeLog.$inferInsert;
 export type CancellationPolicy = "flexible" | "moderate" | "strict";
 export type PaymentMode = "full_at_booking" | "deposit_at_booking" | "scheduled";
+export type Discount = typeof discounts.$inferSelect;
+export type NewDiscount = typeof discounts.$inferInsert;

@@ -6,9 +6,9 @@
  */
 
 import { db } from "@/db";
-import { inventory, ratePlans, roomTypes, bookingRules } from "@/db/schema";
+import { inventory, ratePlans, roomTypes, bookingRules, discounts as discountsTable } from "@/db/schema";
 import { eq, and, gte, lte, or, isNull } from "drizzle-orm";
-import { resolveRate, type RatePlanForPricing } from "./pricing";
+import { resolveRate, resolveRateWithoutDiscount, type RatePlanForPricing, type DiscountForPricing } from "./pricing";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,7 +16,7 @@ export type NightlyAvailability = {
   date: string;       // YYYY-MM-DD
   available: number;  // total_units - booked_units - blocked_units
   totalUnits: number;
-  rateCents: number;  // effective rate for that night
+  rateCents: number;  // effective rate for that night (after discount)
 };
 
 export type AvailabilityResult = {
@@ -88,7 +88,8 @@ export function computeNightly(
   nights: string[],
   inventoryRows: InventoryRow[],
   ratePlans: RatePlanForPricing[],
-  baseRateCents: number
+  baseRateCents: number,
+  discounts: DiscountForPricing[] = []
 ): NightlyAvailability[] {
   const inventoryByDate = new Map(inventoryRows.map((r) => [r.date, r]));
 
@@ -101,7 +102,7 @@ export function computeNightly(
     const rateCents =
       row?.rateOverrideCents !== null && row?.rateOverrideCents !== undefined
         ? row.rateOverrideCents
-        : resolveRate(baseRateCents, date, ratePlans);
+        : resolveRate(baseRateCents, date, ratePlans, discounts);
 
     return { date, available, totalUnits, rateCents };
   });
@@ -202,6 +203,7 @@ export async function checkBookingRules(
 
 /**
  * Checks availability for a specific room type across a date range.
+ * Returns discounted rates (the actual price the guest will pay).
  *
  * @param propertyId  Property UUID
  * @param roomTypeId  Room type UUID
@@ -221,7 +223,7 @@ export async function checkAvailability(
     return { available: 0, nights: 0, nightly: [] };
   }
 
-  const [inventoryRows, activePlans, [roomType]] = await Promise.all([
+  const [inventoryRows, activePlans, [roomType], activeDiscounts] = await Promise.all([
     db
       .select()
       .from(inventory)
@@ -247,6 +249,19 @@ export async function checkAvailability(
       .select({ baseRateCents: roomTypes.baseRateCents })
       .from(roomTypes)
       .where(eq(roomTypes.id, roomTypeId)),
+    db
+      .select()
+      .from(discountsTable)
+      .where(
+        and(
+          eq(discountsTable.propertyId, propertyId),
+          eq(discountsTable.status, "active"),
+          or(
+            isNull(discountsTable.roomTypeId),
+            eq(discountsTable.roomTypeId, roomTypeId)
+          )
+        )
+      ),
   ]);
 
   const baseRate = roomType?.baseRateCents ?? 0;
@@ -260,7 +275,14 @@ export async function checkAvailability(
     status: p.status,
   }));
 
-  const nightly = computeNightly(nights, inventoryRows, plansForPricing, baseRate);
+  const discountsForPricing: DiscountForPricing[] = activeDiscounts.map((d) => ({
+    percentage: d.percentage,
+    dateStart: d.dateStart,
+    dateEnd: d.dateEnd,
+    status: d.status,
+  }));
+
+  const nightly = computeNightly(nights, inventoryRows, plansForPricing, baseRate, discountsForPricing);
   const { available } = computeAvailabilityResult(nightly);
 
   return { available, nights: nightly.length, nightly };
@@ -276,8 +298,10 @@ export type AvailableRoomType = {
   baseOccupancy: number;
   maxOccupancy: number;
   available: number; // min available units across the stay
-  ratePerNightCents: number; // first night's effective rate
-  totalCents: number; // sum of all nightly rates
+  ratePerNightCents: number; // first night's effective rate (after discount)
+  totalCents: number; // sum of all nightly rates (after discount)
+  originalTotalCents: number; // sum before any discount (equals totalCents if no discount)
+  discountPercentage: number; // effective discount %, 0 if none
   nights: number;
   nightly: NightlyAvailability[];
   ruleViolation: string | null; // first violation message, or null if valid
@@ -297,7 +321,7 @@ export async function getAvailableRoomTypes(
   const nights = buildNightList(checkIn, checkOut);
   if (nights.length === 0) return [];
 
-  const [allRoomTypes, inventoryRows, allRatePlans, allRules] = await Promise.all([
+  const [allRoomTypes, inventoryRows, allRatePlans, allRules, allDiscounts] = await Promise.all([
     db
       .select()
       .from(roomTypes)
@@ -331,6 +355,15 @@ export async function getAvailableRoomTypes(
           eq(bookingRules.propertyId, propertyId),
           or(isNull(bookingRules.dateStart), lte(bookingRules.dateStart, checkOut)),
           or(isNull(bookingRules.dateEnd), gte(bookingRules.dateEnd, checkIn))
+        )
+      ),
+    db
+      .select()
+      .from(discountsTable)
+      .where(
+        and(
+          eq(discountsTable.propertyId, propertyId),
+          eq(discountsTable.status, "active")
         )
       ),
   ]);
@@ -382,7 +415,17 @@ export async function getAvailableRoomTypes(
         status: p.status,
       }));
 
-    const nightly = computeNightly(nights, rtInventory, rtPlans, rt.baseRateCents);
+    // Discounts applicable to this room type (global or room-type-specific)
+    const rtDiscounts: DiscountForPricing[] = allDiscounts
+      .filter((d) => d.roomTypeId === null || d.roomTypeId === rt.id)
+      .map((d) => ({
+        percentage: d.percentage,
+        dateStart: d.dateStart,
+        dateEnd: d.dateEnd,
+        status: d.status,
+      }));
+
+    const nightly = computeNightly(nights, rtInventory, rtPlans, rt.baseRateCents, rtDiscounts);
     const { available } = computeAvailabilityResult(nightly);
 
     if (available < 1) continue; // skip fully booked types
@@ -390,6 +433,27 @@ export async function getAvailableRoomTypes(
     const totalCents = nightly.reduce((sum, n) => sum + n.rateCents, 0);
     const ratePerNightCents = nightly[0]?.rateCents ?? rt.baseRateCents;
     const ruleViolation = getRuleViolation(rt.id);
+
+    // Compute original (pre-discount) total for display
+    const originalTotalCents =
+      rtDiscounts.length > 0
+        ? nights.reduce(
+            (sum, date) => {
+              const row = rtInventory.find((r) => r.date === date);
+              const originalRate =
+                row?.rateOverrideCents !== null && row?.rateOverrideCents !== undefined
+                  ? row.rateOverrideCents
+                  : resolveRateWithoutDiscount(rt.baseRateCents, date, rtPlans);
+              return sum + originalRate;
+            },
+            0
+          )
+        : totalCents;
+
+    const discountPercentage =
+      originalTotalCents > totalCents && originalTotalCents > 0
+        ? Math.round((1 - totalCents / originalTotalCents) * 100)
+        : 0;
 
     results.push({
       roomTypeId: rt.id,
@@ -401,6 +465,8 @@ export async function getAvailableRoomTypes(
       available,
       ratePerNightCents,
       totalCents,
+      originalTotalCents,
+      discountPercentage,
       nights: nightly.length,
       nightly,
       ruleViolation,
@@ -426,7 +492,7 @@ export async function getCalendarAvailability(
   startDate: string,
   endDate: string
 ): Promise<CalendarRoomTypeData[]> {
-  const [allRoomTypes, inventoryRows, allRatePlans] = await Promise.all([
+  const [allRoomTypes, inventoryRows, allRatePlans, allDiscounts] = await Promise.all([
     db
       .select()
       .from(roomTypes)
@@ -452,6 +518,15 @@ export async function getCalendarAvailability(
           eq(ratePlans.status, "active")
         )
       ),
+    db
+      .select()
+      .from(discountsTable)
+      .where(
+        and(
+          eq(discountsTable.propertyId, propertyId),
+          eq(discountsTable.status, "active")
+        )
+      ),
   ]);
 
   return allRoomTypes.map((rt) => {
@@ -468,8 +543,17 @@ export async function getCalendarAvailability(
         status: p.status,
       }));
 
+    const rtDiscounts: DiscountForPricing[] = allDiscounts
+      .filter((d) => d.roomTypeId === null || d.roomTypeId === rt.id)
+      .map((d) => ({
+        percentage: d.percentage,
+        dateStart: d.dateStart,
+        dateEnd: d.dateEnd,
+        status: d.status,
+      }));
+
     const dateDates = buildDateList(startDate, endDate);
-    const dateCells = computeNightly(dateDates, rtInventory, rtPlans, rt.baseRateCents);
+    const dateCells = computeNightly(dateDates, rtInventory, rtPlans, rt.baseRateCents, rtDiscounts);
 
     return {
       roomTypeId: rt.id,
@@ -479,4 +563,3 @@ export async function getCalendarAvailability(
     };
   });
 }
-

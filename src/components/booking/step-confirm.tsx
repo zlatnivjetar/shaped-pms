@@ -299,7 +299,8 @@ export default function StepConfirm({
         adults,
         children: childCount,
         guestEmail: guestDetails.email,
-        guestName: `${guestDetails.firstName} ${guestDetails.lastName}`,
+        guestFirstName: guestDetails.firstName,
+        guestLastName: guestDetails.lastName,
       });
       if ("error" in result) {
         setPaymentError(result.error);

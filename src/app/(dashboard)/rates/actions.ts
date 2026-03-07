@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { ratePlans, inventory, properties } from "@/db/schema";
+import { ratePlans, inventory, properties, discounts } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -132,6 +132,125 @@ export async function updateRatePlan(
 
 export async function deleteRatePlan(planId: string): Promise<void> {
   await db.delete(ratePlans).where(eq(ratePlans.id, planId));
+  revalidatePath("/rates");
+}
+
+// ─── Discount CRUD ────────────────────────────────────────────────────────────
+
+const discountSchema = z
+  .object({
+    roomTypeId: z.string().uuid().optional().or(z.literal("")),
+    name: z.string().min(1, "Name is required"),
+    percentage: z.coerce
+      .number()
+      .int()
+      .min(1, "Percentage must be at least 1")
+      .max(100, "Percentage cannot exceed 100"),
+    dateStart: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid start date")
+      .optional()
+      .or(z.literal("")),
+    dateEnd: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date")
+      .optional()
+      .or(z.literal("")),
+    status: z.enum(["active", "inactive"]).default("active"),
+  })
+  .refine(
+    (d) => {
+      if (d.dateStart && d.dateEnd) return d.dateStart <= d.dateEnd;
+      return true;
+    },
+    { message: "End date must be on or after start date", path: ["dateEnd"] }
+  );
+
+export type DiscountFormState = {
+  success?: boolean;
+  error?: string;
+  fieldErrors?: Record<string, string[]>;
+};
+
+export async function createDiscount(
+  prevState: DiscountFormState,
+  formData: FormData
+): Promise<DiscountFormState> {
+  const parsed = discountSchema.safeParse({
+    roomTypeId: formData.get("roomTypeId"),
+    name: formData.get("name"),
+    percentage: formData.get("percentage"),
+    dateStart: formData.get("dateStart"),
+    dateEnd: formData.get("dateEnd"),
+    status: formData.get("status"),
+  });
+
+  if (!parsed.success) {
+    return {
+      error: "Please fix the errors below.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const propertyId = await getPropertyId();
+  const { roomTypeId, name, percentage, dateStart, dateEnd, status } = parsed.data;
+
+  await db.insert(discounts).values({
+    propertyId,
+    roomTypeId: roomTypeId || null,
+    name,
+    percentage,
+    dateStart: dateStart || null,
+    dateEnd: dateEnd || null,
+    status,
+  });
+
+  revalidatePath("/rates");
+  return { success: true };
+}
+
+export async function updateDiscount(
+  discountId: string,
+  prevState: DiscountFormState,
+  formData: FormData
+): Promise<DiscountFormState> {
+  const parsed = discountSchema.safeParse({
+    roomTypeId: formData.get("roomTypeId"),
+    name: formData.get("name"),
+    percentage: formData.get("percentage"),
+    dateStart: formData.get("dateStart"),
+    dateEnd: formData.get("dateEnd"),
+    status: formData.get("status"),
+  });
+
+  if (!parsed.success) {
+    return {
+      error: "Please fix the errors below.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const { roomTypeId, name, percentage, dateStart, dateEnd, status } = parsed.data;
+
+  await db
+    .update(discounts)
+    .set({
+      roomTypeId: roomTypeId || null,
+      name,
+      percentage,
+      dateStart: dateStart || null,
+      dateEnd: dateEnd || null,
+      status,
+      updatedAt: new Date(),
+    })
+    .where(eq(discounts.id, discountId));
+
+  revalidatePath("/rates");
+  return { success: true };
+}
+
+export async function deleteDiscount(discountId: string): Promise<void> {
+  await db.delete(discounts).where(eq(discounts.id, discountId));
   revalidatePath("/rates");
 }
 

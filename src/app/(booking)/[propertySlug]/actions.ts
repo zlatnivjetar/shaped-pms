@@ -10,13 +10,15 @@ import {
   ratePlans,
   properties,
   payments,
+  discounts as discountsTable,
 } from "@/db/schema";
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, inArray, sql, or, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { generateConfirmationCode } from "@/lib/confirmation-code";
 import { createReservationSchema } from "@/lib/validators";
 import { resolveRate } from "@/lib/pricing";
+import type { DiscountForPricing } from "@/lib/pricing";
 import { generateManageToken, buildManageUrl } from "@/lib/cancellation";
 import { checkBookingRules } from "@/lib/availability";
 import {
@@ -35,6 +37,31 @@ function buildNightList(checkIn: string, checkOut: string): string[] {
     current.setUTCDate(current.getUTCDate() + 1);
   }
   return nights;
+}
+
+async function fetchDiscountsForRoomType(
+  propertyId: string,
+  roomTypeId: string
+): Promise<DiscountForPricing[]> {
+  const rows = await db
+    .select()
+    .from(discountsTable)
+    .where(
+      and(
+        eq(discountsTable.propertyId, propertyId),
+        eq(discountsTable.status, "active"),
+        or(
+          isNull(discountsTable.roomTypeId),
+          eq(discountsTable.roomTypeId, roomTypeId)
+        )
+      )
+    );
+  return rows.map((d) => ({
+    percentage: d.percentage,
+    dateStart: d.dateStart,
+    dateEnd: d.dateEnd,
+    status: d.status,
+  }));
 }
 
 // ─── createPaymentIntentForBooking ────────────────────────────────────────────
@@ -67,8 +94,9 @@ export async function createPaymentIntentForBooking(
     checkOut: string;
     adults: number;
     children: number;
-    guestEmail?: string;
-    guestName?: string;
+    guestEmail: string;
+    guestFirstName: string;
+    guestLastName: string;
   }
 ): Promise<PaymentIntentResult> {
   // Load property
@@ -80,8 +108,8 @@ export async function createPaymentIntentForBooking(
   const nights = buildNightList(params.checkIn, params.checkOut);
   if (nights.length === 0) return { error: "Invalid dates." };
 
-  // Load room type + rate plans
-  const [roomTypeData, activePlans] = await Promise.all([
+  // Load room type + rate plans + discounts
+  const [roomTypeData, activePlans, activeDiscounts] = await Promise.all([
     db.query.roomTypes.findFirst({
       where: eq(roomTypes.id, params.roomTypeId),
     }),
@@ -94,6 +122,7 @@ export async function createPaymentIntentForBooking(
           eq(ratePlans.status, "active")
         )
       ),
+    fetchDiscountsForRoomType(property.id, params.roomTypeId),
   ]);
 
   if (!roomTypeData) return { error: "Room type not found." };
@@ -110,11 +139,11 @@ export async function createPaymentIntentForBooking(
 
   const totalCents = nights.reduce(
     (sum, date) =>
-      sum + resolveRate(roomTypeData.baseRateCents, date, plansForPricing),
+      sum + resolveRate(roomTypeData.baseRateCents, date, plansForPricing, activeDiscounts),
     0
   );
 
-  // Pre-generate reservation code — stored in intent metadata for anti-tamper check
+  // Pre-generate reservation code
   let reservationCode = "";
   for (let i = 0; i < 10; i++) {
     const candidate = generateConfirmationCode();
@@ -128,11 +157,88 @@ export async function createPaymentIntentForBooking(
   }
   if (!reservationCode) return { error: "Could not generate reservation code." };
 
+  // Upsert guest record
+  const [guest] = await db
+    .insert(guests)
+    .values({
+      propertyId: property.id,
+      email: params.guestEmail.toLowerCase(),
+      firstName: params.guestFirstName,
+      lastName: params.guestLastName,
+    })
+    .onConflictDoUpdate({
+      target: [guests.propertyId, guests.email],
+      set: {
+        firstName: params.guestFirstName,
+        lastName: params.guestLastName,
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ id: guests.id });
+
+  // Atomically lock inventory for all nights
+  const lockedRows = await db
+    .update(inventory)
+    .set({
+      bookedUnits: sql`${inventory.bookedUnits} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(inventory.propertyId, property.id),
+        eq(inventory.roomTypeId, params.roomTypeId),
+        inArray(inventory.date, nights),
+        sql`(${inventory.totalUnits} - ${inventory.bookedUnits} - ${inventory.blockedUnits}) >= 1`
+      )
+    )
+    .returning({ date: inventory.date });
+
+  if (lockedRows.length !== nights.length) {
+    // Partial lock — rollback what we managed to lock
+    if (lockedRows.length > 0) {
+      await db
+        .update(inventory)
+        .set({ bookedUnits: sql`${inventory.bookedUnits} - 1`, updatedAt: new Date() })
+        .where(
+          and(
+            eq(inventory.propertyId, property.id),
+            eq(inventory.roomTypeId, params.roomTypeId),
+            inArray(inventory.date, lockedRows.map((r) => r.date))
+          )
+        );
+    }
+    return { error: "This room is no longer available for your selected dates." };
+  }
+
+  // Create pending reservation (M14: tracked for abandoned cleanup)
+  const manageToken = generateManageToken();
+  const [pendingReservation] = await db
+    .insert(reservations)
+    .values({
+      propertyId: property.id,
+      guestId: guest.id,
+      confirmationCode: reservationCode,
+      checkIn: params.checkIn,
+      checkOut: params.checkOut,
+      nights: nights.length,
+      adults: params.adults,
+      children: params.children,
+      status: "pending",
+      channel: "direct",
+      totalCents,
+      currency: property.currency,
+      manageToken,
+      checkoutStartedAt: new Date(),
+    })
+    .returning({ id: reservations.id });
+
   const metadata = {
     reservation_code: reservationCode,
     property_id: property.id,
     room_type_id: params.roomTypeId,
   };
+
+  const guestFullName = `${params.guestFirstName} ${params.guestLastName}`;
 
   // Scheduled mode: if check-in is far enough away, save card instead of charging now
   if (property.paymentMode === "scheduled") {
@@ -147,8 +253,8 @@ export async function createPaymentIntentForBooking(
     if (daysUntilCheckIn > threshold) {
       try {
         const si = await createSetupIntent(
-          params.guestEmail ?? "",
-          params.guestName ?? "",
+          params.guestEmail,
+          guestFullName,
           metadata
         );
         const chargeDate = new Date(checkInDate);
@@ -163,6 +269,21 @@ export async function createPaymentIntentForBooking(
           scheduledChargeDate: chargeDate.toISOString().slice(0, 10),
         };
       } catch (err) {
+        // Rollback pending reservation and inventory on Stripe failure
+        await db
+          .update(reservations)
+          .set({ status: "cancelled", cancelledAt: new Date(), cancellationReason: "payment_setup_failed", updatedAt: new Date() })
+          .where(eq(reservations.id, pendingReservation.id));
+        await db
+          .update(inventory)
+          .set({ bookedUnits: sql`${inventory.bookedUnits} - 1`, updatedAt: new Date() })
+          .where(
+            and(
+              eq(inventory.propertyId, property.id),
+              eq(inventory.roomTypeId, params.roomTypeId),
+              inArray(inventory.date, nights)
+            )
+          );
         const message = err instanceof Error ? err.message : "Could not set up payment.";
         return { error: message };
       }
@@ -191,6 +312,21 @@ export async function createPaymentIntentForBooking(
       reservationCode,
     };
   } catch (err) {
+    // Rollback pending reservation and inventory on Stripe failure
+    await db
+      .update(reservations)
+      .set({ status: "cancelled", cancelledAt: new Date(), cancellationReason: "payment_setup_failed", updatedAt: new Date() })
+      .where(eq(reservations.id, pendingReservation.id));
+    await db
+      .update(inventory)
+      .set({ bookedUnits: sql`${inventory.bookedUnits} - 1`, updatedAt: new Date() })
+      .where(
+        and(
+          eq(inventory.propertyId, property.id),
+          eq(inventory.roomTypeId, params.roomTypeId),
+          inArray(inventory.date, nights)
+        )
+      );
     const message = err instanceof Error ? err.message : "Could not set up payment.";
     return { error: message };
   }
@@ -234,12 +370,28 @@ export async function createReservation(
     return "Payment information is missing. Please restart the booking.";
   }
 
+  // Find the pending reservation created by createPaymentIntentForBooking
+  const pendingReservation = await db.query.reservations.findFirst({
+    where: and(
+      eq(reservations.confirmationCode, reservationCode),
+      eq(reservations.status, "pending")
+    ),
+  });
+
+  if (!pendingReservation) {
+    return "Reservation not found. Please restart the booking.";
+  }
+
+  const nights = buildNightList(data.checkIn, data.checkOut);
+  if (nights.length === 0) {
+    return "Invalid dates selected.";
+  }
+
   // Verify payment/setup intent
   let stripeMetadata: Record<string, string> = {};
   let stripePaymentMethodId: string | undefined;
   let stripeChargedAmountCents = 0;
   let stripePaymentStatus = "";
-
   let stripeCustomerIdFromStripe: string | undefined;
 
   if (isSetupFlow) {
@@ -256,7 +408,6 @@ export async function createReservation(
     stripePaymentMethodId = typeof si.payment_method === "string"
       ? si.payment_method
       : si.payment_method?.id;
-    // Prefer customerId from form (no-redirect flow); fall back to what Stripe has on the SI
     stripeCustomerIdFromStripe = stripeCustomerId || (
       typeof si.customer === "string" ? si.customer : si.customer?.id
     ) || undefined;
@@ -279,14 +430,19 @@ export async function createReservation(
     return "Payment verification failed. Please restart the booking.";
   }
 
-  const nights = buildNightList(data.checkIn, data.checkOut);
-
-  if (nights.length === 0) {
-    return "Invalid dates selected.";
+  // Check booking rules (safety check)
+  const rulesResult = await checkBookingRules(
+    data.propertyId,
+    data.roomTypeId,
+    data.checkIn,
+    data.checkOut
+  );
+  if (!rulesResult.valid) {
+    return rulesResult.violations[0] ?? "Booking not allowed for these dates.";
   }
 
-  // Fetch room type + rate plans to compute nightly totals
-  const [roomTypeData, activePlans] = await Promise.all([
+  // Fetch room type + rate plans + discounts to compute nightly totals
+  const [roomTypeData, activePlans, activeDiscounts] = await Promise.all([
     db.query.roomTypes.findFirst({ where: eq(roomTypes.id, data.roomTypeId) }),
     db
       .select()
@@ -297,6 +453,7 @@ export async function createReservation(
           eq(ratePlans.status, "active")
         )
       ),
+    fetchDiscountsForRoomType(data.propertyId, data.roomTypeId),
   ]);
 
   if (!roomTypeData) return "Room type not found.";
@@ -313,135 +470,42 @@ export async function createReservation(
 
   const nightlyRates = nights.map((date) => ({
     date,
-    rateCents: resolveRate(roomTypeData.baseRateCents, date, plansForPricing),
+    rateCents: resolveRate(roomTypeData.baseRateCents, date, plansForPricing, activeDiscounts),
   }));
   const totalCents = nightlyRates.reduce((sum, n) => sum + n.rateCents, 0);
   const ratePerNightCents = nightlyRates[0]?.rateCents ?? roomTypeData.baseRateCents;
 
-  // Check booking rules
-  const rulesResult = await checkBookingRules(
-    data.propertyId,
-    data.roomTypeId,
-    data.checkIn,
-    data.checkOut
-  );
-  if (!rulesResult.valid) {
-    return rulesResult.violations[0] ?? "Booking not allowed for these dates.";
-  }
-
-  // Pre-check availability
-  const inventoryCheck = await db
-    .select()
-    .from(inventory)
-    .where(
-      and(
-        eq(inventory.propertyId, data.propertyId),
-        eq(inventory.roomTypeId, data.roomTypeId),
-        inArray(inventory.date, nights)
-      )
-    );
-
-  for (const night of nights) {
-    const row = inventoryCheck.find((r) => r.date === night);
-    const avail = row
-      ? row.totalUnits - row.bookedUnits - row.blockedUnits
-      : 0;
-    if (avail < 1) {
-      return "Sorry, this room type is no longer available for your selected dates. Please go back and choose different dates or a different room.";
-    }
-  }
-
-  // Atomic conditional UPDATE — prevents double-booking
-  const updatedRows = await db
-    .update(inventory)
-    .set({
-      bookedUnits: sql`${inventory.bookedUnits} + 1`,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(inventory.propertyId, data.propertyId),
-        eq(inventory.roomTypeId, data.roomTypeId),
-        inArray(inventory.date, nights),
-        sql`(${inventory.totalUnits} - ${inventory.bookedUnits} - ${inventory.blockedUnits}) >= 1`
-      )
-    )
-    .returning({ date: inventory.date });
-
-  if (updatedRows.length !== nights.length) {
-    const updatedDates = updatedRows.map((r) => r.date);
-    if (updatedDates.length > 0) {
-      await db
-        .update(inventory)
-        .set({
-          bookedUnits: sql`${inventory.bookedUnits} - 1`,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(inventory.propertyId, data.propertyId),
-            eq(inventory.roomTypeId, data.roomTypeId),
-            inArray(inventory.date, updatedDates)
-          )
-        );
-    }
-    return "Sorry, this room was just booked by someone else. Please go back and select different dates.";
-  }
-
   try {
-    // Upsert guest
-    const [guest] = await db
-      .insert(guests)
-      .values({
-        propertyId: data.propertyId,
-        email: data.email.toLowerCase(),
+    // Update guest with full details (phone, special requests)
+    await db
+      .update(guests)
+      .set({
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone,
+        updatedAt: new Date(),
       })
-      .onConflictDoUpdate({
-        target: [guests.propertyId, guests.email],
-        set: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          phone: data.phone,
-          updatedAt: new Date(),
-        },
-      })
-      .returning({ id: guests.id });
+      .where(eq(guests.id, pendingReservation.guestId));
 
-    // Create reservation using the pre-generated code from PI metadata
-    const manageToken = generateManageToken();
-    const [reservation] = await db
-      .insert(reservations)
-      .values({
-        propertyId: data.propertyId,
-        guestId: guest.id,
-        confirmationCode: reservationCode,
-        checkIn: data.checkIn,
-        checkOut: data.checkOut,
-        nights: nights.length,
-        adults: data.adults,
-        children: data.children,
-        status: "confirmed",
-        channel: "direct",
+    // Update reservation with full details + confirm it
+    await db
+      .update(reservations)
+      .set({
         totalCents,
-        currency: "EUR",
         specialRequests: data.specialRequests,
-        manageToken,
+        updatedAt: new Date(),
       })
-      .returning({ id: reservations.id, code: reservations.confirmationCode });
+      .where(eq(reservations.id, pendingReservation.id));
 
     // Create reservation_room
     await db.insert(reservationRooms).values({
-      reservationId: reservation.id,
+      reservationId: pendingReservation.id,
       roomTypeId: data.roomTypeId,
       ratePerNightCents,
     });
 
     // Insert payment record
     if (isSetupFlow) {
-      // Scheduled flow: save card, charge later
       const property2 = await db.query.properties.findFirst({
         where: eq(properties.slug, propertySlug),
       });
@@ -451,7 +515,7 @@ export async function createReservation(
       scheduledChargeAt.setUTCDate(scheduledChargeAt.getUTCDate() - threshold);
 
       await db.insert(payments).values({
-        reservationId: reservation.id,
+        reservationId: pendingReservation.id,
         propertyId: data.propertyId,
         stripeSetupIntentId: setupIntentId,
         stripePaymentMethodId: stripePaymentMethodId,
@@ -469,7 +533,7 @@ export async function createReservation(
         (stripeMetadata?.payment_type as "deposit" | "full_payment") ?? "full_payment";
 
       await db.insert(payments).values({
-        reservationId: reservation.id,
+        reservationId: pendingReservation.id,
         propertyId: data.propertyId,
         stripePaymentIntentId: paymentIntentId,
         type: paymentType,
@@ -488,7 +552,13 @@ export async function createReservation(
         totalSpentCents: sql`${guests.totalSpentCents} + ${totalCents}`,
         updatedAt: new Date(),
       })
-      .where(eq(guests.id, guest.id));
+      .where(eq(guests.id, pendingReservation.guestId));
+
+    // Confirm the reservation (final status update)
+    await db
+      .update(reservations)
+      .set({ status: "confirmed", updatedAt: new Date() })
+      .where(eq(reservations.id, pendingReservation.id));
 
     // Fire-and-forget confirmation email
     const propertyForEmail = await db.query.properties.findFirst({
@@ -496,7 +566,7 @@ export async function createReservation(
     });
     if (propertyForEmail) {
       void sendBookingConfirmation({
-        reservationId: reservation.id,
+        reservationId: pendingReservation.id,
         propertyId: data.propertyId,
         guestEmail: data.email.toLowerCase(),
         guestFirstName: data.firstName,
@@ -516,12 +586,12 @@ export async function createReservation(
           ? "full_payment"
           : ((stripeMetadata?.payment_type as "deposit" | "full_payment") ?? "full_payment"),
         checkInTime: propertyForEmail.checkInTime ?? undefined,
-        manageUrl: buildManageUrl(reservationCode, manageToken),
+        manageUrl: buildManageUrl(reservationCode, pendingReservation.manageToken ?? ""),
       });
     }
 
     revalidatePath("/dashboard");
-    redirect(`/${propertySlug}?step=complete&code=${reservation.code}`);
+    redirect(`/${propertySlug}?step=complete&code=${reservationCode}`);
   } catch (err) {
     if (
       err instanceof Error &&
@@ -531,7 +601,17 @@ export async function createReservation(
       throw err;
     }
 
-    // Rollback inventory on any other error
+    // Cancel pending reservation and rollback inventory
+    await db
+      .update(reservations)
+      .set({
+        status: "cancelled",
+        cancelledAt: new Date(),
+        cancellationReason: "error",
+        updatedAt: new Date(),
+      })
+      .where(eq(reservations.id, pendingReservation.id));
+
     await db
       .update(inventory)
       .set({

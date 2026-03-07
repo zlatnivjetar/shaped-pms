@@ -58,6 +58,8 @@ export async function POST(
       available: rt.available,
       ratePerNightCents: rt.ratePerNightCents,
       totalCents: rt.totalCents,
+      originalTotalCents: rt.originalTotalCents,
+      discountPercentage: rt.discountPercentage,
       nights: rt.nights,
     })),
   });

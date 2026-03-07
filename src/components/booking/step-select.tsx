@@ -109,6 +109,7 @@ export default function StepSelect({
         <div className="space-y-4">
           {availableRoomTypes.map((rt) => {
             const blocked = rt.ruleViolation !== null;
+            const hasDiscount = rt.discountPercentage > 0;
             return (
               <div
                 key={rt.roomTypeId}
@@ -116,7 +117,14 @@ export default function StepSelect({
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-stone-900">{rt.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-stone-900">{rt.name}</h3>
+                      {!blocked && hasDiscount && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                          {rt.discountPercentage}% off
+                        </span>
+                      )}
+                    </div>
                     {rt.description && (
                       <p className="text-sm text-stone-500 mt-1 line-clamp-2">
                         {rt.description}
@@ -153,6 +161,11 @@ export default function StepSelect({
                         total
                       </span>
                     </p>
+                    {hasDiscount && !blocked && (
+                      <p className="text-xs text-stone-400 line-through">
+                        {formatCurrency(rt.originalTotalCents)}
+                      </p>
+                    )}
                     <p className="text-xs text-stone-400">
                       {formatCurrency(rt.ratePerNightCents)} /{" "}
                       {nights === 1 ? "night" : "night"}
