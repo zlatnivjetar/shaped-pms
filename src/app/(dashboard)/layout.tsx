@@ -16,7 +16,7 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const userRole = (session.user as { role?: string }).role ?? "owner";
+  const userRole = (session.user.role as "owner" | "manager" | "front_desk") ?? "owner";
 
   return (
     <SidebarProvider>
