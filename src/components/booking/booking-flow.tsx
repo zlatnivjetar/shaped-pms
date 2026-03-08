@@ -163,22 +163,32 @@ export default function BookingFlow({
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white border-b border-stone-200">
-        <div className="max-w-lg mx-auto px-4 py-4">
-          <p className="text-xs text-stone-500 uppercase tracking-wider">
-            {property.city}{property.country ? `, ${property.country}` : ""}
-          </p>
-          <h1 className="text-lg font-semibold text-stone-900">{property.name}</h1>
-          {property.tagline && (
-            <p className="text-xs text-stone-500 mt-0.5">{property.tagline}</p>
+        <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
+          {property.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={property.logoUrl}
+              alt={property.name}
+              className="h-10 w-auto object-contain flex-shrink-0"
+            />
           )}
-          {property.phone && (
-            <a
-              href={`tel:${property.phone}`}
-              className="text-xs text-stone-500 hover:text-stone-700 mt-0.5 block"
-            >
-              {property.phone}
-            </a>
-          )}
+          <div>
+            <p className="text-xs text-stone-500 uppercase tracking-wider">
+              {property.city}{property.country ? `, ${property.country}` : ""}
+            </p>
+            <h1 className="text-lg font-semibold text-stone-900">{property.name}</h1>
+            {property.tagline && (
+              <p className="text-xs text-stone-500 mt-0.5">{property.tagline}</p>
+            )}
+            {property.phone && (
+              <a
+                href={`tel:${property.phone}`}
+                className="text-xs text-stone-500 hover:text-stone-700 mt-0.5 block"
+              >
+                {property.phone}
+              </a>
+            )}
+          </div>
         </div>
       </header>
 
