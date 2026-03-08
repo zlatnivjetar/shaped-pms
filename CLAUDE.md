@@ -45,45 +45,70 @@
   shaped-pms/
   ├── src/
   │   ├── app/
-  │   │   ├── (dashboard)/          # Authenticated property dashboard
-  │   │   │   ├── properties/
-  │   │   │   ├── rooms/
-  │   │   │   ├── rates/
-  │   │   │   ├── reservations/
-  │   │   │   ├── guests/
-  │   │   │   ├── reviews/
-  │   │   │   ├── settings/
+  │   │   ├── (dashboard)/                  # Authenticated property dashboard
+  │   │   │   ├── dashboard/                # Live KPIs + recent bookings
+  │   │   │   ├── room-types/               # Room type CRUD + booking rules
+  │   │   │   ├── rooms/                    # Room CRUD + status toggle
+  │   │   │   ├── rates/                    # Rate plans + availability calendar + discounts
+  │   │   │   ├── reservations/             # List + [id] detail with status transitions
+  │   │   │   ├── guests/                   # Guest list with lifetime stats
+  │   │   │   ├── reviews/                  # Review moderation + property responses
+  │   │   │   ├── calendar/                 # Availability calendar (standalone)
+  │   │   │   ├── settings/                 # Property settings + amenities
   │   │   │   └── layout.tsx
-  │   │   ├── (booking)/            # Public guest-facing booking engine
-  │   │   │   ├── [propertySlug]/
+  │   │   ├── (booking)/                    # Public guest-facing booking engine
+  │   │   │   ├── [propertySlug]/           # 5-step booking flow
+  │   │   │   ├── manage/[confirmationCode] # Guest self-service portal
   │   │   │   └── layout.tsx
-  │   │   ├── api/v1/               # REST API
-  │   │   ├── auth/                 # Better Auth routes
+  │   │   ├── (review)/                     # Token-based review submission
+  │   │   │   └── review/[token]/
+  │   │   ├── api/v1/                       # REST API
+  │   │   │   ├── properties/[slug]/        # GET property, availability, rooms, reviews
+  │   │   │   ├── reservations/             # POST create OTA reservation
+  │   │   │   ├── reservations/[id]/        # GET by confirmation code
+  │   │   │   ├── reservations/[id]/cancel/ # PATCH cancel + rollback
+  │   │   │   ├── cron/daily/               # Pre-arrival + review request emails
+  │   │   │   ├── cron/abandoned/           # Abandoned booking cleanup
+  │   │   │   └── webhooks/stripe/          # Stripe webhook handler
   │   │   └── layout.tsx
   │   ├── db/
-  │   │   ├── schema.ts             # Drizzle schema
-  │   │   ├── migrations/
-  │   │   ├── seed.ts               # Preelook Apartments seed data
-  │   │   └── index.ts              # DB connection + Drizzle client
+  │   │   ├── schema.ts                     # Drizzle schema (source of truth)
+  │   │   ├── migrations/                   # Generated SQL migrations (0000–0009)
+  │   │   ├── index.ts                      # Neon HTTP connection + Drizzle client
+  │   │   ├── seed.ts                       # Preelook Apartments base seed
+  │   │   ├── seed-reservations.ts          # Test guests + reservations
+  │   │   ├── seed-reviews.ts               # Test published reviews
+  │   │   ├── seed-amenities.ts             # Amenity assignments for Preelook
+  │   │   └── init-inventory.ts             # Backfill 365-day inventory
   │   ├── lib/
-  │   │   ├── availability.ts       # Availability engine
-  │   │   ├── pricing.ts            # Rate resolution logic
-  │   │   ├── payments.ts           # Stripe integration
-  │   │   ├── email.ts              # Resend integration
-  │   │   ├── reviews.ts            # Token generation + validation
-  │   │   ├── confirmation-code.ts  # Human-readable code generator
-  │   │   └── validators.ts         # Zod schemas
+  │   │   ├── availability.ts               # Availability engine + booking rules
+  │   │   ├── pricing.ts                    # Rate + discount resolution
+  │   │   ├── payments.ts                   # Stripe: PI, SetupIntent, capture, refund
+  │   │   ├── email.ts                      # Resend integration + sendAndLog
+  │   │   ├── reviews.ts                    # Review token generation + validation
+  │   │   ├── cancellation.ts               # Manage token + refund policy calculation
+  │   │   ├── dashboard.ts                  # Live KPI queries
+  │   │   ├── inventory.ts                  # upsertInventory() helper
+  │   │   ├── api-utils.ts                  # apiResponse(), apiError(), getAuthenticatedProperty()
+  │   │   ├── confirmation-code.ts          # SHP-XXXXX generator
+  │   │   └── validators.ts                 # Zod schemas
   │   ├── components/
-  │   │   ├── ui/                   # shadcn/ui primitives
-  │   │   ├── dashboard/
-  │   │   └── booking/
-  │   └── types/
-  │       └── index.ts
+  │   │   ├── ui/                           # shadcn/ui primitives
+  │   │   ├── dashboard/                    # app-sidebar.tsx
+  │   │   ├── booking/                      # booking-flow + step-* components
+  │   │   └── emails/                       # React Email templates
+  │   └── hooks/
+  │       └── use-mobile.ts
+  ├── docs/
+  │   ├── schema.md                         # Database schema (source of truth)
+  │   ├── gap-analysis.md                   # M7–M20 feature inventory + plans
+  │   ├── m*-summary.md                     # Per-milestone build summaries
+  │   └── roomcloud-api-spec.md             # RoomCloud XML OTA API v3.8 (M19)
   ├── tests/
   │   ├── availability.test.ts
-  │   ├── pricing.test.ts
-  │   └── api/
+  │   └── pricing.test.ts
   ├── drizzle.config.ts
+  ├── vercel.json
   ├── .env.local
   ├── .env.example
   ├── README.md
