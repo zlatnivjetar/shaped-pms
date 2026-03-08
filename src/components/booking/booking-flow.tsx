@@ -163,15 +163,7 @@ export default function BookingFlow({
     <div className="min-h-screen bg-stone-50">
       {/* Header */}
       <header className="bg-white border-b border-stone-200">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
-          {property.logoUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={property.logoUrl}
-              alt={property.name}
-              className="h-10 w-auto object-contain flex-shrink-0"
-            />
-          )}
+        <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-stone-500 uppercase tracking-wider">
               {property.city}{property.country ? `, ${property.country}` : ""}
@@ -189,6 +181,14 @@ export default function BookingFlow({
               </a>
             )}
           </div>
+          {property.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={property.logoUrl}
+              alt={property.name}
+              className="h-10 w-auto object-contain flex-shrink-0"
+            />
+          )}
         </div>
       </header>
 
