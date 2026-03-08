@@ -29,14 +29,19 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await signUp.email({ name, email, password });
-    if (error) {
-      setError(error.message ?? "Registration failed");
-      setLoading(false);
-    } else {
-      router.push("/dashboard");
-      router.refresh();
+    try {
+      const { error } = await signUp.email({ name, email, password });
+      if (error) {
+        setError(error.message ?? "Registration failed");
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
     }
+    setLoading(false);
   }
 
   return (

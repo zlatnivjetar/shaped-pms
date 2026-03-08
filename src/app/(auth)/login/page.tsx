@@ -28,14 +28,19 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await signIn.email({ email, password });
-    if (error) {
-      setError(error.message ?? "Invalid email or password");
-      setLoading(false);
-    } else {
-      router.push("/dashboard");
-      router.refresh();
+    try {
+      const { error } = await signIn.email({ email, password });
+      if (error) {
+        setError(error.message ?? "Invalid email or password");
+      } else {
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign in failed");
     }
+    setLoading(false);
   }
 
   return (

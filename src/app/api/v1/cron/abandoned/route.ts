@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Reservations stuck in "pending" for longer than this are considered abandoned
-const ABANDONED_THRESHOLD_MINUTES = 1;
+const ABANDONED_THRESHOLD_MINUTES = 15;
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
