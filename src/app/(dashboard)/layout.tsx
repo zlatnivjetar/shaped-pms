@@ -1,18 +1,30 @@
-// TODO: implement Better Auth — protect this layout with session check,
-// redirect unauthenticated users to /login, and show logged-in user in header.
-// See: https://www.better-auth.com/docs/installation
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  const userRole = (session.user as { role?: string }).role ?? "owner";
+
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar
+        userName={session.user.name}
+        userEmail={session.user.email}
+        userRole={userRole as "owner" | "manager" | "front_desk"}
+      />
       <div className="flex flex-1 flex-col min-w-0">
         <header className="flex h-14 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />

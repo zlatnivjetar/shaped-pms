@@ -12,6 +12,7 @@ import {
   index,
   uniqueIndex,
   primaryKey,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -633,6 +634,58 @@ export const discounts = pgTable(
   ]
 );
 
+// ─── Auth (Better Auth) ───────────────────────────────────────────────────────
+
+export const userRoleEnum = pgEnum("user_role", ["owner", "manager", "front_desk"]);
+
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  image: text("image"),
+  role: userRoleEnum("role").notNull().default("owner"),
+  propertyId: uuid("property_id").references(() => properties.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const session = pgTable("session", {
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+});
+
+export const account = pgTable("account", {
+  id: text("id").primaryKey(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const verification = pgTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }),
+});
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
@@ -832,6 +885,29 @@ export const emailLogsRelations = relations(emailLogs, ({ one }) => ({
   }),
 }));
 
+export const userRelations = relations(user, ({ one, many }) => ({
+  property: one(properties, {
+    fields: [user.propertyId],
+    references: [properties.id],
+  }),
+  sessions: many(session),
+  accounts: many(account),
+}));
+
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, {
+    fields: [session.userId],
+    references: [user.id],
+  }),
+}));
+
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, {
+    fields: [account.userId],
+    references: [user.id],
+  }),
+}));
+
 export const amenitiesRelations = relations(amenities, ({ one, many }) => ({
   property: one(properties, {
     fields: [amenities.propertyId],
@@ -892,3 +968,5 @@ export type CancellationPolicy = "flexible" | "moderate" | "strict";
 export type PaymentMode = "full_at_booking" | "deposit_at_booking" | "scheduled";
 export type Discount = typeof discounts.$inferSelect;
 export type NewDiscount = typeof discounts.$inferInsert;
+export type User = typeof user.$inferSelect;
+export type Session = typeof session.$inferSelect;

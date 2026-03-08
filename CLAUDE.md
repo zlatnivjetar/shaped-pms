@@ -2,7 +2,7 @@
   Property Management System replacing a WordPress hospitality stack (MotoPress Hotel Booking + Shaped Core plugin).                                                         
   ## Current Status                                                                                                                                                       
                                                                                                                                                                           
-  Milestones 1–17 complete. See `/docs/m*-summary.md` for what was built per milestone.
+  Milestones 1–18 complete. See `/docs/m*-summary.md` for what was built per milestone.
   Milestones 16–20 defined in `/docs/gap-analysis.md` — produced by analyzing the
   Shaped Core plugin against this PMS to identify every missing feature.
 
@@ -56,12 +56,16 @@
   │   │   │   ├── calendar/                 # Availability calendar (standalone)
   │   │   │   ├── settings/                 # Property settings + amenities
   │   │   │   └── layout.tsx
+  │   │   ├── (auth)/                       # Login + register pages (M18)
+  │   │   │   ├── login/                    # Email/password sign-in
+  │   │   │   └── register/                 # Account creation
   │   │   ├── (booking)/                    # Public guest-facing booking engine
   │   │   │   ├── [propertySlug]/           # 5-step booking flow + layout.tsx (JSON-LD)
   │   │   │   ├── manage/[confirmationCode] # Guest self-service portal
   │   │   │   └── layout.tsx
   │   │   ├── (review)/                     # Token-based review submission
   │   │   │   └── review/[token]/
+  │   │   ├── api/auth/[...all]/            # Better Auth handler (M18)
   │   │   ├── api/v1/                       # REST API
   │   │   │   ├── properties/[slug]/        # GET property, availability, rooms, reviews
   │   │   │   ├── reservations/             # POST create OTA reservation
@@ -81,6 +85,8 @@
   │   │   ├── seed-amenities.ts             # Amenity assignments for Preelook
   │   │   └── init-inventory.ts             # Backfill 365-day inventory
   │   ├── lib/
+  │   │   ├── auth.ts                       # Better Auth server config + drizzle adapter (M18)
+  │   │   ├── auth-client.ts                # Better Auth client — signIn/signUp/signOut/useSession (M18)
   │   │   ├── availability.ts               # Availability engine + booking rules
   │   │   ├── pricing.ts                    # Rate + discount resolution
   │   │   ├── payments.ts                   # Stripe: PI, SetupIntent, capture, refund
