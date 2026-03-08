@@ -88,6 +88,7 @@ export async function sendBookingConfirmation(params: {
   confirmationCode: string;
   propertyName: string;
   propertyAddress?: string;
+  propertyPhone?: string;
   checkIn: string;
   checkOut: string;
   nights: number;
@@ -119,6 +120,7 @@ export async function sendBookingConfirmation(params: {
       confirmationCode: params.confirmationCode,
       propertyName: params.propertyName,
       propertyAddress: params.propertyAddress,
+      propertyPhone: params.propertyPhone,
       checkIn: params.checkIn,
       checkOut: params.checkOut,
       nights: params.nights,
@@ -170,10 +172,12 @@ export async function sendPreArrival(params: {
   guestFirstName: string;
   propertyName: string;
   propertyAddress?: string;
+  propertyPhone?: string;
   checkIn: string;
   checkInTime?: string;
   roomTypeName: string;
   confirmationCode: string;
+  checkInInstructions?: string;
 }): Promise<boolean> {
   return sendAndLog({
     reservationId: params.reservationId,
@@ -185,10 +189,12 @@ export async function sendPreArrival(params: {
       guestFirstName: params.guestFirstName,
       propertyName: params.propertyName,
       propertyAddress: params.propertyAddress,
+      propertyPhone: params.propertyPhone,
       checkIn: params.checkIn,
       checkInTime: params.checkInTime,
       roomTypeName: params.roomTypeName,
       confirmationCode: params.confirmationCode,
+      checkInInstructions: params.checkInInstructions,
     }),
   });
 }

@@ -27,6 +27,15 @@ properties
 ├── status (active | inactive)
 ├── stripe_account_id (nullable, for Stripe Connect)
 ├── api_key (unique, for REST API auth)
+├── tagline (text, nullable — short marketing line shown in booking engine)
+├── phone (varchar, nullable — contact phone for guests)
+├── email (varchar, nullable — contact email for guests)
+├── logo_url (text, nullable — full URL to property logo image)
+├── maps_url (text, nullable — Google Maps or similar link)
+├── latitude (real, nullable — WGS84 latitude for JSON-LD geo)
+├── longitude (real, nullable — WGS84 longitude for JSON-LD geo)
+├── check_in_instructions (text, nullable — shown in pre-arrival email)
+├── website_url (text, nullable — property website)
 ├── created_at
 └── updated_at
 

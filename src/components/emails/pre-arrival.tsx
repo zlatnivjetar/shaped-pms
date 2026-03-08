@@ -15,20 +15,24 @@ interface PreArrivalProps {
   guestFirstName: string;
   propertyName: string;
   propertyAddress?: string;
+  propertyPhone?: string;
   checkIn: string;
   checkInTime?: string;
   roomTypeName: string;
   confirmationCode: string;
+  checkInInstructions?: string;
 }
 
 export default function PreArrival({
   guestFirstName,
   propertyName,
   propertyAddress,
+  propertyPhone,
   checkIn,
   checkInTime,
   roomTypeName,
   confirmationCode,
+  checkInInstructions,
 }: PreArrivalProps) {
   return (
     <Html>
@@ -89,6 +93,25 @@ export default function PreArrival({
               <strong>Booking ref:</strong> {confirmationCode}
             </Text>
 
+            {checkInInstructions && (
+              <>
+                <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
+                <Heading
+                  as="h3"
+                  style={{
+                    color: BRAND,
+                    fontSize: "14px",
+                    marginBottom: "12px",
+                  }}
+                >
+                  CHECK-IN INSTRUCTIONS
+                </Heading>
+                <Text style={{ color: BRAND, fontSize: "14px", margin: 0, whiteSpace: "pre-line" }}>
+                  {checkInInstructions}
+                </Text>
+              </>
+            )}
+
             {propertyAddress && (
               <>
                 <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
@@ -105,6 +128,11 @@ export default function PreArrival({
                 <Text style={{ color: BRAND, fontSize: "14px", margin: 0 }}>
                   {propertyAddress}
                 </Text>
+                {propertyPhone && (
+                  <Text style={{ color: MUTED, fontSize: "13px", margin: "4px 0 0" }}>
+                    Tel: {propertyPhone}
+                  </Text>
+                )}
               </>
             )}
 

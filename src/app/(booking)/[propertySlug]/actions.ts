@@ -580,6 +580,7 @@ export async function createReservation(
         propertyAddress: [propertyForEmail.address, propertyForEmail.city, propertyForEmail.country]
           .filter(Boolean)
           .join(", "),
+        propertyPhone: propertyForEmail.phone ?? undefined,
         checkIn: data.checkIn,
         checkOut: data.checkOut,
         nights: nights.length,

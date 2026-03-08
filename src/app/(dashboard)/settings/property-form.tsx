@@ -279,6 +279,119 @@ export function PropertyForm({ property }: { property: Property }) {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Branding &amp; Contact</CardTitle>
+          <CardDescription>
+            Shown in the booking engine, emails, and structured data for SEO.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <Label htmlFor="tagline">Tagline</Label>
+            <Input
+              id="tagline"
+              name="tagline"
+              defaultValue={property.tagline ?? ""}
+              placeholder="Your home away from home in Rijeka"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                name="phone"
+                defaultValue={property.phone ?? ""}
+                placeholder="+385 51 123 456"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="email">Contact Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                defaultValue={property.email ?? ""}
+                placeholder="hello@preelook.com"
+              />
+              <FieldError errors={state.fieldErrors?.email} />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="logoUrl">Logo URL</Label>
+              <Input
+                id="logoUrl"
+                name="logoUrl"
+                defaultValue={property.logoUrl ?? ""}
+                placeholder="https://..."
+              />
+              <FieldError errors={state.fieldErrors?.logoUrl} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="websiteUrl">Website URL</Label>
+              <Input
+                id="websiteUrl"
+                name="websiteUrl"
+                defaultValue={property.websiteUrl ?? ""}
+                placeholder="https://preelook.com"
+              />
+              <FieldError errors={state.fieldErrors?.websiteUrl} />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="mapsUrl">Google Maps Link</Label>
+            <Input
+              id="mapsUrl"
+              name="mapsUrl"
+              defaultValue={property.mapsUrl ?? ""}
+              placeholder="https://maps.google.com/..."
+            />
+            <FieldError errors={state.fieldErrors?.mapsUrl} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="latitude">Latitude</Label>
+              <Input
+                id="latitude"
+                name="latitude"
+                type="number"
+                step="any"
+                defaultValue={property.latitude ?? ""}
+                placeholder="45.3271"
+              />
+              <FieldError errors={state.fieldErrors?.latitude} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="longitude">Longitude</Label>
+              <Input
+                id="longitude"
+                name="longitude"
+                type="number"
+                step="any"
+                defaultValue={property.longitude ?? ""}
+                placeholder="14.4422"
+              />
+              <FieldError errors={state.fieldErrors?.longitude} />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="checkInInstructions">Check-in Instructions</Label>
+            <Textarea
+              id="checkInInstructions"
+              name="checkInInstructions"
+              defaultValue={property.checkInInstructions ?? ""}
+              rows={4}
+              placeholder="Key box is at the front entrance, code 1234..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Included in the pre-arrival email sent the day before check-in.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Separator className="sr-only" />
 
       <div className="flex justify-end">

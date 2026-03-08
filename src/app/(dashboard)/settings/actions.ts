@@ -22,6 +22,22 @@ const updatePropertySchema = z.object({
   scheduledChargeThresholdDays: z.coerce.number().int().min(1).max(365).optional(),
   cancellationPolicy: z.enum(["flexible", "moderate", "strict"]),
   cancellationDeadlineDays: z.coerce.number().int().min(1).max(365),
+  // M16 branding fields
+  tagline: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  logoUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+  mapsUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+  latitude: z.preprocess(
+    (v) => (v === "" || v === undefined ? undefined : Number(v)),
+    z.number().min(-90).max(90).optional()
+  ),
+  longitude: z.preprocess(
+    (v) => (v === "" || v === undefined ? undefined : Number(v)),
+    z.number().min(-180).max(180).optional()
+  ),
+  checkInInstructions: z.string().optional(),
+  websiteUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
 });
 
 export type UpdatePropertyState = {
@@ -51,6 +67,15 @@ export async function updateProperty(
     scheduledChargeThresholdDays: formData.get("scheduledChargeThresholdDays") || undefined,
     cancellationPolicy: formData.get("cancellationPolicy"),
     cancellationDeadlineDays: formData.get("cancellationDeadlineDays"),
+    tagline: formData.get("tagline"),
+    phone: formData.get("phone"),
+    email: formData.get("email"),
+    logoUrl: formData.get("logoUrl"),
+    mapsUrl: formData.get("mapsUrl"),
+    latitude: formData.get("latitude"),
+    longitude: formData.get("longitude"),
+    checkInInstructions: formData.get("checkInInstructions"),
+    websiteUrl: formData.get("websiteUrl"),
   };
 
   const parsed = updatePropertySchema.safeParse(raw);
@@ -82,6 +107,15 @@ export async function updateProperty(
       scheduledChargeThresholdDays: data.scheduledChargeThresholdDays ?? 7,
       cancellationPolicy: data.cancellationPolicy,
       cancellationDeadlineDays: data.cancellationDeadlineDays,
+      tagline: data.tagline || null,
+      phone: data.phone || null,
+      email: data.email || null,
+      logoUrl: data.logoUrl || null,
+      mapsUrl: data.mapsUrl || null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      checkInInstructions: data.checkInInstructions || null,
+      websiteUrl: data.websiteUrl || null,
       updatedAt: new Date(),
     })
     .where(eq(properties.id, propertyId));

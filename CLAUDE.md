@@ -2,7 +2,7 @@
   Property Management System replacing a WordPress hospitality stack (MotoPress Hotel Booking + Shaped Core plugin).                                                         
   ## Current Status                                                                                                                                                       
                                                                                                                                                                           
-  Milestones 1–15 complete. See `/docs/m*-summary.md` for what was built per milestone.
+  Milestones 1–17 complete. See `/docs/m*-summary.md` for what was built per milestone.
   Milestones 16–20 defined in `/docs/gap-analysis.md` — produced by analyzing the
   Shaped Core plugin against this PMS to identify every missing feature.
 
@@ -57,7 +57,7 @@
   │   │   │   ├── settings/                 # Property settings + amenities
   │   │   │   └── layout.tsx
   │   │   ├── (booking)/                    # Public guest-facing booking engine
-  │   │   │   ├── [propertySlug]/           # 5-step booking flow
+  │   │   │   ├── [propertySlug]/           # 5-step booking flow + layout.tsx (JSON-LD)
   │   │   │   ├── manage/[confirmationCode] # Guest self-service portal
   │   │   │   └── layout.tsx
   │   │   ├── (review)/                     # Token-based review submission
@@ -73,7 +73,7 @@
   │   │   └── layout.tsx
   │   ├── db/
   │   │   ├── schema.ts                     # Drizzle schema (source of truth)
-  │   │   ├── migrations/                   # Generated SQL migrations (0000–0009)
+  │   │   ├── migrations/                   # Generated SQL migrations (0000–0010)
   │   │   ├── index.ts                      # Neon HTTP connection + Drizzle client
   │   │   ├── seed.ts                       # Preelook Apartments base seed
   │   │   ├── seed-reservations.ts          # Test guests + reservations
@@ -91,6 +91,7 @@
   │   │   ├── inventory.ts                  # upsertInventory() helper
   │   │   ├── api-utils.ts                  # apiResponse(), apiError(), getAuthenticatedProperty()
   │   │   ├── confirmation-code.ts          # SHP-XXXXX generator
+  │   │   ├── jsonld.ts                     # buildLodgingBusinessJsonLd() — schema.org JSON-LD (M17)
   │   │   └── validators.ts                 # Zod schemas
   │   ├── components/
   │   │   ├── ui/                           # shadcn/ui primitives

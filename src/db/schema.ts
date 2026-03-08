@@ -8,6 +8,7 @@ import {
   pgEnum,
   time,
   date,
+  real,
   index,
   uniqueIndex,
   primaryKey,
@@ -129,6 +130,15 @@ export const properties = pgTable("properties", {
   status: propertyStatusEnum("status").notNull().default("active"),
   stripeAccountId: text("stripe_account_id"),
   apiKey: text("api_key").notNull().unique(),
+  tagline: text("tagline"),
+  phone: varchar("phone", { length: 32 }),
+  email: varchar("email", { length: 255 }),
+  logoUrl: text("logo_url"),
+  mapsUrl: text("maps_url"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  checkInInstructions: text("check_in_instructions"),
+  websiteUrl: text("website_url"),
   cancellationPolicy: cancellationPolicyEnum("cancellation_policy")
     .notNull()
     .default("flexible"),

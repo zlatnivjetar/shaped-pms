@@ -19,6 +19,7 @@ interface BookingConfirmationProps {
   confirmationCode: string;
   propertyName: string;
   propertyAddress?: string;
+  propertyPhone?: string;
   checkIn: string;
   checkOut: string;
   nights: number;
@@ -36,6 +37,7 @@ export default function BookingConfirmation({
   confirmationCode,
   propertyName,
   propertyAddress,
+  propertyPhone,
   checkIn,
   checkOut,
   nights,
@@ -243,7 +245,7 @@ export default function BookingConfirmation({
           </Section>
 
           {/* Footer */}
-          {propertyAddress && (
+          {(propertyAddress || propertyPhone) && (
             <Section
               style={{
                 backgroundColor: "#f5f5f4",
@@ -251,14 +253,23 @@ export default function BookingConfirmation({
                 borderTop: "1px solid #e7e5e4",
               }}
             >
-              <Text
-                style={{ color: MUTED, fontSize: "12px", margin: "0 0 4px" }}
-              >
-                PROPERTY ADDRESS
-              </Text>
-              <Text style={{ color: BRAND, fontSize: "13px", margin: 0 }}>
-                {propertyAddress}
-              </Text>
+              {propertyAddress && (
+                <>
+                  <Text
+                    style={{ color: MUTED, fontSize: "12px", margin: "0 0 4px" }}
+                  >
+                    PROPERTY ADDRESS
+                  </Text>
+                  <Text style={{ color: BRAND, fontSize: "13px", margin: 0 }}>
+                    {propertyAddress}
+                  </Text>
+                </>
+              )}
+              {propertyPhone && (
+                <Text style={{ color: MUTED, fontSize: "12px", margin: "8px 0 0" }}>
+                  Tel: {propertyPhone}
+                </Text>
+              )}
             </Section>
           )}
         </Container>

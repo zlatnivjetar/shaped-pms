@@ -168,6 +168,17 @@ export default function BookingFlow({
             {property.city}{property.country ? `, ${property.country}` : ""}
           </p>
           <h1 className="text-lg font-semibold text-stone-900">{property.name}</h1>
+          {property.tagline && (
+            <p className="text-xs text-stone-500 mt-0.5">{property.tagline}</p>
+          )}
+          {property.phone && (
+            <a
+              href={`tel:${property.phone}`}
+              className="text-xs text-stone-500 hover:text-stone-700 mt-0.5 block"
+            >
+              {property.phone}
+            </a>
+          )}
         </div>
       </header>
 

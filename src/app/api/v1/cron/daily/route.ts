@@ -71,10 +71,12 @@ export async function GET(req: NextRequest) {
       ]
         .filter(Boolean)
         .join(", "),
+      propertyPhone: res.property.phone ?? undefined,
       checkIn: res.checkIn,
       checkInTime: res.property.checkInTime ?? undefined,
       roomTypeName,
       confirmationCode: res.confirmationCode,
+      checkInInstructions: res.property.checkInInstructions ?? undefined,
     });
 
     preArrivalCount++;
