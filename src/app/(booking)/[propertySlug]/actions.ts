@@ -232,6 +232,19 @@ export async function createPaymentIntentForBooking(
     })
     .returning({ id: reservations.id });
 
+  // Insert reservation_room now so the abandoned cron can roll back inventory
+  const ratePerNightCentsForRoom = resolveRate(
+    roomTypeData.baseRateCents,
+    nights[0],
+    plansForPricing,
+    activeDiscounts
+  );
+  await db.insert(reservationRooms).values({
+    reservationId: pendingReservation.id,
+    roomTypeId: params.roomTypeId,
+    ratePerNightCents: ratePerNightCentsForRoom,
+  });
+
   const metadata = {
     reservation_code: reservationCode,
     property_id: property.id,
@@ -473,7 +486,6 @@ export async function createReservation(
     rateCents: resolveRate(roomTypeData.baseRateCents, date, plansForPricing, activeDiscounts),
   }));
   const totalCents = nightlyRates.reduce((sum, n) => sum + n.rateCents, 0);
-  const ratePerNightCents = nightlyRates[0]?.rateCents ?? roomTypeData.baseRateCents;
 
   try {
     // Update guest with full details (phone, special requests)
@@ -496,13 +508,6 @@ export async function createReservation(
         updatedAt: new Date(),
       })
       .where(eq(reservations.id, pendingReservation.id));
-
-    // Create reservation_room
-    await db.insert(reservationRooms).values({
-      reservationId: pendingReservation.id,
-      roomTypeId: data.roomTypeId,
-      ratePerNightCents,
-    });
 
     // Insert payment record
     if (isSetupFlow) {

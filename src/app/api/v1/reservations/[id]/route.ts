@@ -9,9 +9,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ confirmationCode: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { confirmationCode } = await params;
+  const { id: confirmationCode } = await params;
 
   // We need the property slug to auth — extract from query param or look up reservation first
   // Strategy: find the reservation, then verify the API key belongs to that property

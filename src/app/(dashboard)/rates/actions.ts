@@ -139,7 +139,7 @@ export async function deleteRatePlan(planId: string): Promise<void> {
 
 const discountSchema = z
   .object({
-    roomTypeId: z.string().uuid().optional().or(z.literal("")),
+    roomTypeId: z.string().uuid().optional().or(z.literal("")).or(z.literal("all")),
     name: z.string().min(1, "Name is required"),
     percentage: z.coerce
       .number()
@@ -197,7 +197,7 @@ export async function createDiscount(
 
   await db.insert(discounts).values({
     propertyId,
-    roomTypeId: roomTypeId || null,
+    roomTypeId: roomTypeId && roomTypeId !== "all" ? roomTypeId : null,
     name,
     percentage,
     dateStart: dateStart || null,
@@ -235,7 +235,7 @@ export async function updateDiscount(
   await db
     .update(discounts)
     .set({
-      roomTypeId: roomTypeId || null,
+      roomTypeId: roomTypeId && roomTypeId !== "all" ? roomTypeId : null,
       name,
       percentage,
       dateStart: dateStart || null,

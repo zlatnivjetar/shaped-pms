@@ -74,12 +74,12 @@ function DiscountForm({
 
       <div className="space-y-1">
         <Label>Room Type</Label>
-        <Select name="roomTypeId" defaultValue={discount?.roomTypeId ?? ""}>
+        <Select name="roomTypeId" defaultValue={discount?.roomTypeId ?? "all"}>
           <SelectTrigger>
             <SelectValue placeholder="All room types" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All room types</SelectItem>
+            <SelectItem value="all">All room types</SelectItem>
             {roomTypes.map((rt) => (
               <SelectItem key={rt.id} value={rt.id}>
                 {rt.name}
