@@ -161,7 +161,7 @@ export default function BookingFlow({
   }, [step]);
 
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div className="min-h-screen">
       {/* Header */}
       <header className="bg-white border-b border-stone-200">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between gap-3">
