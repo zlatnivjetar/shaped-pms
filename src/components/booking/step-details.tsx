@@ -1,11 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function ConfirmSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm divide-y divide-stone-100">
+        {[5, 3, 2].map((rows, i) => (
+          <div key={i} className="p-4 space-y-3">
+            <Skeleton className="h-4 w-16" />
+            {Array.from({ length: rows }).map((_, j) => (
+              <div key={j} className="flex justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <Skeleton className="h-10 w-full rounded-md" />
+    </div>
+  );
+}
 import type { RoomType } from "@/db/schema";
 import type { GuestDetails } from "./booking-flow";
 
@@ -42,7 +64,21 @@ export default function StepDetails({
   onGuestDetailsChange,
 }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Prefetch confirm step on mount — all URL params are already known as props
+  useEffect(() => {
+    const params = new URLSearchParams({
+      step: "confirm",
+      check_in: checkIn,
+      check_out: checkOut,
+      adults: String(adults),
+      children: String(childCount),
+      room_type_id: roomTypeId,
+    });
+    router.prefetch(`/${propertySlug}?${params.toString()}`);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nights =
     (new Date(checkOut + "T00:00:00Z").getTime() -
@@ -84,13 +120,15 @@ export default function StepDetails({
       children: String(childCount),
       room_type_id: roomTypeId,
     });
-    router.push(`/${propertySlug}?${params.toString()}`);
+    startTransition(() => router.push(`/${propertySlug}?${params.toString()}`));
   }
 
   function update(field: keyof GuestDetails, value: string) {
     onGuestDetailsChange({ ...guestDetails, [field]: value });
     if (errors[field]) setErrors((e) => ({ ...e, [field]: "" }));
   }
+
+  if (isPending) return <ConfirmSkeleton />;
 
   return (
     <div>
@@ -105,7 +143,7 @@ export default function StepDetails({
       </div>
 
       {/* Booking summary */}
-      <div className="bg-stone-100 rounded-lg p-4 mb-6 text-sm">
+      <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-4 mb-6 text-sm">
         <p className="font-medium text-stone-800">{selectedRoomType.name}</p>
         <p className="text-stone-500 mt-0.5">
           {formatDate(checkIn)} → {formatDate(checkOut)} ·{" "}
@@ -127,6 +165,7 @@ export default function StepDetails({
               onChange={(e) => update("firstName", e.target.value)}
               placeholder="Jane"
               autoComplete="given-name"
+              className="bg-white focus-visible:ring-[#1E3A8A]/50"
             />
             {errors.firstName && (
               <p className="text-xs text-red-600">{errors.firstName}</p>
@@ -140,6 +179,7 @@ export default function StepDetails({
               onChange={(e) => update("lastName", e.target.value)}
               placeholder="Smith"
               autoComplete="family-name"
+              className="bg-white focus-visible:ring-[#1E3A8A]/50"
             />
             {errors.lastName && (
               <p className="text-xs text-red-600">{errors.lastName}</p>
@@ -156,6 +196,7 @@ export default function StepDetails({
             onChange={(e) => update("email", e.target.value)}
             placeholder="jane@example.com"
             autoComplete="email"
+            className="bg-white focus-visible:ring-[#1E3A8A]/50"
           />
           {errors.email && (
             <p className="text-xs text-red-600">{errors.email}</p>
@@ -171,6 +212,7 @@ export default function StepDetails({
             onChange={(e) => update("phone", e.target.value)}
             placeholder="+385 91 234 5678"
             autoComplete="tel"
+            className="bg-white focus-visible:ring-[#1E3A8A]/50"
           />
         </div>
 
@@ -184,12 +226,13 @@ export default function StepDetails({
             onChange={(e) => update("specialRequests", e.target.value)}
             placeholder="Early check-in, ground floor room, etc."
             rows={3}
+            className="bg-white focus-visible:ring-[#1E3A8A]/50"
           />
         </div>
 
         <Button
           type="submit"
-          className="w-full bg-stone-900 hover:bg-stone-700 text-white mt-2"
+          className="w-full h-10 bg-[#CA8A04] hover:bg-amber-700 text-white mt-2"
         >
           Continue to review
         </Button>

@@ -1,9 +1,29 @@
 "use client";
 
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AmenityChip } from "./amenity-chip";
 import type { AvailableRoomType } from "@/lib/availability";
+
+function DetailsSkeleton() {
+  return (
+    <div className="space-y-5">
+      <Skeleton className="h-20 w-full rounded-xl" />
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <Skeleton className="h-9 w-full rounded-md" />
+          <Skeleton className="h-9 w-full rounded-md" />
+        </div>
+        <Skeleton className="h-9 w-full rounded-md" />
+        <Skeleton className="h-9 w-full rounded-md" />
+        <Skeleton className="h-20 w-full rounded-md" />
+        <Skeleton className="h-10 w-full rounded-md" />
+      </div>
+    </div>
+  );
+}
 
 type AmenityInfo = { id: string; name: string; icon: string };
 
@@ -46,6 +66,25 @@ export default function StepSelect({
   amenitiesByRoomType,
 }: Props) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [pendingRoomTypeId, setPendingRoomTypeId] = useState<string | null>(null);
+
+  // Prefetch details step for every available (non-blocked) room type on mount
+  useEffect(() => {
+    availableRoomTypes
+      .filter((rt) => rt.ruleViolation === null)
+      .forEach((rt) => {
+        const params = new URLSearchParams({
+          step: "details",
+          check_in: checkIn,
+          check_out: checkOut,
+          adults: String(adults),
+          children: String(childCount),
+          room_type_id: rt.roomTypeId,
+        });
+        router.prefetch(`/${propertySlug}?${params.toString()}`);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSelect(roomTypeId: string) {
     const params = new URLSearchParams({
@@ -56,7 +95,8 @@ export default function StepSelect({
       children: String(childCount),
       room_type_id: roomTypeId,
     });
-    router.push(`/${propertySlug}?${params.toString()}`);
+    setPendingRoomTypeId(roomTypeId);
+    startTransition(() => router.push(`/${propertySlug}?${params.toString()}`));
   }
 
   function handleBack() {
@@ -74,6 +114,8 @@ export default function StepSelect({
     (new Date(checkOut + "T00:00:00Z").getTime() -
       new Date(checkIn + "T00:00:00Z").getTime()) /
     86400000;
+
+  if (isPending) return <DetailsSkeleton />;
 
   return (
     <div>
@@ -93,7 +135,7 @@ export default function StepSelect({
       </div>
 
       {availableRoomTypes.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-stone-200">
+        <div className="text-center py-12 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm">
           <p className="text-stone-600 font-medium">No rooms available</p>
           <p className="text-sm text-stone-400 mt-1">
             Try different dates or fewer guests.
@@ -113,14 +155,14 @@ export default function StepSelect({
             return (
               <div
                 key={rt.roomTypeId}
-                className={`rounded-xl border p-5 ${blocked ? "bg-stone-50 border-stone-200 opacity-70" : "bg-white border-stone-200"}`}
+                className={`bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-5 ${blocked ? "opacity-60" : ""}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-stone-900">{rt.name}</h3>
                       {!blocked && hasDiscount && (
-                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                           {rt.discountPercentage}% off
                         </span>
                       )}
@@ -155,9 +197,9 @@ export default function StepSelect({
 
                 <div className="mt-4 flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-lg font-semibold text-stone-900">
+                    <p className="text-2xl font-semibold text-stone-900">
                       {formatCurrency(rt.totalCents)}
-                      <span className="text-sm font-normal text-stone-500 ml-1">
+                      <span className="text-sm font-normal text-stone-400 ml-1">
                         total
                       </span>
                     </p>
@@ -166,18 +208,17 @@ export default function StepSelect({
                         {formatCurrency(rt.originalTotalCents)}
                       </p>
                     )}
-                    <p className="text-xs text-stone-400">
-                      {formatCurrency(rt.ratePerNightCents)} /{" "}
-                      {nights === 1 ? "night" : "night"}
-                      {nights > 1 ? ` × ${nights} nights` : ""}
+                    <p className="text-sm text-stone-400">
+                      {formatCurrency(rt.ratePerNightCents)} / night
+                      {nights > 1 ? ` × ${nights}` : ""}
                     </p>
                   </div>
                   <Button
                     onClick={() => !blocked && handleSelect(rt.roomTypeId)}
-                    disabled={blocked}
-                    className="bg-stone-900 hover:bg-stone-700 text-white shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={blocked || isPending}
+                    className="h-10 bg-[#CA8A04] hover:bg-amber-700 text-white shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {blocked ? "Unavailable" : "Select"}
+                    {pendingRoomTypeId === rt.roomTypeId ? "Loading…" : blocked ? "Unavailable" : "Select"}
                   </Button>
                 </div>
               </div>

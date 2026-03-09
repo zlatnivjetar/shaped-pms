@@ -10,6 +10,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Property, RoomType } from "@/db/schema";
 import type { GuestDetails } from "./booking-flow";
@@ -205,10 +206,14 @@ function PaymentFormInner({
         </div>
       ) : null}
       <PaymentElement />
+      <div className="flex items-center justify-center gap-1.5 text-xs text-stone-400">
+        <Lock className="h-3 w-3" />
+        Secured by Stripe
+      </div>
       <Button
         onClick={handlePay}
         disabled={!stripe || !elements || busy}
-        className="w-full bg-stone-900 hover:bg-stone-700 text-white text-base py-3"
+        className="w-full h-10 bg-[#CA8A04] hover:bg-amber-700 text-white text-base"
       >
         {isActionPending
           ? "Confirming booking…"
@@ -354,9 +359,9 @@ export default function StepConfirm({
       </div>
 
       {/* Summary card — visible in both stages */}
-      <div className="bg-white rounded-xl border border-stone-200 divide-y divide-stone-100 mb-5">
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm divide-y divide-stone-100 mb-5">
         <div className="p-4">
-          <p className="text-xs text-stone-400 uppercase tracking-wider mb-2">
+          <p className="text-sm font-medium text-[#1E3A8A] uppercase tracking-wide mb-2">
             Stay
           </p>
           <Row label="Room" value={selectedRoomType.name} />
@@ -373,7 +378,7 @@ export default function StepConfirm({
         </div>
 
         <div className="p-4">
-          <p className="text-xs text-stone-400 uppercase tracking-wider mb-2">
+          <p className="text-sm font-medium text-[#1E3A8A] uppercase tracking-wide mb-2">
             Guest
           </p>
           <Row
@@ -390,7 +395,7 @@ export default function StepConfirm({
         </div>
 
         <div className="p-4">
-          <p className="text-xs text-stone-400 uppercase tracking-wider mb-2">
+          <p className="text-sm font-medium text-[#1E3A8A] uppercase tracking-wide mb-2">
             Price
           </p>
           <Row
@@ -423,7 +428,7 @@ export default function StepConfirm({
           <Button
             onClick={handleProceedToPayment}
             disabled={isCreatingPI || isPending}
-            className="w-full bg-stone-900 hover:bg-stone-700 text-white text-base py-3"
+            className="w-full h-10 bg-[#CA8A04] hover:bg-amber-700 text-white text-base"
           >
             {isCreatingPI ? "Setting up payment…" : "Proceed to payment →"}
           </Button>

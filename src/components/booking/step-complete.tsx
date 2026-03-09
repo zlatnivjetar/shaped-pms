@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { CompletedReservation } from "./booking-flow";
 
@@ -35,45 +36,41 @@ export default function StepComplete({ reservation, propertyName, propertySlug }
   const guestFirstName = reservation.guest?.firstName ?? "Guest";
   const guestEmail = reservation.guest?.email ?? "";
 
-  return (
-    <div className="text-center">
-      {/* Success icon */}
-      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mx-auto mb-4">
-        <svg
-          className="w-8 h-8 text-green-600"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M5 13l4 4L19 7"
-          />
-        </svg>
-      </div>
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 16);
+    return () => clearTimeout(t);
+  }, []);
 
-      <h2 className="text-2xl font-bold text-stone-900 mb-1">Booking confirmed!</h2>
-      <p className="text-stone-500 mb-6">
-        Thank you, {guestFirstName}. Your reservation is confirmed.
+  return (
+    <div
+      className={`text-center transition-all duration-500 motion-reduce:opacity-100 motion-reduce:translate-y-0 ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+      }`}
+    >
+      {/* Heading */}
+      <h2 className="text-2xl font-[family-name:--font-playfair] text-stone-900 mb-1">
+        Booking confirmed.
+      </h2>
+      <p className="font-[family-name:--font-playfair] text-stone-400 mb-6">
+        {propertyName}
       </p>
 
-      {/* Confirmation code */}
-      <div className="bg-stone-900 text-white rounded-xl p-5 mb-6">
-        <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+      {/* Confirmation code block */}
+      <div className="bg-[#1E3A8A] text-white rounded-2xl p-6 mb-6">
+        <hr className="border-[#CA8A04] border mb-4 opacity-60" />
+        <p className="text-xs text-blue-200 uppercase tracking-widest mb-2">
           Confirmation code
         </p>
-        <p className="text-3xl font-mono font-bold tracking-wider">
+        <p className="text-3xl font-[family-name:--font-playfair] tracking-wider font-semibold">
           {reservation.confirmationCode}
         </p>
-        <p className="text-xs text-stone-400 mt-1">
-          Save this code for your records
-        </p>
+        <p className="text-xs text-blue-200 mt-2">Save this code for your records</p>
+        <hr className="border-[#CA8A04] border mt-4 opacity-60" />
       </div>
 
       {/* Booking summary */}
-      <div className="bg-white rounded-xl border border-stone-200 p-5 text-left mb-6 space-y-2">
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-5 text-left mb-6 space-y-2">
         <div className="flex justify-between text-sm py-1">
           <span className="text-stone-500">Property</span>
           <span className="font-medium text-stone-900">{propertyName}</span>

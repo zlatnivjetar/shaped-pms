@@ -31,8 +31,8 @@ export default async function ManageBookingPage({
   // Invalid token or reservation not found — show error without exposing data
   if (!reservation || !token || reservation.manageToken !== token) {
     return (
-      <main className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-stone-200 p-8 text-center space-y-4">
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-8 text-center space-y-4">
           <div className="text-4xl">🔒</div>
           <h1 className="text-xl font-semibold text-stone-800">
             Invalid link
@@ -49,8 +49,8 @@ export default async function ManageBookingPage({
   const { property, guest, reservationRooms, payments } = reservation;
   if (!property || !guest) {
     return (
-      <main className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-stone-200 p-8 text-center space-y-4">
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-8 text-center space-y-4">
           <h1 className="text-xl font-semibold text-stone-800">
             Something went wrong
           </h1>
@@ -96,15 +96,15 @@ export default async function ManageBookingPage({
   };
 
   return (
-    <main className="min-h-screen bg-stone-50">
+    <main className="min-h-screen">
       {/* Header */}
       <header className="bg-white border-b border-stone-200">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <p className="text-xs text-stone-500 uppercase tracking-wider">
+          <p className="text-xs uppercase tracking-widest text-[#1E3A8A]">
             {property.city}
             {property.country ? `, ${property.country}` : ""}
           </p>
-          <h1 className="text-lg font-semibold text-stone-900">
+          <h1 className="text-xl font-semibold text-stone-900 font-[family-name:--font-playfair]">
             {property.name}
           </h1>
         </div>
@@ -112,7 +112,7 @@ export default async function ManageBookingPage({
 
       <div className="max-w-lg mx-auto px-4 py-10 space-y-6">
         {/* Booking summary */}
-        <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 space-y-4">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-stone-800">
               Your Booking
@@ -134,7 +134,7 @@ export default async function ManageBookingPage({
             <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
               Confirmation Code
             </p>
-            <p className="text-2xl font-bold tracking-widest text-stone-900">
+            <p className="text-2xl font-[family-name:--font-playfair] font-semibold tracking-widest text-stone-900">
               {reservation.confirmationCode}
             </p>
           </div>
@@ -206,7 +206,7 @@ export default async function ManageBookingPage({
 
         {/* Cancellation section — only for confirmed reservations */}
         {reservation.status === "confirmed" && refundPreview && (
-          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 space-y-4">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6 space-y-4">
             <h2 className="text-base font-semibold text-stone-800">
               Cancellation Policy
             </h2>
@@ -243,7 +243,7 @@ export default async function ManageBookingPage({
 
         {/* Already cancelled state */}
         {reservation.status === "cancelled" && (
-          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 text-center space-y-2">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6 text-center space-y-2">
             <p className="text-stone-500 text-sm">
               This booking was cancelled
               {reservation.cancelledAt
@@ -263,7 +263,7 @@ export default async function ManageBookingPage({
         {(reservation.status === "checked_in" ||
           reservation.status === "checked_out" ||
           reservation.status === "no_show") && (
-          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-6 text-center">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6 text-center">
             <p className="text-stone-500 text-sm">
               {reservation.status === "checked_in"
                 ? "You're currently checked in. Please contact the property for any changes."

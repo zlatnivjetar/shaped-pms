@@ -62,41 +62,32 @@ function StepIndicator({ current }: { current: string }) {
   const idx = STEPS.indexOf(current);
   if (idx === -1) return null;
   return (
-    <div className="flex items-center justify-center gap-2 mb-8">
+    <div className="flex items-center justify-center mb-8">
       {STEPS.map((step, i) => (
-        <div key={step} className="flex items-center gap-2">
-          <div
-            className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold transition-colors ${
-              i < idx
-                ? "bg-stone-800 text-white"
-                : i === idx
-                  ? "bg-stone-800 text-white ring-2 ring-stone-300"
-                  : "bg-stone-200 text-stone-500"
-            }`}
-          >
+        <div key={step} className="flex items-center">
+          {/* Dot + label column */}
+          <div className="flex flex-col items-center gap-1.5">
             {i < idx ? (
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              /* Completed: gold dot with checkmark */
+              <div className="w-5 h-5 rounded-full bg-[#CA8A04] flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            ) : i === idx ? (
+              /* Current: filled navy circle */
+              <div className="w-5 h-5 rounded-full bg-[#1E3A8A]" />
             ) : (
-              i + 1
+              /* Upcoming: hollow circle */
+              <div className="w-5 h-5 rounded-full border-2 border-stone-300" />
             )}
+            <span className={`text-xs hidden sm:block ${i === idx ? "text-[#1E3A8A] font-medium" : i < idx ? "text-[#CA8A04]" : "text-stone-400"}`}>
+              {STEP_LABELS[i]}
+            </span>
           </div>
-          <span
-            className={`text-xs hidden sm:inline ${
-              i === idx ? "text-stone-800 font-medium" : "text-stone-400"
-            }`}
-          >
-            {STEP_LABELS[i]}
-          </span>
+          {/* Connecting line */}
           {i < STEPS.length - 1 && (
-            <div
-              className={`w-8 h-px ${i < idx ? "bg-stone-800" : "bg-stone-200"}`}
-            />
+            <div className={`w-12 h-px mx-1 mb-4 ${i < idx ? "bg-[#CA8A04]" : "bg-stone-200"}`} />
           )}
         </div>
       ))}
@@ -166,10 +157,10 @@ export default function BookingFlow({
       <header className="bg-white border-b border-stone-200">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs text-stone-500 uppercase tracking-wider">
+            <p className="text-xs uppercase tracking-widest text-[#1E3A8A]">
               {property.city}{property.country ? `, ${property.country}` : ""}
             </p>
-            <h1 className="text-lg font-semibold text-stone-900">{property.name}</h1>
+            <h1 className="text-xl font-semibold text-stone-900 font-[family-name:--font-playfair]">{property.name}</h1>
             {property.tagline && (
               <p className="text-xs text-stone-500 mt-0.5">{property.tagline}</p>
             )}
@@ -267,22 +258,19 @@ export default function BookingFlow({
         {/* Reviews section — visible on search step */}
         {step === "search" && publishedReviews.length > 0 && (
           <section className="mt-12 space-y-6">
-            <div className="flex items-baseline gap-3">
-              <h2 className="text-lg font-semibold text-stone-900">
-                Guest Reviews
-              </h2>
+            <div className="flex flex-col items-center text-center gap-1 mb-2">
               {avgRating !== null && (
-                <span className="text-sm text-stone-500">
-                  <span className="text-amber-400 font-medium">
-                    {"★".repeat(Math.round(avgRating))}
-                  </span>{" "}
-                  <span className="font-semibold text-stone-700">
-                    {avgRating.toFixed(1)}
-                  </span>{" "}
-                  from {publishedReviews.length} review
-                  {publishedReviews.length !== 1 ? "s" : ""}
+                <span className="text-5xl font-[family-name:--font-playfair] text-[#CA8A04]">
+                  {avgRating.toFixed(1)}
                 </span>
               )}
+              <div className="flex items-center gap-2">
+                <span className="text-amber-400 text-sm">{"★".repeat(Math.round(avgRating ?? 0))}</span>
+                <span className="text-xs text-stone-400">
+                  {publishedReviews.length} review{publishedReviews.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <h2 className="text-lg font-semibold text-stone-900 mt-1">Guest Reviews</h2>
             </div>
 
             <div className="space-y-4">
@@ -300,10 +288,10 @@ export default function BookingFlow({
                 return (
                   <div
                     key={review.id}
-                    className="bg-white border border-stone-200 rounded-lg p-5 space-y-2"
+                    className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-5 space-y-2"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-stone-800 text-white flex items-center justify-center text-xs font-semibold">
+                      <div className="w-9 h-9 rounded-full bg-[#1E3A8A] text-white flex items-center justify-center text-xs font-semibold">
                         {initials}
                       </div>
                       <div className="flex-1 min-w-0">
