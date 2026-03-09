@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { Property, RoomType, Review, Guest } from "@/db/schema";
+import { SOURCE_LABELS } from "@/lib/reviews";
 import type { AvailableRoomType } from "@/lib/availability";
 import StepSearch from "./step-search";
 import StepSelect from "./step-select";
@@ -287,12 +288,15 @@ export default function BookingFlow({
             <div className="space-y-4">
               {publishedReviews.map((review) => {
                 const guest = review.guest;
-                const initials = guest
-                  ? `${guest.firstName[0]}${guest.lastName[0]}`.toUpperCase()
-                  : "?";
                 const displayName = guest
                   ? `${guest.firstName} ${guest.lastName[0]}.`
-                  : "Guest";
+                  : review.reviewerName ?? "Guest";
+                const initials = displayName
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
                 return (
                   <div
                     key={review.id}
@@ -302,11 +306,18 @@ export default function BookingFlow({
                       <div className="w-9 h-9 rounded-full bg-stone-800 text-white flex items-center justify-center text-xs font-semibold">
                         {initials}
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-stone-800">
-                          {displayName}
-                        </p>
-                        <p className="text-amber-400 text-xs leading-none">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-stone-800">
+                            {displayName}
+                          </p>
+                          {review.source !== "direct" && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200">
+                              {SOURCE_LABELS[review.source]}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-amber-400 text-xs leading-none mt-0.5">
                           {"★".repeat(review.rating)}
                           <span className="text-stone-200">
                             {"★".repeat(5 - review.rating)}

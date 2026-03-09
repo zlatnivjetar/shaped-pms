@@ -28,6 +28,9 @@ export async function GET(
         rating: reviews.rating,
         title: reviews.title,
         body: reviews.body,
+        reviewerName: reviews.reviewerName,
+        source: reviews.source,
+        sourceUrl: reviews.sourceUrl,
         stayDateStart: reviews.stayDateStart,
         stayDateEnd: reviews.stayDateEnd,
         propertyResponse: reviews.propertyResponse,
@@ -37,7 +40,7 @@ export async function GET(
         guestLastName: guests.lastName,
       })
       .from(reviews)
-      .innerJoin(guests, eq(reviews.guestId, guests.id))
+      .leftJoin(guests, eq(reviews.guestId, guests.id))
       .where(
         and(
           eq(reviews.propertyId, property.id),
@@ -67,15 +70,16 @@ export async function GET(
       rating: r.rating,
       title: r.title,
       body: r.body,
+      source: r.source,
+      sourceUrl: r.sourceUrl,
       stayDateStart: r.stayDateStart,
       stayDateEnd: r.stayDateEnd,
       propertyResponse: r.propertyResponse,
       propertyRespondedAt: r.propertyRespondedAt,
       createdAt: r.createdAt,
-      guest: {
-        firstName: r.guestFirstName,
-        lastName: r.guestLastName,
-      },
+      reviewer: r.guestFirstName
+        ? { firstName: r.guestFirstName, lastName: r.guestLastName }
+        : { name: r.reviewerName },
     })),
     averageRating: stats?.averageRating
       ? parseFloat(String(stats.averageRating))

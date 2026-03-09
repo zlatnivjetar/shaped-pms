@@ -498,7 +498,7 @@ Add to properties table:
 
 ---
 
-### Milestone 19: Channel Manager Integration (RoomCloud Adapter)
+### Milestone 19: Channel Manager Integration (RoomCloud Adapter) — TODO (skipped, deferred)
 
 **What:** PMS-authoritative channel manager integration. PMS is the source of truth for inventory and rates. The channel manager is a distribution layer — it receives inventory/rates from PMS and sends OTA bookings back. First adapter: RoomCloud (XML OTA API v3.8). Architecture supports future adapters for other CMs.
 

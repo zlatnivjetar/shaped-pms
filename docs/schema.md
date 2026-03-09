@@ -170,19 +170,25 @@ review_tokens
 reviews
 ├── id (uuid, pk)
 ├── property_id (fk → properties)
-├── reservation_id (fk → reservations)
-├── guest_id (fk → guests)
-├── review_token_id (fk → review_tokens)
-├── rating (int, 1-5)
+├── reservation_id (fk → reservations, nullable — null for OTA reviews)
+├── guest_id (fk → guests, nullable — null for OTA reviews)
+├── review_token_id (fk → review_tokens, nullable — null for OTA reviews)
+├── rating (int, 1-5, normalized)
 ├── title (nullable)
 ├── body (text)
+├── reviewer_name (text, nullable — used for OTA reviews without guest record)
 ├── stay_date_start (date)
 ├── stay_date_end (date)
 ├── status (pending | published | hidden)
+├── source (enum: direct | booking_com | google | tripadvisor | airbnb | expedia, default 'direct')
+├── external_id (varchar(255), nullable — deduplication key for OTA imports)
+├── source_url (text, nullable — link to original review on OTA platform)
+├── source_rating_raw (real, nullable — original scale rating, e.g. 9.2 for Booking.com)
 ├── property_response (nullable)
 ├── property_responded_at (nullable)
 ├── created_at
 └── updated_at
+UNIQUE: (property_id, external_id) when external_id is not null
 
 users
 ├── id (uuid, pk)

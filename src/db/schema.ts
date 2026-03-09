@@ -89,6 +89,15 @@ export const reviewStatusEnum = pgEnum("review_status", [
   "hidden",
 ]);
 
+export const reviewSourceEnum = pgEnum("review_source", [
+  "direct",
+  "booking_com",
+  "google",
+  "tripadvisor",
+  "airbnb",
+  "expedia",
+]);
+
 export const emailTypeEnum = pgEnum("email_type", [
   "confirmation",
   "pre_arrival",
@@ -451,21 +460,28 @@ export const reviews = pgTable(
     propertyId: uuid("property_id")
       .notNull()
       .references(() => properties.id, { onDelete: "cascade" }),
-    reservationId: uuid("reservation_id")
-      .notNull()
-      .references(() => reservations.id, { onDelete: "cascade" }),
-    guestId: uuid("guest_id")
-      .notNull()
-      .references(() => guests.id, { onDelete: "cascade" }),
-    reviewTokenId: uuid("review_token_id")
-      .notNull()
-      .references(() => reviewTokens.id, { onDelete: "cascade" }),
+    reservationId: uuid("reservation_id").references(
+      () => reservations.id,
+      { onDelete: "cascade" }
+    ),
+    guestId: uuid("guest_id").references(() => guests.id, {
+      onDelete: "cascade",
+    }),
+    reviewTokenId: uuid("review_token_id").references(
+      () => reviewTokens.id,
+      { onDelete: "cascade" }
+    ),
     rating: integer("rating").notNull(),
     title: text("title"),
     body: text("body").notNull(),
+    reviewerName: text("reviewer_name"),
     stayDateStart: date("stay_date_start").notNull(),
     stayDateEnd: date("stay_date_end").notNull(),
     status: reviewStatusEnum("status").notNull().default("pending"),
+    source: reviewSourceEnum("source").notNull().default("direct"),
+    externalId: varchar("external_id", { length: 255 }),
+    sourceUrl: text("source_url"),
+    sourceRatingRaw: real("source_rating_raw"),
     propertyResponse: text("property_response"),
     propertyRespondedAt: timestamp("property_responded_at", {
       withTimezone: true,
@@ -482,6 +498,11 @@ export const reviews = pgTable(
     index("reviews_reservation_id_idx").on(t.reservationId),
     index("reviews_guest_id_idx").on(t.guestId),
     index("reviews_status_idx").on(t.status),
+    index("reviews_source_idx").on(t.source),
+    uniqueIndex("reviews_property_external_id_idx").on(
+      t.propertyId,
+      t.externalId
+    ),
   ]
 );
 
@@ -954,6 +975,7 @@ export type ReviewToken = typeof reviewTokens.$inferSelect;
 export type NewReviewToken = typeof reviewTokens.$inferInsert;
 export type Review = typeof reviews.$inferSelect;
 export type NewReview = typeof reviews.$inferInsert;
+export type ReviewSource = "direct" | "booking_com" | "google" | "tripadvisor" | "airbnb" | "expedia";
 export type EmailLog = typeof emailLogs.$inferSelect;
 export type NewEmailLog = typeof emailLogs.$inferInsert;
 export type Amenity = typeof amenities.$inferSelect;
