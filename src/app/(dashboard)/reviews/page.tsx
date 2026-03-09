@@ -232,21 +232,9 @@ export default async function ReviewsPage({ searchParams }: Props) {
                       </span>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="text-xs text-stone-400 whitespace-nowrap">
-                      {formatDate(review.createdAt.toISOString().slice(0, 10))}
-                    </span>
-                    {review.sourceUrl && (
-                      <a
-                        href={review.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        View original ↗
-                      </a>
-                    )}
-                  </div>
+                  <span className="text-xs text-stone-400 whitespace-nowrap">
+                    {formatDate(review.createdAt.toISOString().slice(0, 10))}
+                  </span>
                 </div>
 
                 {/* Review content */}
