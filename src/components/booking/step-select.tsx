@@ -185,7 +185,7 @@ export default function StepSelect({
                       {!blocked && hasDiscount && (
                         <Badge
                           variant="outline"
-                          className="border-booking-cta/20 bg-booking-cta/10 text-booking-cta"
+                          className="border-success/20 bg-success/10 text-success"
                         >
                           {roomType.discountPercentage}% off
                         </Badge>

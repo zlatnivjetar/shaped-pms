@@ -110,18 +110,20 @@ export default async function GuestsPage({ searchParams }: Props) {
         description="Find guests by name, email, phone, or country."
         actions={query ? <FilterBarResetLink href="/guests">Clear search</FilterBarResetLink> : null}
       >
-        <form action="/guests" className="flex w-full flex-wrap items-end gap-3">
-          <FilterBarField label="Guest Search" htmlFor="guest-search" className="flex-1 min-w-[16rem]">
-            <FilterBarInput
-              id="guest-search"
-              name="query"
-              defaultValue={sp.query ?? ""}
-              placeholder="Search guests"
-            />
+        <form action="/guests" className="contents">
+          <FilterBarField label="Guest Search" htmlFor="guest-search" className="w-full max-w-sm">
+            <div className="flex items-center gap-2">
+              <FilterBarInput
+                id="guest-search"
+                name="query"
+                defaultValue={sp.query ?? ""}
+                placeholder="Search guests"
+              />
+              <Button type="submit" size="sm" className="shrink-0">
+                Search
+              </Button>
+            </div>
           </FilterBarField>
-          <Button type="submit" size="sm">
-            Search
-          </Button>
         </form>
       </FilterBar>
 

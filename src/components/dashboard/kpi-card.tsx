@@ -29,7 +29,7 @@ export function KpiCard({ title, value, subtitle, icon: Icon, trend, className }
 
   return (
     <Card className={cn("", className)}>
-      <CardContent className="pt-6">
+      <CardContent>
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
           {Icon && <Icon className="h-4 w-4 text-muted-foreground shrink-0" />}

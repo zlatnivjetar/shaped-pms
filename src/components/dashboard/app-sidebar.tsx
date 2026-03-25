@@ -127,7 +127,7 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="overflow-hidden">
         <SidebarGroup>
           <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>

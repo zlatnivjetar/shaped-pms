@@ -86,31 +86,32 @@ export default async function RatesPage() {
     {
       id: "name",
       header: "Name",
-      className: "font-medium",
+      className: "font-medium w-[30%]",
       cell: (plan) => plan.name,
     },
     {
       id: "dates",
       header: "Dates",
-      className: "tabular-nums whitespace-nowrap",
+      className: "tabular-nums whitespace-nowrap w-[25%]",
       cell: (plan) => formatOptionalDateRange(plan.dateStart, plan.dateEnd),
     },
     {
       id: "rate",
       header: "Rate",
-      className: "tabular-nums",
+      className: "tabular-nums w-[15%]",
       cell: (plan) => `${formatCurrency(plan.rateCents, property.currency)}/night`,
     },
     {
       id: "priority",
       header: "Priority",
       align: "right",
-      className: "tabular-nums",
+      className: "tabular-nums w-[10%]",
       cell: (plan) => plan.priority,
     },
     {
       id: "status",
       header: "Status",
+      className: "w-[10%]",
       cell: (plan) => (
         <StatusBadge status={plan.status} styleMap={RATE_STATUS_STYLES} dot />
       ),
@@ -119,7 +120,7 @@ export default async function RatesPage() {
       id: "actions",
       header: "Actions",
       align: "right",
-      className: "w-[96px]",
+      className: "w-[10%]",
       cell: (plan) => (
         <div className="flex justify-end gap-1">
           <EditRatePlanDialog ratePlan={plan} roomTypes={allRoomTypes} />

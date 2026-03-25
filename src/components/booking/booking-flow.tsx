@@ -126,7 +126,7 @@ export default function BookingFlow({
               {property.city}
               {property.country ? `, ${property.country}` : ""}
             </p>
-            <h1 className="font-[family-name:--font-playfair] text-xl font-semibold text-foreground">
+            <h1 className="font-display text-xl font-semibold text-foreground">
               {property.name}
             </h1>
             {property.tagline && (
@@ -244,7 +244,7 @@ export default function BookingFlow({
           <section className="mt-12 space-y-6">
             <div className="mb-2 flex flex-col items-center gap-2 text-center">
               {avgRating !== null && (
-                <span className="font-[family-name:--font-playfair] text-5xl text-booking-cta">
+                <span className="font-display text-5xl text-booking-cta">
                   {avgRating.toFixed(1)}
                 </span>
               )}

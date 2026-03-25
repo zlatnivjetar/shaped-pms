@@ -55,23 +55,21 @@ export default function StepComplete({
         visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
       }`}
     >
-      <h2 className="mb-1 font-[family-name:--font-playfair] text-2xl text-foreground">
+      <h2 className="mb-1 font-display text-2xl text-foreground">
         Booking confirmed.
       </h2>
       <p className="mb-6 text-muted-foreground">{propertyName}</p>
 
       <div className="mb-6 rounded-xl border border-border bg-booking-accent p-6 text-booking-accent-foreground">
-        <div className="border-y border-booking-cta/30 py-4">
-          <p className="mb-2 text-xs uppercase tracking-[0.28em] text-booking-accent-foreground/70">
-            Confirmation code
-          </p>
-          <p className="font-mono text-3xl font-semibold tracking-[0.3em] text-booking-accent-foreground">
-            {reservation.confirmationCode}
-          </p>
-          <p className="mt-2 text-xs text-booking-accent-foreground/70">
-            Save this code for your records
-          </p>
-        </div>
+        <p className="mb-2 text-xs uppercase tracking-[0.28em] text-booking-accent-foreground/70">
+          Confirmation code
+        </p>
+        <p className="font-mono text-3xl font-semibold tracking-[0.3em] text-booking-accent-foreground">
+          {reservation.confirmationCode}
+        </p>
+        <p className="mt-2 text-xs text-booking-accent-foreground/70">
+          Save this code for your records
+        </p>
       </div>
 
       <div className={`${bookingCardClassName} mb-6 p-5 text-left`}>

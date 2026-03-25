@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${manrope.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}>
+      <body className={`${manrope.variable} ${geistMono.variable} min-h-screen bg-background font-sans text-foreground antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
           <Toaster />
