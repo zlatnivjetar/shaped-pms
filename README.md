@@ -4,6 +4,11 @@ A full-featured Property Management System built with Next.js 15, designed for i
 
 **Live demo:** https://shaped-pms.vercel.app (seeded with Preelook Apartments, Rijeka, Croatia)
 
+| Role | Email | Password |
+|---|---|---|
+| Owner | `owner@demo.shaped.so` | `owner1234` |
+| Front Desk | `frontdesk@demo.shaped.so` | `frontdesk1234` |
+
 ---
 
 ## Screenshots
@@ -52,7 +57,8 @@ npm run db:migrate
 # 5. Seed Preelook Apartments (property, rooms, rates, inventory)
 npm run db:seed
 
-# 6. (Optional) Seed test reservations and reviews
+# 6. (Optional) Seed demo users, test reservations, and reviews
+npm run db:seed-users
 npm run db:seed-reservations
 npm run db:seed-reviews
 
