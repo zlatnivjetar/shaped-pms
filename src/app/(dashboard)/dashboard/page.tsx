@@ -76,11 +76,12 @@ export default async function DashboardPage() {
       header: "Code",
       className: "font-mono text-xs font-semibold",
       cell: (reservation) => (
-        <Button asChild variant="link" size="sm" className="h-auto p-0 font-mono text-xs">
-          <Link href={`/reservations/${reservation.id}`}>
-            {reservation.confirmationCode}
-          </Link>
-        </Button>
+        <Link
+          href={`/reservations/${reservation.id}`}
+          className="font-mono text-xs font-semibold text-foreground hover:text-foreground/70"
+        >
+          {reservation.confirmationCode}
+        </Link>
       ),
     },
     {
