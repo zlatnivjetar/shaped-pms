@@ -2,7 +2,8 @@ import { db } from "@/db";
 import { properties, reservations } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { RESERVATION_STATUS_STYLES, PAYMENT_STATUS_STYLES, CHANNEL_LABELS } from "@/lib/status-styles";
 import {
   Table,
   TableBody,
@@ -12,36 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Reservation } from "@/db/schema";
-
-const STATUS_VARIANTS: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  pending: "outline",
-  confirmed: "default",
-  checked_in: "default",
-  checked_out: "secondary",
-  cancelled: "destructive",
-  no_show: "destructive",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  checked_in: "Checked In",
-  checked_out: "Checked Out",
-  cancelled: "Cancelled",
-  no_show: "No Show",
-};
-
-const CHANNEL_LABELS: Record<string, string> = {
-  direct: "Direct",
-  booking_com: "Booking.com",
-  airbnb: "Airbnb",
-  expedia: "Expedia",
-  walk_in: "Walk-in",
-  phone: "Phone",
-};
 
 function formatDate(dateStr: string) {
   return new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
@@ -103,13 +74,13 @@ export default async function ReservationsPage({ searchParams }: Props) {
   const statuses = ["", ...validStatuses];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Reservations</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Reservations</h1>
         <p className="text-muted-foreground">
           {allReservations.length} reservation
           {allReservations.length !== 1 ? "s" : ""}
-          {statusFilter ? ` · ${STATUS_LABELS[statusFilter] ?? statusFilter}` : ""}
+          {statusFilter ? ` · ${RESERVATION_STATUS_STYLES[statusFilter]?.label ?? statusFilter}` : ""}
         </p>
       </div>
 
@@ -127,7 +98,7 @@ export default async function ReservationsPage({ searchParams }: Props) {
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               }`}
             >
-              {s ? STATUS_LABELS[s] : "All"}
+              {s ? (RESERVATION_STATUS_STYLES[s]?.label ?? s) : "All"}
             </Link>
           );
         })}
@@ -167,23 +138,6 @@ export default async function ReservationsPage({ searchParams }: Props) {
                   ? `${r.guest.firstName} ${r.guest.lastName}`
                   : "—";
                 const payment = r.payments[0];
-                const paymentVariants: Record<
-                  string,
-                  "default" | "secondary" | "destructive" | "outline"
-                > = {
-                  pending: "outline",
-                  requires_capture: "secondary",
-                  captured: "default",
-                  failed: "destructive",
-                  refunded: "outline",
-                };
-                const paymentLabels: Record<string, string> = {
-                  pending: "Pending",
-                  requires_capture: "Auth held",
-                  captured: "Paid",
-                  failed: "Failed",
-                  refunded: "Refunded",
-                };
                 return (
                   <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50">
                     <TableCell>
@@ -213,21 +167,11 @@ export default async function ReservationsPage({ searchParams }: Props) {
                     </TableCell>
                     <TableCell className="text-sm">{r.nights}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={STATUS_VARIANTS[r.status] ?? "outline"}
-                        className="whitespace-nowrap"
-                      >
-                        {STATUS_LABELS[r.status] ?? r.status}
-                      </Badge>
+                      <StatusBadge status={r.status} styleMap={RESERVATION_STATUS_STYLES} />
                     </TableCell>
                     <TableCell>
                       {payment ? (
-                        <Badge
-                          variant={paymentVariants[payment.status] ?? "outline"}
-                          className="whitespace-nowrap"
-                        >
-                          {paymentLabels[payment.status] ?? payment.status}
-                        </Badge>
+                        <StatusBadge status={payment.status} styleMap={PAYMENT_STATUS_STYLES} />
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}

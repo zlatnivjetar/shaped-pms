@@ -23,10 +23,10 @@ function formatRate(cents: number): string {
 
 function getCellColor(available: number, totalUnits: number): string {
   if (totalUnits === 0) return "bg-muted text-muted-foreground";
-  if (available === 0) return "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300";
+  if (available === 0) return "bg-destructive/10 text-destructive";
   const pct = available / totalUnits;
-  if (pct <= 0.3) return "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
-  return "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300";
+  if (pct <= 0.3) return "bg-warning/10 text-warning";
+  return "bg-success/10 text-success";
 }
 
 function prevMonth(month: string): string {
@@ -216,15 +216,15 @@ export function AvailabilityCalendar({ propertyId, month, data }: Props) {
       {/* Legend */}
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="inline-block h-3 w-3 rounded bg-green-100 border border-green-200" />
+          <span className="inline-block h-3 w-3 rounded bg-success/10 border border-success/20" />
           Available
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-3 w-3 rounded bg-amber-100 border border-amber-200" />
+          <span className="inline-block h-3 w-3 rounded bg-warning/10 border border-warning/20" />
           Low availability (≤30%)
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-3 w-3 rounded bg-red-100 border border-red-200" />
+          <span className="inline-block h-3 w-3 rounded bg-destructive/10 border border-destructive/20" />
           Full
         </span>
         <span className="ml-auto text-xs">Click any cell to set a rate override.</span>

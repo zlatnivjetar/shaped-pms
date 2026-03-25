@@ -6,7 +6,8 @@ import {
   getRevenueMetrics,
 } from "@/lib/dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { RESERVATION_STATUS_STYLES } from "@/lib/status-styles";
 import {
   Table,
   TableBody,
@@ -17,27 +18,6 @@ import {
 } from "@/components/ui/table";
 import { Users, LogIn, LogOut, CalendarDays } from "lucide-react";
 import Link from "next/link";
-
-const STATUS_VARIANTS: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  pending: "outline",
-  confirmed: "default",
-  checked_in: "default",
-  checked_out: "secondary",
-  cancelled: "destructive",
-  no_show: "destructive",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  checked_in: "Checked In",
-  checked_out: "Checked Out",
-  cancelled: "Cancelled",
-  no_show: "No Show",
-};
 
 function formatDate(dateStr: string) {
   return new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
@@ -77,9 +57,9 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">{today}</p>
       </div>
 
@@ -256,12 +236,7 @@ export default async function DashboardPage() {
                         {formatDate(r.checkOut)}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={STATUS_VARIANTS[r.status] ?? "outline"}
-                          className="whitespace-nowrap"
-                        >
-                          {STATUS_LABELS[r.status] ?? r.status}
-                        </Badge>
+                        <StatusBadge status={r.status} styleMap={RESERVATION_STATUS_STYLES} />
                       </TableCell>
                       <TableCell className="text-right font-medium text-sm">
                         {formatCurrency(r.totalCents, r.currency)}

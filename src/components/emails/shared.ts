@@ -1,5 +1,5 @@
-export const BRAND = "#1c1917";
-export const MUTED = "#78716c";
+export const BRAND = "#11110F";
+export const MUTED = "#51504D";
 
 export function formatCurrency(cents: number, currency: string): string {
   return new Intl.NumberFormat("en-EU", {

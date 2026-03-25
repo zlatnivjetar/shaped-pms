@@ -32,12 +32,12 @@ export default async function ManageBookingPage({
   if (!reservation || !token || reservation.manageToken !== token) {
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-8 text-center space-y-4">
+        <div className="max-w-md w-full bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm p-8 text-center space-y-4">
           <div className="text-4xl">🔒</div>
-          <h1 className="text-xl font-semibold text-stone-800">
+          <h1 className="text-xl font-semibold text-foreground">
             Invalid link
           </h1>
-          <p className="text-stone-500">
+          <p className="text-muted-foreground">
             This link is invalid or has expired. Please check your confirmation
             email for the correct manage link.
           </p>
@@ -50,11 +50,11 @@ export default async function ManageBookingPage({
   if (!property || !guest) {
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-8 text-center space-y-4">
-          <h1 className="text-xl font-semibold text-stone-800">
+        <div className="max-w-md w-full bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm p-8 text-center space-y-4">
+          <h1 className="text-xl font-semibold text-foreground">
             Something went wrong
           </h1>
-          <p className="text-stone-500">Please contact the property directly.</p>
+          <p className="text-muted-foreground">Please contact the property directly.</p>
         </div>
       </main>
     );
@@ -98,13 +98,13 @@ export default async function ManageBookingPage({
   return (
     <main className="min-h-screen">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-white border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <p className="text-xs uppercase tracking-widest text-[#1E3A8A]">
+          <p className="text-xs uppercase tracking-widest text-booking-accent">
             {property.city}
             {property.country ? `, ${property.country}` : ""}
           </p>
-          <h1 className="text-xl font-semibold text-stone-900 font-[family-name:--font-playfair]">
+          <h1 className="text-xl font-semibold text-foreground font-[family-name:--font-playfair]">
             {property.name}
           </h1>
         </div>
@@ -112,18 +112,18 @@ export default async function ManageBookingPage({
 
       <div className="max-w-lg mx-auto px-4 py-10 space-y-6">
         {/* Booking summary */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6 space-y-4">
+        <div className="bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-stone-800">
+            <h2 className="text-lg font-semibold text-foreground">
               Your Booking
             </h2>
             <span
               className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                 reservation.status === "confirmed"
-                  ? "bg-green-100 text-green-800"
+                  ? "bg-success/10 text-success"
                   : reservation.status === "cancelled"
-                    ? "bg-red-100 text-red-800"
-                    : "bg-stone-100 text-stone-600"
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-muted text-muted-foreground"
               }`}
             >
               {statusLabel[reservation.status] ?? reservation.status}
@@ -131,58 +131,58 @@ export default async function ManageBookingPage({
           </div>
 
           <div className="text-center py-2">
-            <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
               Confirmation Code
             </p>
-            <p className="text-2xl font-[family-name:--font-playfair] font-semibold tracking-widest text-stone-900">
+            <p className="text-2xl font-[family-name:--font-playfair] font-semibold tracking-widest text-foreground">
               {reservation.confirmationCode}
             </p>
           </div>
 
-          <div className="border-t border-stone-100 pt-4 grid grid-cols-2 gap-4 text-sm">
+          <div className="border-t border-border pt-4 grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
                 Check-in
               </p>
-              <p className="font-medium text-stone-800">
+              <p className="font-medium text-foreground">
                 {formatEmailDate(reservation.checkIn)}
               </p>
               {property.checkInTime && (
-                <p className="text-stone-500 text-xs">
+                <p className="text-muted-foreground text-xs">
                   from {property.checkInTime}
                 </p>
               )}
             </div>
             <div>
-              <p className="text-xs text-stone-400 uppercase tracking-wider mb-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
                 Check-out
               </p>
-              <p className="font-medium text-stone-800">
+              <p className="font-medium text-foreground">
                 {formatEmailDate(reservation.checkOut)}
               </p>
               {property.checkOutTime && (
-                <p className="text-stone-500 text-xs">
+                <p className="text-muted-foreground text-xs">
                   by {property.checkOutTime}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="border-t border-stone-100 pt-4 text-sm space-y-1">
+          <div className="border-t border-border pt-4 text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-stone-500">Room</span>
-              <span className="font-medium text-stone-800">{roomTypeName}</span>
+              <span className="text-muted-foreground">Room</span>
+              <span className="font-medium text-foreground">{roomTypeName}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-500">Duration</span>
-              <span className="font-medium text-stone-800">
+              <span className="text-muted-foreground">Duration</span>
+              <span className="font-medium text-foreground">
                 {reservation.nights} night
                 {reservation.nights !== 1 ? "s" : ""}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-500">Guests</span>
-              <span className="font-medium text-stone-800">
+              <span className="text-muted-foreground">Guests</span>
+              <span className="font-medium text-foreground">
                 {reservation.adults} adult
                 {reservation.adults !== 1 ? "s" : ""}
                 {reservation.children > 0
@@ -192,8 +192,8 @@ export default async function ManageBookingPage({
             </div>
             {paidCents > 0 && (
               <div className="flex justify-between">
-                <span className="text-stone-500">Amount paid</span>
-                <span className="font-medium text-stone-800">
+                <span className="text-muted-foreground">Amount paid</span>
+                <span className="font-medium text-foreground">
                   {new Intl.NumberFormat("en-EU", {
                     style: "currency",
                     currency,
@@ -206,20 +206,20 @@ export default async function ManageBookingPage({
 
         {/* Cancellation section — only for confirmed reservations */}
         {reservation.status === "confirmed" && refundPreview && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6 space-y-4">
-            <h2 className="text-base font-semibold text-stone-800">
+          <div className="bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm p-6 space-y-4">
+            <h2 className="text-base font-semibold text-foreground">
               Cancellation Policy
             </h2>
-            <div className="text-sm space-y-2 text-stone-600">
+            <div className="text-sm space-y-2 text-muted-foreground">
               <div className="flex justify-between">
                 <span>Policy</span>
-                <span className="font-medium text-stone-800">
+                <span className="font-medium text-foreground">
                   {policyLabel[property.cancellationPolicy]}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Free cancellation deadline</span>
-                <span className="font-medium text-stone-800">
+                <span className="font-medium text-foreground">
                   {property.cancellationDeadlineDays} day
                   {property.cancellationDeadlineDays !== 1 ? "s" : ""} before
                   check-in
@@ -227,11 +227,11 @@ export default async function ManageBookingPage({
               </div>
             </div>
 
-            <div className="rounded-lg bg-stone-50 border border-stone-200 p-4 text-sm">
-              <p className="font-medium text-stone-700 mb-1">
+            <div className="rounded-lg bg-muted border border-border p-4 text-sm">
+              <p className="font-medium text-foreground mb-1">
                 If you cancel now:
               </p>
-              <p className="text-stone-600">{refundPreview.refundNote}</p>
+              <p className="text-muted-foreground">{refundPreview.refundNote}</p>
             </div>
 
             <GuestCancelButton
@@ -243,8 +243,8 @@ export default async function ManageBookingPage({
 
         {/* Already cancelled state */}
         {reservation.status === "cancelled" && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6 text-center space-y-2">
-            <p className="text-stone-500 text-sm">
+          <div className="bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm p-6 text-center space-y-2">
+            <p className="text-muted-foreground text-sm">
               This booking was cancelled
               {reservation.cancelledAt
                 ? ` on ${new Date(reservation.cancelledAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
@@ -252,7 +252,7 @@ export default async function ManageBookingPage({
               .
             </p>
             {reservation.cancellationReason && (
-              <p className="text-stone-400 text-xs">
+              <p className="text-muted-foreground text-xs">
                 Reason: {reservation.cancellationReason}
               </p>
             )}
@@ -263,8 +263,8 @@ export default async function ManageBookingPage({
         {(reservation.status === "checked_in" ||
           reservation.status === "checked_out" ||
           reservation.status === "no_show") && (
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6 text-center">
-            <p className="text-stone-500 text-sm">
+          <div className="bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm p-6 text-center">
+            <p className="text-muted-foreground text-sm">
               {reservation.status === "checked_in"
                 ? "You're currently checked in. Please contact the property for any changes."
                 : "This booking has been completed. Thank you for staying with us!"}

@@ -2,26 +2,12 @@ import { db } from "@/db";
 import { properties, reviews } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { REVIEW_STATUS_STYLES } from "@/lib/status-styles";
 import ReviewActions from "./review-actions";
 import ImportReviewsDialog from "./import-reviews-dialog";
 import { SOURCE_LABELS } from "@/lib/reviews";
 import type { ReviewSource } from "@/db/schema";
-
-const STATUS_VARIANTS: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  pending: "outline",
-  published: "default",
-  hidden: "secondary",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  published: "Published",
-  hidden: "Hidden",
-};
 
 const VALID_STATUSES = ["pending", "published", "hidden"] as const;
 type ReviewStatus = (typeof VALID_STATUSES)[number];
@@ -46,9 +32,9 @@ function formatDate(dateStr: string) {
 
 function StarDisplay({ rating }: { rating: number }) {
   return (
-    <span className="text-amber-400 text-sm" aria-label={`${rating} stars`}>
+    <span className="text-rating-star text-sm" aria-label={`${rating} stars`}>
       {"★".repeat(rating)}
-      <span className="text-stone-200">{"★".repeat(5 - rating)}</span>
+      <span className="text-muted">{"★".repeat(5 - rating)}</span>
     </span>
   );
 }
@@ -114,18 +100,18 @@ export default async function ReviewsPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reviews</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Reviews</h1>
           {avgRating !== null && (
             <p className="text-muted-foreground text-sm mt-1">
               Average rating:{" "}
-              <span className="font-semibold text-stone-800">
+              <span className="font-semibold text-foreground">
                 {avgRating.toFixed(1)}
               </span>{" "}
-              <span className="text-amber-400">★</span> from{" "}
+              <span className="text-rating-star">★</span> from{" "}
               {allReviewsForAvg.length} review
               {allReviewsForAvg.length !== 1 ? "s" : ""}
             </p>
@@ -135,7 +121,7 @@ export default async function ReviewsPage({ searchParams }: Props) {
       </div>
 
       {/* Status tabs */}
-      <div className="flex gap-1 border-b border-stone-200">
+      <div className="flex gap-1 border-b border-border">
         {statusTabs.map((tab) => {
           const isActive =
             tab.status === statusFilter ||
@@ -146,8 +132,8 @@ export default async function ReviewsPage({ searchParams }: Props) {
               href={buildUrl({ status: tab.status, source: sourceFilter })}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 isActive
-                  ? "border-stone-800 text-stone-800"
-                  : "border-transparent text-muted-foreground hover:text-stone-700"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -162,8 +148,8 @@ export default async function ReviewsPage({ searchParams }: Props) {
           href={buildUrl({ status: statusFilter })}
           className={`text-xs px-3 py-1 rounded-full border transition-colors ${
             !sourceFilter
-              ? "bg-stone-800 text-white border-stone-800"
-              : "border-stone-300 text-stone-600 hover:border-stone-500"
+              ? "bg-foreground text-background border-foreground"
+              : "border-border text-muted-foreground hover:border-foreground"
           }`}
         >
           All sources
@@ -174,8 +160,8 @@ export default async function ReviewsPage({ searchParams }: Props) {
             href={buildUrl({ status: statusFilter, source: src })}
             className={`text-xs px-3 py-1 rounded-full border transition-colors ${
               sourceFilter === src
-                ? "bg-stone-800 text-white border-stone-800"
-                : "border-stone-300 text-stone-600 hover:border-stone-500"
+                ? "bg-foreground text-background border-foreground"
+                : "border-border text-muted-foreground hover:border-foreground"
             }`}
           >
             {SOURCE_LABELS[src]}
@@ -199,29 +185,27 @@ export default async function ReviewsPage({ searchParams }: Props) {
             return (
               <div
                 key={review.id}
-                className="bg-white border border-stone-200 rounded-lg p-5 space-y-3"
+                className="bg-card border border-border rounded-lg p-5 space-y-3"
               >
                 {/* Review header */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-stone-800">
+                      <span className="font-medium text-foreground">
                         {guestName}
                       </span>
-                      <Badge variant={STATUS_VARIANTS[review.status]}>
-                        {STATUS_LABELS[review.status]}
-                      </Badge>
+                      <StatusBadge status={review.status} styleMap={REVIEW_STATUS_STYLES} />
                       {review.source !== "direct" && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-info/10 text-info border border-info/20">
                           {SOURCE_LABELS[review.source]}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-stone-500">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <StarDisplay rating={review.rating} />
                       {review.sourceRatingRaw !== null &&
                         review.source !== "direct" && (
-                          <span className="text-xs text-stone-400">
+                          <span className="text-xs text-muted-foreground">
                             ({review.sourceRatingRaw} raw)
                           </span>
                         )}
@@ -232,18 +216,18 @@ export default async function ReviewsPage({ searchParams }: Props) {
                       </span>
                     </div>
                   </div>
-                  <span className="text-xs text-stone-400 whitespace-nowrap">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
                     {formatDate(review.createdAt.toISOString().slice(0, 10))}
                   </span>
                 </div>
 
                 {/* Review content */}
                 {review.title && (
-                  <p className="font-semibold text-stone-800 text-sm">
+                  <p className="font-semibold text-foreground text-sm">
                     {review.title}
                   </p>
                 )}
-                <p className="text-sm text-stone-600">
+                <p className="text-sm text-muted-foreground">
                   {review.body.length > 300
                     ? review.body.slice(0, 300) + "…"
                     : review.body}
@@ -251,18 +235,18 @@ export default async function ReviewsPage({ searchParams }: Props) {
 
                 {/* Property response */}
                 {review.propertyResponse && (
-                  <div className="bg-stone-50 border border-stone-200 rounded-md px-4 py-3">
-                    <p className="text-xs font-medium text-stone-500 mb-1">
+                  <div className="bg-muted border border-border rounded-md px-4 py-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">
                       Property response
                     </p>
-                    <p className="text-sm text-stone-700">
+                    <p className="text-sm text-foreground">
                       {review.propertyResponse}
                     </p>
                   </div>
                 )}
 
                 {/* Actions */}
-                <div className="pt-1 border-t border-stone-100">
+                <div className="pt-1 border-t border-border">
                   <ReviewActions
                     reviewId={review.id}
                     currentStatus={review.status}

@@ -12,7 +12,7 @@ export default function BookingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`${playfair.variable} min-h-screen bg-[#F8FAFC]`}>
+    <div className={`${playfair.variable} min-h-screen bg-booking-background`}>
       {children}
     </div>
   );

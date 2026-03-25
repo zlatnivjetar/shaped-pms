@@ -32,9 +32,9 @@ export default async function GuestsPage() {
     .orderBy(desc(guests.createdAt));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Guests</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Guests</h1>
         <p className="text-muted-foreground">
           {allGuests.length} guest{allGuests.length !== 1 ? "s" : ""}
         </p>

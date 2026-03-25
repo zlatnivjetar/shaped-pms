@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UI Overhaul Session Result",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "session_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 7
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["completed", "blocked", "failed"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "eslint": {
+          "type": "string",
+          "enum": ["passed", "failed", "not_run", "not_applicable"]
+        },
+        "tsc": {
+          "type": "string",
+          "enum": ["passed", "failed", "not_run", "not_applicable"]
+        },
+        "tests": {
+          "type": "string",
+          "enum": ["passed", "failed", "not_run", "not_applicable"]
+        }
+      },
+      "required": ["eslint", "tsc", "tests"]
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "follow_ups": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "session_id",
+    "outcome",
+    "summary",
+    "verification",
+    "changed_files",
+    "blockers",
+    "follow_ups"
+  ]
+}

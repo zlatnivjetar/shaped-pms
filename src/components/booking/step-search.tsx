@@ -158,9 +158,9 @@ export default function StepSearch({
   return (
     <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-stone-900">Find your stay</h2>
+        <h2 className="text-xl font-semibold text-foreground">Find your stay</h2>
         {(checkInTime || checkOutTime) && (
-          <p className="text-sm text-stone-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {checkInTime && `Check-in from ${checkInTime}`}
             {checkInTime && checkOutTime && " · "}
             {checkOutTime && `Check-out by ${checkOutTime}`}
@@ -180,7 +180,7 @@ export default function StepSearch({
                   variant="outline"
                   className="w-full justify-start text-left font-normal"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4 text-stone-400" />
+                  <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                   {formatDisplay(checkIn)}
                 </Button>
               </PopoverTrigger>
@@ -204,7 +204,7 @@ export default function StepSearch({
                   variant="outline"
                   className="w-full justify-start text-left font-normal"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4 text-stone-400" />
+                  <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                   {formatDisplay(checkOut)}
                 </Button>
               </PopoverTrigger>
@@ -235,7 +235,7 @@ export default function StepSearch({
               >
                 <Minus className="h-4 w-4" />
               </Button>
-              <span className="flex-1 text-center text-sm font-medium text-stone-900">
+              <span className="flex-1 text-center text-sm font-medium text-foreground">
                 {adults} {adults === 1 ? "adult" : "adults"}
               </span>
               <Button
@@ -264,7 +264,7 @@ export default function StepSearch({
               >
                 <Minus className="h-4 w-4" />
               </Button>
-              <span className="flex-1 text-center text-sm font-medium text-stone-900">
+              <span className="flex-1 text-center text-sm font-medium text-foreground">
                 {children} {children === 1 ? "child" : "children"}
               </span>
               <Button
@@ -281,11 +281,11 @@ export default function StepSearch({
           </div>
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <Button
           type="submit"
-          className="w-full h-10 bg-[#CA8A04] hover:bg-amber-700 text-white"
+          className="w-full h-10 bg-booking-cta hover:bg-booking-cta/90 text-white"
         >
           Search available rooms
         </Button>

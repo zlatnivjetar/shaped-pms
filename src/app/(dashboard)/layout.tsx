@@ -1,9 +1,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
-import { Separator } from "@/components/ui/separator";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 
 export default async function DashboardLayout({
   children,
@@ -26,14 +26,8 @@ export default async function DashboardLayout({
         userRole={userRole as "owner" | "manager" | "front_desk"}
       />
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="flex h-14 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="h-4" />
-          <span className="text-sm font-medium text-muted-foreground">
-            Preelook Apartments
-          </span>
-        </header>
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
+        <DashboardHeader />
+        <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </div>
     </SidebarProvider>
   );

@@ -31,13 +31,13 @@ export default async function ReviewPage({ params }: Props) {
   // Already used
   if (tokenRow.usedAt) {
     return (
-      <main className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-stone-200 p-8 text-center space-y-4">
+      <main className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-border p-8 text-center space-y-4">
           <div className="text-4xl">✓</div>
-          <h1 className="text-xl font-semibold text-stone-800">
+          <h1 className="text-xl font-semibold text-foreground">
             Already submitted
           </h1>
-          <p className="text-stone-500">
+          <p className="text-muted-foreground">
             You&apos;ve already submitted a review for this stay. Thank you for
             your feedback!
           </p>
@@ -49,11 +49,11 @@ export default async function ReviewPage({ params }: Props) {
   // Expired
   if (new Date(tokenRow.expiresAt) < new Date()) {
     return (
-      <main className="min-h-screen bg-stone-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-stone-200 p-8 text-center space-y-4">
+      <main className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-border p-8 text-center space-y-4">
           <div className="text-4xl">⏰</div>
-          <h1 className="text-xl font-semibold text-stone-800">Link expired</h1>
-          <p className="text-stone-500">
+          <h1 className="text-xl font-semibold text-foreground">Link expired</h1>
+          <p className="text-muted-foreground">
             This review link expired 30 days after your checkout. We&apos;re
             sorry you missed it!
           </p>
@@ -63,23 +63,23 @@ export default async function ReviewPage({ params }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-stone-50">
+    <main className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-white border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <p className="text-xs text-stone-500 uppercase tracking-wider">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">
             {property.city}
             {property.country ? `, ${property.country}` : ""}
           </p>
-          <h1 className="text-lg font-semibold text-stone-900">
+          <h1 className="text-lg font-semibold text-foreground">
             {property.name}
           </h1>
         </div>
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-10">
-        <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-8">
-          <h2 className="text-xl font-semibold text-stone-800 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-border p-8">
+          <h2 className="text-xl font-semibold text-foreground mb-6">
             Share Your Experience
           </h2>
           <ReviewForm

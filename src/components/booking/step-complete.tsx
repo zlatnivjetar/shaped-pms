@@ -49,71 +49,71 @@ export default function StepComplete({ reservation, propertyName, propertySlug }
       }`}
     >
       {/* Heading */}
-      <h2 className="text-2xl font-[family-name:--font-playfair] text-stone-900 mb-1">
+      <h2 className="text-2xl font-[family-name:--font-playfair] text-foreground mb-1">
         Booking confirmed.
       </h2>
-      <p className="font-[family-name:--font-playfair] text-stone-400 mb-6">
+      <p className="font-[family-name:--font-playfair] text-muted-foreground mb-6">
         {propertyName}
       </p>
 
       {/* Confirmation code block */}
-      <div className="bg-[#1E3A8A] text-white rounded-2xl p-6 mb-6">
-        <hr className="border-[#CA8A04] border mb-4 opacity-60" />
-        <p className="text-xs text-blue-200 uppercase tracking-widest mb-2">
+      <div className="bg-booking-accent text-booking-accent-foreground rounded-2xl p-6 mb-6">
+        <hr className="border-booking-cta border mb-4 opacity-60" />
+        <p className="text-xs text-booking-accent-foreground/70 uppercase tracking-widest mb-2">
           Confirmation code
         </p>
         <p className="text-3xl font-[family-name:--font-playfair] tracking-wider font-semibold">
           {reservation.confirmationCode}
         </p>
-        <p className="text-xs text-blue-200 mt-2">Save this code for your records</p>
-        <hr className="border-[#CA8A04] border mt-4 opacity-60" />
+        <p className="text-xs text-booking-accent-foreground/70 mt-2">Save this code for your records</p>
+        <hr className="border-booking-cta border mt-4 opacity-60" />
       </div>
 
       {/* Booking summary */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-5 text-left mb-6 space-y-2">
+      <div className="bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm p-5 text-left mb-6 space-y-2">
         <div className="flex justify-between text-sm py-1">
-          <span className="text-stone-500">Property</span>
-          <span className="font-medium text-stone-900">{propertyName}</span>
+          <span className="text-muted-foreground">Property</span>
+          <span className="font-medium text-foreground">{propertyName}</span>
         </div>
         <div className="flex justify-between text-sm py-1">
-          <span className="text-stone-500">Room</span>
-          <span className="font-medium text-stone-900">{roomName}</span>
+          <span className="text-muted-foreground">Room</span>
+          <span className="font-medium text-foreground">{roomName}</span>
         </div>
         <div className="flex justify-between text-sm py-1">
-          <span className="text-stone-500">Check-in</span>
-          <span className="font-medium text-stone-900">{formatDate(reservation.checkIn)}</span>
+          <span className="text-muted-foreground">Check-in</span>
+          <span className="font-medium text-foreground">{formatDate(reservation.checkIn)}</span>
         </div>
         <div className="flex justify-between text-sm py-1">
-          <span className="text-stone-500">Check-out</span>
-          <span className="font-medium text-stone-900">{formatDate(reservation.checkOut)}</span>
+          <span className="text-muted-foreground">Check-out</span>
+          <span className="font-medium text-foreground">{formatDate(reservation.checkOut)}</span>
         </div>
         <div className="flex justify-between text-sm py-1">
-          <span className="text-stone-500">Guests</span>
-          <span className="font-medium text-stone-900">
+          <span className="text-muted-foreground">Guests</span>
+          <span className="font-medium text-foreground">
             {reservation.adults} {reservation.adults === 1 ? "adult" : "adults"}
             {reservation.children > 0
               ? `, ${reservation.children} ${reservation.children === 1 ? "child" : "children"}`
               : ""}
           </span>
         </div>
-        <div className="flex justify-between text-sm py-1 border-t border-stone-100 pt-3 mt-1">
-          <span className="font-semibold text-stone-900">Total paid</span>
-          <span className="font-bold text-stone-900">
+        <div className="flex justify-between text-sm py-1 border-t border-border pt-3 mt-1">
+          <span className="font-semibold text-foreground">Total paid</span>
+          <span className="font-bold text-foreground">
             {formatCurrency(reservation.totalCents, reservation.currency)}
           </span>
         </div>
       </div>
 
       {guestEmail && (
-        <p className="text-sm text-stone-500 mb-6">
+        <p className="text-sm text-muted-foreground mb-6">
           A confirmation will be sent to{" "}
-          <span className="font-medium text-stone-800">{guestEmail}</span>.
+          <span className="font-medium text-foreground">{guestEmail}</span>.
         </p>
       )}
 
       <Link
         href={`/${propertySlug}`}
-        className="inline-block text-sm text-stone-600 underline underline-offset-2"
+        className="inline-block text-sm text-muted-foreground underline underline-offset-2"
       >
         Make another booking
       </Link>

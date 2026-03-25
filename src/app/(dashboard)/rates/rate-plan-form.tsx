@@ -1,12 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import type { RatePlan, RoomType } from "@/db/schema";
 import { createRatePlan, updateRatePlan, type RatePlanFormState } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
+import { FormMessage } from "@/components/ui/form-message";
+import { SubmitButton } from "@/components/ui/submit-button";
 import {
   Select,
   SelectContent,
@@ -14,15 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-function SubmitButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Saving..." : label}
-    </Button>
-  );
-}
 
 type Props = {
   roomTypes: RoomType[];
@@ -51,16 +42,16 @@ export function RatePlanForm({ roomTypes, ratePlan, onSuccess }: Props) {
   return (
     <form action={formAction} className="space-y-4">
       {state.error && (
-        <p className="text-sm text-destructive">{state.error}</p>
+        <FormMessage variant="error">{state.error}</FormMessage>
       )}
 
-      <div className="space-y-1">
-        <Label htmlFor="roomTypeId">Room Type</Label>
-        <Select
-          name="roomTypeId"
-          defaultValue={ratePlan?.roomTypeId ?? ""}
-        >
-          <SelectTrigger>
+      <FormField
+        label="Room Type"
+        htmlFor="roomTypeId"
+        error={state.fieldErrors?.roomTypeId}
+      >
+        <Select name="roomTypeId" defaultValue={ratePlan?.roomTypeId ?? ""}>
+          <SelectTrigger id="roomTypeId">
             <SelectValue placeholder="Select room type" />
           </SelectTrigger>
           <SelectContent>
@@ -71,60 +62,54 @@ export function RatePlanForm({ roomTypes, ratePlan, onSuccess }: Props) {
             ))}
           </SelectContent>
         </Select>
-        {state.fieldErrors?.roomTypeId && (
-          <p className="text-xs text-destructive">
-            {state.fieldErrors.roomTypeId[0]}
-          </p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="space-y-1">
-        <Label htmlFor="name">Plan Name</Label>
+      <FormField
+        label="Plan Name"
+        htmlFor="name"
+        error={state.fieldErrors?.name}
+      >
         <Input
           id="name"
           name="name"
           placeholder="e.g. Summer 2026"
           defaultValue={ratePlan?.name ?? ""}
         />
-        {state.fieldErrors?.name && (
-          <p className="text-xs text-destructive">{state.fieldErrors.name[0]}</p>
-        )}
-      </div>
+      </FormField>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label htmlFor="dateStart">Start Date</Label>
+        <FormField
+          label="Start Date"
+          htmlFor="dateStart"
+          error={state.fieldErrors?.dateStart}
+        >
           <Input
             id="dateStart"
             name="dateStart"
             type="date"
             defaultValue={ratePlan?.dateStart ?? ""}
           />
-          {state.fieldErrors?.dateStart && (
-            <p className="text-xs text-destructive">
-              {state.fieldErrors.dateStart[0]}
-            </p>
-          )}
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="dateEnd">End Date</Label>
+        </FormField>
+        <FormField
+          label="End Date"
+          htmlFor="dateEnd"
+          error={state.fieldErrors?.dateEnd}
+        >
           <Input
             id="dateEnd"
             name="dateEnd"
             type="date"
             defaultValue={ratePlan?.dateEnd ?? ""}
           />
-          {state.fieldErrors?.dateEnd && (
-            <p className="text-xs text-destructive">
-              {state.fieldErrors.dateEnd[0]}
-            </p>
-          )}
-        </div>
+        </FormField>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label htmlFor="rateEuros">Nightly Rate (€)</Label>
+        <FormField
+          label="Nightly Rate (EUR)"
+          htmlFor="rateEuros"
+          error={state.fieldErrors?.rateEuros}
+        >
           <Input
             id="rateEuros"
             name="rateEuros"
@@ -134,14 +119,12 @@ export function RatePlanForm({ roomTypes, ratePlan, onSuccess }: Props) {
             placeholder="0.00"
             defaultValue={defaultRateEuros}
           />
-          {state.fieldErrors?.rateEuros && (
-            <p className="text-xs text-destructive">
-              {state.fieldErrors.rateEuros[0]}
-            </p>
-          )}
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="priority">Priority</Label>
+        </FormField>
+        <FormField
+          label="Priority"
+          htmlFor="priority"
+          description="Higher number wins when plans overlap."
+        >
           <Input
             id="priority"
             name="priority"
@@ -151,16 +134,12 @@ export function RatePlanForm({ roomTypes, ratePlan, onSuccess }: Props) {
             placeholder="0"
             defaultValue={ratePlan?.priority ?? 0}
           />
-          <p className="text-xs text-muted-foreground">
-            Higher number wins when plans overlap.
-          </p>
-        </div>
+        </FormField>
       </div>
 
-      <div className="space-y-1">
-        <Label htmlFor="status">Status</Label>
+      <FormField label="Status" htmlFor="status">
         <Select name="status" defaultValue={ratePlan?.status ?? "active"}>
-          <SelectTrigger>
+          <SelectTrigger id="status">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -168,10 +147,12 @@ export function RatePlanForm({ roomTypes, ratePlan, onSuccess }: Props) {
             <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </FormField>
 
       <div className="flex justify-end pt-2">
-        <SubmitButton label={ratePlan ? "Save Changes" : "Create Rate Plan"} />
+        <SubmitButton pendingLabel="Saving...">
+          {ratePlan ? "Save Changes" : "Create Rate Plan"}
+        </SubmitButton>
       </div>
     </form>
   );

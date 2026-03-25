@@ -173,7 +173,7 @@ const ICON_MAP: Record<string, Icon> = {
 export function AmenityChip({ icon, name }: { icon: string; name: string }) {
   const IconComponent = ICON_MAP[icon] ?? CircleDashed;
   return (
-    <span className="inline-flex items-center gap-1 bg-slate-50 rounded-full px-2.5 py-1 text-xs text-stone-500">
+    <span className="inline-flex items-center gap-1 bg-muted rounded-full px-2.5 py-1 text-xs text-muted-foreground">
       <IconComponent size={13} weight="regular" />
       {name}
     </span>

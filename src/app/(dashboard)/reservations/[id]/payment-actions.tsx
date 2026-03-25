@@ -18,7 +18,7 @@ export default function PaymentActions({ payment, reservationId }: Props) {
     return (
       <div className="space-y-2">
         {actionError && (
-          <p className="text-sm text-red-600">{actionError}</p>
+          <p className="text-sm text-destructive">{actionError}</p>
         )}
         <Button
           variant="outline"
@@ -46,7 +46,7 @@ export default function PaymentActions({ payment, reservationId }: Props) {
     return (
       <div className="space-y-2">
         {actionError && (
-          <p className="text-sm text-red-600">{actionError}</p>
+          <p className="text-sm text-destructive">{actionError}</p>
         )}
         <Button
           size="sm"

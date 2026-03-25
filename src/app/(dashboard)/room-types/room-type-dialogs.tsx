@@ -204,8 +204,8 @@ function BookingRuleForm({
   }
 
   return (
-    <form action={formAction} className="space-y-4 border-t border-stone-200 pt-4 mt-4">
-      <p className="text-sm font-medium text-stone-700">Add new rule</p>
+    <form action={formAction} className="space-y-4 border-t border-border pt-4 mt-4">
+      <p className="text-sm font-medium text-foreground">Add new rule</p>
       {state.error && (
         <div className="rounded-md bg-destructive/10 border border-destructive/20 p-2 text-sm text-destructive">
           {state.error}
@@ -233,7 +233,7 @@ function BookingRuleForm({
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-xs font-medium text-stone-700">Allowed check-in days</p>
+        <p className="text-xs font-medium text-foreground">Allowed check-in days</p>
         <div className="flex flex-wrap gap-2">
           {DAY_LABELS.map((label, idx) => (
             <label key={idx} className="flex items-center gap-1 text-xs cursor-pointer select-none">
@@ -250,7 +250,7 @@ function BookingRuleForm({
         <p className="text-xs text-muted-foreground">Leave all unchecked = any day allowed</p>
       </div>
       <div className="space-y-1">
-        <p className="text-xs font-medium text-stone-700">Allowed check-out days</p>
+        <p className="text-xs font-medium text-foreground">Allowed check-out days</p>
         <div className="flex flex-wrap gap-2">
           {DAY_LABELS.map((label, idx) => (
             <label key={idx} className="flex items-center gap-1 text-xs cursor-pointer select-none">
@@ -307,10 +307,10 @@ function BookingRulesContent({
           {rules.map((rule) => (
             <div
               key={rule.id}
-              className="flex items-start justify-between gap-2 rounded-md border border-stone-200 px-3 py-2"
+              className="flex items-start justify-between gap-2 rounded-md border border-border px-3 py-2"
             >
               <div className="min-w-0">
-                <p className="text-sm text-stone-800">{formatRuleSummary(rule)}</p>
+                <p className="text-sm text-foreground">{formatRuleSummary(rule)}</p>
                 {(rule.dateStart || rule.dateEnd) && (
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {rule.dateStart ?? "∞"} → {rule.dateEnd ?? "∞"}

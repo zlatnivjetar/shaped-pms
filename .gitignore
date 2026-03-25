@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env.local
+
+# codex ui-overhaul automation logs
+automation/ui-overhaul/runs/

@@ -1,0 +1,166 @@
+{
+  "project": "shaped-pms",
+  "source_plan": "UI-OVERHAUL-PLAN.md",
+  "updated_at": "2026-03-25T15:30:00Z",
+  "sessions": [
+    {
+      "id": 1,
+      "name": "Foundation",
+      "milestones": ["M1", "M2", "M3"],
+      "status": "completed",
+      "summary": "Treated as completed for the workflow because tokens and core primitives already exist in the repo.",
+      "completed_at": "2026-03-25T15:30:00Z",
+      "verification": {
+        "eslint": "not_run",
+        "tsc": "not_run",
+        "tests": "not_run"
+      },
+      "blockers": [],
+      "follow_ups": [],
+      "changed_files": [
+        "src/app/globals.css",
+        "src/lib/design-tokens.ts",
+        "src/lib/status-styles.ts",
+        "src/components/ui/status-badge.tsx",
+        "src/components/ui/page-header.tsx",
+        "src/components/ui/section-header.tsx",
+        "src/components/ui/detail-row.tsx",
+        "src/components/dashboard/kpi-card.tsx"
+      ],
+      "last_jsonl_path": "",
+      "last_result_path": ""
+    },
+    {
+      "id": 2,
+      "name": "Infrastructure",
+      "milestones": ["M4", "M6", "M7"],
+      "status": "completed",
+      "summary": "Shell/nav, table/filter infrastructure, and shared dashboard form primitives are implemented.",
+      "completed_at": "2026-03-25T16:20:00Z",
+      "verification": {
+        "eslint": "passed",
+        "tsc": "passed",
+        "tests": "passed"
+      },
+      "blockers": [],
+      "follow_ups": [
+        "Session 3 should adopt the new table/filter primitives across dashboard pages."
+      ],
+      "changed_files": [
+        "src/app/layout.tsx",
+        "src/app/(dashboard)/layout.tsx",
+        "src/components/dashboard/app-sidebar.tsx",
+        "src/components/dashboard/dashboard-header.tsx",
+        "src/components/theme-provider.tsx",
+        "src/components/ui/breadcrumb.tsx",
+        "src/components/ui/theme-toggle.tsx",
+        "src/components/ui/data-table.tsx",
+        "src/components/ui/filter-bar.tsx",
+        "src/components/ui/pagination.tsx",
+        "src/lib/table-formatters.ts",
+        "src/components/ui/form-field.tsx",
+        "src/components/ui/form-section.tsx",
+        "src/components/ui/form-message.tsx",
+        "src/components/ui/submit-button.tsx",
+        "src/app/(dashboard)/settings/property-form.tsx",
+        "src/app/(dashboard)/rates/rate-plan-form.tsx",
+        "src/app/(dashboard)/settings/amenities/amenity-form.tsx",
+        "src/app/(dashboard)/room-types/room-type-form.tsx",
+        "src/app/(dashboard)/rooms/room-dialogs.tsx",
+        "src/app/(dashboard)/rates/discount-dialogs.tsx"
+      ],
+      "last_jsonl_path": "",
+      "last_result_path": ""
+    },
+    {
+      "id": 3,
+      "name": "Dashboard Pages",
+      "milestones": ["M5"],
+      "status": "not_started",
+      "summary": "",
+      "completed_at": "",
+      "verification": {
+        "eslint": "not_run",
+        "tsc": "not_run",
+        "tests": "not_run"
+      },
+      "blockers": [],
+      "follow_ups": [],
+      "changed_files": [],
+      "last_jsonl_path": "",
+      "last_result_path": ""
+    },
+    {
+      "id": 4,
+      "name": "Public-Facing Surfaces",
+      "milestones": ["M8", "M9"],
+      "status": "not_started",
+      "summary": "",
+      "completed_at": "",
+      "verification": {
+        "eslint": "not_run",
+        "tsc": "not_run",
+        "tests": "not_run"
+      },
+      "blockers": [],
+      "follow_ups": [],
+      "changed_files": [],
+      "last_jsonl_path": "",
+      "last_result_path": ""
+    },
+    {
+      "id": 5,
+      "name": "State Treatments and Polish",
+      "milestones": ["M10", "M14", "M15"],
+      "status": "not_started",
+      "summary": "",
+      "completed_at": "",
+      "verification": {
+        "eslint": "not_run",
+        "tsc": "not_run",
+        "tests": "not_run"
+      },
+      "blockers": [],
+      "follow_ups": [],
+      "changed_files": [],
+      "last_jsonl_path": "",
+      "last_result_path": ""
+    },
+    {
+      "id": 6,
+      "name": "Accessibility and Responsive",
+      "milestones": ["M11", "M12"],
+      "status": "not_started",
+      "summary": "",
+      "completed_at": "",
+      "verification": {
+        "eslint": "not_run",
+        "tsc": "not_run",
+        "tests": "not_run"
+      },
+      "blockers": [],
+      "follow_ups": [],
+      "changed_files": [],
+      "last_jsonl_path": "",
+      "last_result_path": ""
+    },
+    {
+      "id": 7,
+      "name": "Dark Mode and Final Audit",
+      "milestones": ["M13", "M16"],
+      "status": "not_started",
+      "summary": "",
+      "completed_at": "",
+      "verification": {
+        "eslint": "not_run",
+        "tsc": "not_run",
+        "tests": "not_run"
+      },
+      "blockers": [],
+      "follow_ups": [],
+      "changed_files": [],
+      "last_jsonl_path": "",
+      "last_result_path": ""
+    }
+  ]
+}

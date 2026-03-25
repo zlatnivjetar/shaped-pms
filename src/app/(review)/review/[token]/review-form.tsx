@@ -34,8 +34,8 @@ function StarRating({
           <span
             className={
               star <= (hovered || value)
-                ? "text-amber-400"
-                : "text-stone-200"
+                ? "text-rating-star"
+                : "text-muted"
             }
           >
             ★
@@ -101,10 +101,10 @@ export default function ReviewForm({
     return (
       <div className="text-center py-12 space-y-4">
         <div className="text-5xl">🎉</div>
-        <h2 className="text-2xl font-semibold text-stone-800">
+        <h2 className="text-2xl font-semibold text-foreground">
           Thank you, {guestFirstName}!
         </h2>
-        <p className="text-stone-500">
+        <p className="text-muted-foreground">
           Your review has been submitted and will be published shortly.
         </p>
       </div>
@@ -114,22 +114,22 @@ export default function ReviewForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <p className="text-sm text-stone-500 mb-1">
+        <p className="text-sm text-muted-foreground mb-1">
           Stay: {formatDate(checkIn)} – {formatDate(checkOut)}
         </p>
-        <p className="text-stone-600">
+        <p className="text-muted-foreground">
           Hi {guestFirstName}, how was your stay at {propertyName}?
         </p>
       </div>
 
       {/* Star rating */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-stone-700">
-          Overall rating <span className="text-red-500">*</span>
+        <label className="block text-sm font-medium text-foreground">
+          Overall rating <span className="text-destructive">*</span>
         </label>
         <StarRating value={rating} onChange={setRating} />
         {rating > 0 && (
-          <p className="text-sm text-stone-500">
+          <p className="text-sm text-muted-foreground">
             {["", "Poor", "Fair", "Good", "Very good", "Excellent"][rating]}
           </p>
         )}
@@ -139,7 +139,7 @@ export default function ReviewForm({
       <div className="space-y-1">
         <label
           htmlFor="review-title"
-          className="block text-sm font-medium text-stone-700"
+          className="block text-sm font-medium text-foreground"
         >
           Title (optional)
         </label>
@@ -150,7 +150,7 @@ export default function ReviewForm({
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Summarise your stay"
           maxLength={120}
-          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm shadow-sm focus:border-stone-500 focus:outline-none"
+          className="w-full rounded-md border border-input px-3 py-2 text-sm shadow-sm focus:border-ring focus:outline-none"
         />
       </div>
 
@@ -158,9 +158,9 @@ export default function ReviewForm({
       <div className="space-y-1">
         <label
           htmlFor="review-body"
-          className="block text-sm font-medium text-stone-700"
+          className="block text-sm font-medium text-foreground"
         >
-          Your review <span className="text-red-500">*</span>
+          Your review <span className="text-destructive">*</span>
         </label>
         <textarea
           id="review-body"
@@ -170,13 +170,13 @@ export default function ReviewForm({
           rows={5}
           minLength={10}
           required
-          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm shadow-sm focus:border-stone-500 focus:outline-none resize-none"
+          className="w-full rounded-md border border-input px-3 py-2 text-sm shadow-sm focus:border-ring focus:outline-none resize-none"
         />
-        <p className="text-xs text-stone-400">{body.length} / 2000 characters</p>
+        <p className="text-xs text-muted-foreground">{body.length} / 2000 characters</p>
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
           {error}
         </p>
       )}
@@ -184,7 +184,7 @@ export default function ReviewForm({
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-md bg-stone-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-semibold text-background hover:bg-foreground/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isPending ? "Submitting…" : "Submit Review"}
       </button>

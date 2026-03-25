@@ -135,21 +135,21 @@ export default function StepDetails({
       <div className="mb-6">
         <button
           onClick={handleBack}
-          className="text-sm text-stone-500 hover:text-stone-800 flex items-center gap-1 mb-3"
+          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-3"
         >
           ← Back to rooms
         </button>
-        <h2 className="text-xl font-semibold text-stone-900">Your details</h2>
+        <h2 className="text-xl font-semibold text-foreground">Your details</h2>
       </div>
 
       {/* Booking summary */}
       <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-4 mb-6 text-sm">
-        <p className="font-medium text-stone-800">{selectedRoomType.name}</p>
-        <p className="text-stone-500 mt-0.5">
+        <p className="font-medium text-foreground">{selectedRoomType.name}</p>
+        <p className="text-muted-foreground mt-0.5">
           {formatDate(checkIn)} → {formatDate(checkOut)} ·{" "}
           {nights} {nights === 1 ? "night" : "nights"}
         </p>
-        <p className="text-stone-500">
+        <p className="text-muted-foreground">
           {adults} {adults === 1 ? "adult" : "adults"}
           {childCount > 0 ? `, ${childCount} ${childCount === 1 ? "child" : "children"}` : ""}
         </p>
@@ -165,10 +165,10 @@ export default function StepDetails({
               onChange={(e) => update("firstName", e.target.value)}
               placeholder="Jane"
               autoComplete="given-name"
-              className="bg-white focus-visible:ring-[#1E3A8A]/50"
+              className="bg-white focus-visible:ring-ring/50"
             />
             {errors.firstName && (
-              <p className="text-xs text-red-600">{errors.firstName}</p>
+              <p className="text-xs text-destructive">{errors.firstName}</p>
             )}
           </div>
           <div className="space-y-1.5">
@@ -179,10 +179,10 @@ export default function StepDetails({
               onChange={(e) => update("lastName", e.target.value)}
               placeholder="Smith"
               autoComplete="family-name"
-              className="bg-white focus-visible:ring-[#1E3A8A]/50"
+              className="bg-white focus-visible:ring-ring/50"
             />
             {errors.lastName && (
-              <p className="text-xs text-red-600">{errors.lastName}</p>
+              <p className="text-xs text-destructive">{errors.lastName}</p>
             )}
           </div>
         </div>
@@ -196,15 +196,15 @@ export default function StepDetails({
             onChange={(e) => update("email", e.target.value)}
             placeholder="jane@example.com"
             autoComplete="email"
-            className="bg-white focus-visible:ring-[#1E3A8A]/50"
+            className="bg-white focus-visible:ring-ring/50"
           />
           {errors.email && (
-            <p className="text-xs text-red-600">{errors.email}</p>
+            <p className="text-xs text-destructive">{errors.email}</p>
           )}
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="phone">Phone number <span className="text-stone-400">(optional)</span></Label>
+          <Label htmlFor="phone">Phone number <span className="text-muted-foreground">(optional)</span></Label>
           <Input
             id="phone"
             type="tel"
@@ -212,13 +212,13 @@ export default function StepDetails({
             onChange={(e) => update("phone", e.target.value)}
             placeholder="+385 91 234 5678"
             autoComplete="tel"
-            className="bg-white focus-visible:ring-[#1E3A8A]/50"
+            className="bg-white focus-visible:ring-ring/50"
           />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="specialRequests">
-            Special requests <span className="text-stone-400">(optional)</span>
+            Special requests <span className="text-muted-foreground">(optional)</span>
           </Label>
           <Textarea
             id="specialRequests"
@@ -226,13 +226,13 @@ export default function StepDetails({
             onChange={(e) => update("specialRequests", e.target.value)}
             placeholder="Early check-in, ground floor room, etc."
             rows={3}
-            className="bg-white focus-visible:ring-[#1E3A8A]/50"
+            className="bg-white focus-visible:ring-ring/50"
           />
         </div>
 
         <Button
           type="submit"
-          className="w-full h-10 bg-[#CA8A04] hover:bg-amber-700 text-white mt-2"
+          className="w-full h-10 bg-booking-cta hover:bg-booking-cta/90 text-white mt-2"
         >
           Continue to review
         </Button>

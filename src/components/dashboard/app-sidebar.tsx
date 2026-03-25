@@ -21,6 +21,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -110,16 +111,16 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b">
-        <div className="flex items-center gap-2 px-2 py-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Building2 className="h-4 w-4" />
+      <SidebarHeader className="border-b px-3 py-4">
+        <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-sidebar-accent/40 px-3 py-2.5">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
+            <Building2 className="size-4" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold leading-none">
+          <div className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold leading-none">
               Shaped PMS
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="mt-1 block text-xs text-sidebar-foreground/70">
               Property Manager
             </span>
           </div>
@@ -128,13 +129,18 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
 
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {primaryNav.map((item) => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                  >
                     <Link href={item.url}>
-                      <item.icon />
+                      <item.icon className="size-4 shrink-0" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
@@ -148,13 +154,18 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
           <>
             <SidebarSeparator />
             <SidebarGroup>
+              <SidebarGroupLabel>Operations</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {secondaryNav.map((item) => (
                     <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        tooltip={item.title}
+                      >
                         <Link href={item.url}>
-                          <item.icon />
+                          <item.icon className="size-4 shrink-0" />
                           <span>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
@@ -174,18 +185,19 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
               <SidebarMenuButton
                 asChild
                 isActive={pathname.startsWith("/settings")}
+                tooltip="Settings"
               >
                 <Link href="/settings">
-                  <Settings />
+                  <Settings className="size-4 shrink-0" />
                   <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
           <SidebarMenuItem>
-            <div className="px-2 py-1">
-              <p className="text-sm font-medium truncate">{userName}</p>
-              <p className="text-xs text-muted-foreground truncate">
+            <div className="rounded-lg border border-sidebar-border/70 bg-sidebar-accent/30 px-3 py-2">
+              <p className="truncate text-sm font-medium">{userName}</p>
+              <p className="truncate text-xs text-sidebar-foreground/70">
                 {userEmail}
               </p>
             </div>
@@ -193,9 +205,10 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={handleSignOut}
-              className="text-muted-foreground"
+              tooltip="Sign out"
+              className="text-sidebar-foreground/80"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="size-4 shrink-0" />
               <span>Sign out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -44,7 +44,7 @@ export default function ReviewActions({
           <button
             onClick={handlePublish}
             disabled={isPending}
-            className="text-xs px-2.5 py-1 rounded-md bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50 transition-colors"
+            className="text-xs px-2.5 py-1 rounded-md bg-success/10 text-success hover:bg-success/20 disabled:opacity-50 transition-colors"
           >
             Publish
           </button>
@@ -53,7 +53,7 @@ export default function ReviewActions({
           <button
             onClick={handleHide}
             disabled={isPending}
-            className="text-xs px-2.5 py-1 rounded-md bg-stone-100 text-stone-600 hover:bg-stone-200 disabled:opacity-50 transition-colors"
+            className="text-xs px-2.5 py-1 rounded-md bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 transition-colors"
           >
             Hide
           </button>
@@ -76,20 +76,20 @@ export default function ReviewActions({
             onChange={(e) => setResponse(e.target.value)}
             rows={3}
             placeholder="Write your response to this review…"
-            className="w-full text-xs rounded border border-stone-300 px-2 py-1.5 focus:outline-none focus:border-stone-500 resize-none"
+            className="w-full text-xs rounded border border-input px-2 py-1.5 focus:outline-none focus:border-ring resize-none"
           />
           <div className="flex gap-2">
             <button
               type="submit"
               disabled={isPending || !response.trim()}
-              className="text-xs px-3 py-1 rounded bg-stone-800 text-white hover:bg-stone-700 disabled:opacity-50 transition-colors"
+              className="text-xs px-3 py-1 rounded bg-foreground text-background hover:bg-foreground/80 disabled:opacity-50 transition-colors"
             >
               {isPending ? "Saving…" : "Save Response"}
             </button>
             <button
               type="button"
               onClick={() => setShowResponseForm(false)}
-              className="text-xs px-3 py-1 rounded bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors"
+              className="text-xs px-3 py-1 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
             >
               Cancel
             </button>

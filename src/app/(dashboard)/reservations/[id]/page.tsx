@@ -3,40 +3,11 @@ import { reservations } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { RESERVATION_STATUS_STYLES, PAYMENT_STATUS_STYLES, CHANNEL_LABELS } from "@/lib/status-styles";
 import ReservationActions from "./reservation-actions";
 import PaymentActions from "./payment-actions";
-
-const STATUS_VARIANTS: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  pending: "outline",
-  confirmed: "default",
-  checked_in: "default",
-  checked_out: "secondary",
-  cancelled: "destructive",
-  no_show: "destructive",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  confirmed: "Confirmed",
-  checked_in: "Checked In",
-  checked_out: "Checked Out",
-  cancelled: "Cancelled",
-  no_show: "No Show",
-};
-
-const CHANNEL_LABELS: Record<string, string> = {
-  direct: "Direct",
-  booking_com: "Booking.com",
-  airbnb: "Airbnb",
-  expedia: "Expedia",
-  walk_in: "Walk-in",
-  phone: "Phone",
-};
 
 function formatDate(dateStr: string) {
   return new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
@@ -91,7 +62,7 @@ export default async function ReservationDetailPage({ params }: Props) {
   const roomNumber = rr?.room?.roomNumber;
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-8 max-w-2xl">
       {/* Back link */}
       <Link
         href="/reservations"
@@ -103,7 +74,7 @@ export default async function ReservationDetailPage({ params }: Props) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono">
+          <h1 className="text-2xl font-semibold tracking-tight font-mono">
             {reservation.confirmationCode}
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
@@ -115,12 +86,7 @@ export default async function ReservationDetailPage({ params }: Props) {
             })}
           </p>
         </div>
-        <Badge
-          variant={STATUS_VARIANTS[reservation.status] ?? "outline"}
-          className="text-sm px-3 py-1"
-        >
-          {STATUS_LABELS[reservation.status] ?? reservation.status}
-        </Badge>
+        <StatusBadge status={reservation.status} styleMap={RESERVATION_STATUS_STYLES} className="text-sm px-3 py-1" />
       </div>
 
       {/* Status actions */}
@@ -223,23 +189,6 @@ export default async function ReservationDetailPage({ params }: Props) {
                     : p.type === "full_payment"
                       ? "Full payment"
                       : "Refund";
-                const statusVariant: Record<
-                  string,
-                  "default" | "secondary" | "destructive" | "outline"
-                > = {
-                  pending: "outline",
-                  requires_capture: "secondary",
-                  captured: "default",
-                  failed: "destructive",
-                  refunded: "outline",
-                };
-                const statusLabel: Record<string, string> = {
-                  pending: "Pending",
-                  requires_capture: "Auth held",
-                  captured: "Paid",
-                  failed: "Failed",
-                  refunded: "Refunded",
-                };
                 const isScheduled = !!p.stripeSetupIntentId;
                 return (
                   <div key={p.id} className="space-y-2">
@@ -250,12 +199,10 @@ export default async function ReservationDetailPage({ params }: Props) {
                           {formatCurrency(p.amountCents, p.currency)}
                         </span>
                       </div>
-                      <Badge variant={statusVariant[p.status] ?? "outline"}>
-                        {statusLabel[p.status] ?? p.status}
-                      </Badge>
+                      <StatusBadge status={p.status} styleMap={PAYMENT_STATUS_STYLES} />
                     </div>
                     {isScheduled && p.status === "pending" && p.scheduledChargeAt && (
-                      <p className="text-xs text-blue-600">
+                      <p className="text-xs text-info">
                         Charge scheduled for{" "}
                         {new Date(p.scheduledChargeAt).toLocaleDateString("en-GB", {
                           day: "numeric",
@@ -265,7 +212,7 @@ export default async function ReservationDetailPage({ params }: Props) {
                       </p>
                     )}
                     {isScheduled && p.chargeAttempts > 0 && (
-                      <p className="text-xs text-amber-600">
+                      <p className="text-xs text-warning">
                         {p.chargeAttempts} charge attempt{p.chargeAttempts !== 1 ? "s" : ""} — last failed
                       </p>
                     )}
@@ -279,7 +226,7 @@ export default async function ReservationDetailPage({ params }: Props) {
                               year: "numeric",
                             })}
                             {" — "}
-                            <span className={log.status === "succeeded" ? "text-green-600" : "text-red-600"}>
+                            <span className={log.status === "succeeded" ? "text-success" : "text-destructive"}>
                               {log.status}
                             </span>
                             {log.errorMessage && `: ${log.errorMessage}`}

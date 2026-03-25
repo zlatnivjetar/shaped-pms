@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useActionState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { Room, RoomType } from "@/db/schema";
 import { addRoom, deleteRoom, updateRoomStatus } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
+import { FormMessage } from "@/components/ui/form-message";
+import { SubmitButton } from "@/components/ui/submit-button";
 import {
   Select,
   SelectContent,
@@ -32,18 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import type { RoomFormState } from "./actions";
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Adding..." : "Add Room"}
-    </Button>
-  );
-}
 
 export function AddRoomDialog({ roomType }: { roomType: RoomType }) {
   const [open, setOpen] = useState(false);
@@ -66,29 +58,25 @@ export function AddRoomDialog({ roomType }: { roomType: RoomType }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Room — {roomType.name}</DialogTitle>
+          <DialogTitle>Add Room - {roomType.name}</DialogTitle>
         </DialogHeader>
         <form action={formAction} className="space-y-4">
           {state.error && (
-            <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              {state.error}
-            </div>
+            <FormMessage variant="error">{state.error}</FormMessage>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="roomNumber">Room Number</Label>
+            <FormField
+              label="Room Number"
+              htmlFor="roomNumber"
+              error={state.fieldErrors?.roomNumber}
+            >
               <Input id="roomNumber" name="roomNumber" placeholder="101" />
-              {state.fieldErrors?.roomNumber && (
-                <p className="text-sm text-destructive">{state.fieldErrors.roomNumber[0]}</p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="floor">Floor</Label>
+            </FormField>
+            <FormField label="Floor" htmlFor="floor">
               <Input id="floor" name="floor" placeholder="1" />
-            </div>
+            </FormField>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="status">Status</Label>
+          <FormField label="Status" htmlFor="status">
             <Select name="status" defaultValue="available">
               <SelectTrigger id="status">
                 <SelectValue />
@@ -99,8 +87,8 @@ export function AddRoomDialog({ roomType }: { roomType: RoomType }) {
                 <SelectItem value="out_of_service">Out of Service</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <SubmitButton />
+          </FormField>
+          <SubmitButton pendingLabel="Adding...">Add Room</SubmitButton>
         </form>
       </DialogContent>
     </Dialog>

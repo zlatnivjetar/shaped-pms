@@ -64,20 +64,20 @@ export default function ImportReviewsDialog() {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-sm text-stone-500">
+          <p className="text-sm text-muted-foreground">
             Paste a JSON array of reviews from Booking.com, Google, Airbnb, or
             other platforms. Duplicates (matched by{" "}
-            <code className="font-mono bg-stone-100 px-1 rounded">
+            <code className="font-mono bg-muted px-1 rounded">
               external_id
             </code>
             ) are automatically skipped.
           </p>
 
-          <details className="text-xs text-stone-500">
-            <summary className="cursor-pointer hover:text-stone-700">
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer hover:text-foreground">
               Show example format
             </summary>
-            <pre className="mt-2 bg-stone-50 border border-stone-200 rounded p-3 overflow-auto text-xs font-mono leading-relaxed">
+            <pre className="mt-2 bg-muted border border-border rounded p-3 overflow-auto text-xs font-mono leading-relaxed">
               {EXAMPLE_JSON}
             </pre>
           </details>
@@ -87,15 +87,15 @@ export default function ImportReviewsDialog() {
             onChange={(e) => setJson(e.target.value)}
             rows={12}
             placeholder="Paste JSON array here…"
-            className="w-full text-xs font-mono rounded border border-stone-300 px-3 py-2 focus:outline-none focus:border-stone-500 resize-y"
+            className="w-full text-xs font-mono rounded border border-input px-3 py-2 focus:outline-none focus:border-ring resize-y"
           />
 
           {result && (
             <div
               className={`rounded-md px-4 py-3 text-sm space-y-1 ${
                 result.errors.length > 0
-                  ? "bg-red-50 border border-red-200 text-red-700"
-                  : "bg-green-50 border border-green-200 text-green-700"
+                  ? "bg-destructive/10 border border-destructive/20 text-destructive"
+                  : "bg-success/10 border border-success/20 text-success"
               }`}
             >
               <p className="font-medium">

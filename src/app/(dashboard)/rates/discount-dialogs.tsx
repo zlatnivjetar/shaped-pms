@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import type { Discount, RoomType } from "@/db/schema";
 import { createDiscount, updateDiscount, deleteDiscount, type DiscountFormState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
+import { FormMessage } from "@/components/ui/form-message";
+import { SubmitButton } from "@/components/ui/submit-button";
 import {
   Select,
   SelectContent,
@@ -35,15 +36,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-function SubmitButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Saving..." : label}
-    </Button>
-  );
-}
-
 function DiscountForm({
   roomTypes,
   discount,
@@ -69,13 +61,16 @@ function DiscountForm({
   return (
     <form action={formAction} className="space-y-4">
       {state.error && (
-        <p className="text-sm text-destructive">{state.error}</p>
+        <FormMessage variant="error">{state.error}</FormMessage>
       )}
 
-      <div className="space-y-1">
-        <Label>Room Type</Label>
+      <FormField
+        label="Room Type"
+        htmlFor="roomTypeId"
+        description="Leave blank to apply to all room types."
+      >
         <Select name="roomTypeId" defaultValue={discount?.roomTypeId ?? "all"}>
-          <SelectTrigger>
+          <SelectTrigger id="roomTypeId">
             <SelectValue placeholder="All room types" />
           </SelectTrigger>
           <SelectContent>
@@ -87,26 +82,22 @@ function DiscountForm({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">
-          Leave blank to apply to all room types.
-        </p>
-      </div>
+      </FormField>
 
-      <div className="space-y-1">
-        <Label htmlFor="name">Name</Label>
+      <FormField label="Name" htmlFor="name" error={state.fieldErrors?.name}>
         <Input
           id="name"
           name="name"
           placeholder="e.g. Early Bird, Summer Special"
           defaultValue={discount?.name ?? ""}
         />
-        {state.fieldErrors?.name && (
-          <p className="text-xs text-destructive">{state.fieldErrors.name[0]}</p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="space-y-1">
-        <Label htmlFor="percentage">Discount (%)</Label>
+      <FormField
+        label="Discount (%)"
+        htmlFor="percentage"
+        error={state.fieldErrors?.percentage}
+      >
         <Input
           id="percentage"
           name="percentage"
@@ -117,51 +108,41 @@ function DiscountForm({
           placeholder="10"
           defaultValue={discount?.percentage ?? ""}
         />
-        {state.fieldErrors?.percentage && (
-          <p className="text-xs text-destructive">
-            {state.fieldErrors.percentage[0]}
-          </p>
-        )}
-      </div>
+      </FormField>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label htmlFor="dateStart">Start Date (optional)</Label>
+        <FormField
+          label="Start Date (optional)"
+          htmlFor="dateStart"
+          error={state.fieldErrors?.dateStart}
+        >
           <Input
             id="dateStart"
             name="dateStart"
             type="date"
             defaultValue={discount?.dateStart ?? ""}
           />
-          {state.fieldErrors?.dateStart && (
-            <p className="text-xs text-destructive">
-              {state.fieldErrors.dateStart[0]}
-            </p>
-          )}
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="dateEnd">End Date (optional)</Label>
+        </FormField>
+        <FormField
+          label="End Date (optional)"
+          htmlFor="dateEnd"
+          error={state.fieldErrors?.dateEnd}
+        >
           <Input
             id="dateEnd"
             name="dateEnd"
             type="date"
             defaultValue={discount?.dateEnd ?? ""}
           />
-          {state.fieldErrors?.dateEnd && (
-            <p className="text-xs text-destructive">
-              {state.fieldErrors.dateEnd[0]}
-            </p>
-          )}
-        </div>
+        </FormField>
       </div>
       <p className="text-xs text-muted-foreground -mt-2">
         Leave both blank for a permanent discount.
       </p>
 
-      <div className="space-y-1">
-        <Label>Status</Label>
+      <FormField label="Status" htmlFor="status">
         <Select name="status" defaultValue={discount?.status ?? "active"}>
-          <SelectTrigger>
+          <SelectTrigger id="status">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -169,10 +150,12 @@ function DiscountForm({
             <SelectItem value="inactive">Inactive</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </FormField>
 
       <div className="flex justify-end pt-2">
-        <SubmitButton label={discount ? "Save Changes" : "Create Discount"} />
+        <SubmitButton pendingLabel="Saving...">
+          {discount ? "Save Changes" : "Create Discount"}
+        </SubmitButton>
       </div>
     </form>
   );

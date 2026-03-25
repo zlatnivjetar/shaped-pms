@@ -69,25 +69,25 @@ function StepIndicator({ current }: { current: string }) {
           <div className="flex flex-col items-center gap-1.5">
             {i < idx ? (
               /* Completed: gold dot with checkmark */
-              <div className="w-5 h-5 rounded-full bg-[#CA8A04] flex items-center justify-center">
+              <div className="w-5 h-5 rounded-full bg-booking-cta flex items-center justify-center">
                 <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
             ) : i === idx ? (
               /* Current: filled navy circle */
-              <div className="w-5 h-5 rounded-full bg-[#1E3A8A]" />
+              <div className="w-5 h-5 rounded-full bg-booking-accent" />
             ) : (
               /* Upcoming: hollow circle */
-              <div className="w-5 h-5 rounded-full border-2 border-stone-300" />
+              <div className="w-5 h-5 rounded-full border-2 border-border" />
             )}
-            <span className={`text-xs hidden sm:block ${i === idx ? "text-[#1E3A8A] font-medium" : i < idx ? "text-[#CA8A04]" : "text-stone-400"}`}>
+            <span className={`text-xs hidden sm:block ${i === idx ? "text-booking-accent font-medium" : i < idx ? "text-booking-cta" : "text-muted-foreground"}`}>
               {STEP_LABELS[i]}
             </span>
           </div>
           {/* Connecting line */}
           {i < STEPS.length - 1 && (
-            <div className={`w-12 h-px mx-1 mb-4 ${i < idx ? "bg-[#CA8A04]" : "bg-stone-200"}`} />
+            <div className={`w-12 h-px mx-1 mb-4 ${i < idx ? "bg-booking-cta" : "bg-border"}`} />
           )}
         </div>
       ))}
@@ -154,20 +154,20 @@ export default function BookingFlow({
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200">
+      <header className="bg-white border-b border-border">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-widest text-[#1E3A8A]">
+            <p className="text-xs uppercase tracking-widest text-booking-accent">
               {property.city}{property.country ? `, ${property.country}` : ""}
             </p>
-            <h1 className="text-xl font-semibold text-stone-900 font-[family-name:--font-playfair]">{property.name}</h1>
+            <h1 className="text-xl font-semibold text-foreground font-[family-name:--font-playfair]">{property.name}</h1>
             {property.tagline && (
-              <p className="text-xs text-stone-500 mt-0.5">{property.tagline}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{property.tagline}</p>
             )}
             {property.phone && (
               <a
                 href={`tel:${property.phone}`}
-                className="text-xs text-stone-500 hover:text-stone-700 mt-0.5 block"
+                className="text-xs text-muted-foreground hover:text-foreground mt-0.5 block"
               >
                 {property.phone}
               </a>
@@ -251,7 +251,7 @@ export default function BookingFlow({
         {/* Fallback for invalid state */}
         {step === "complete" && !completedReservation && (
           <div className="text-center py-16">
-            <p className="text-stone-500">Reservation not found.</p>
+            <p className="text-muted-foreground">Reservation not found.</p>
           </div>
         )}
 
@@ -260,17 +260,17 @@ export default function BookingFlow({
           <section className="mt-12 space-y-6">
             <div className="flex flex-col items-center text-center gap-1 mb-2">
               {avgRating !== null && (
-                <span className="text-5xl font-[family-name:--font-playfair] text-[#CA8A04]">
+                <span className="text-5xl font-[family-name:--font-playfair] text-booking-cta">
                   {avgRating.toFixed(1)}
                 </span>
               )}
               <div className="flex items-center gap-2">
-                <span className="text-amber-400 text-sm">{"★".repeat(Math.round(avgRating ?? 0))}</span>
-                <span className="text-xs text-stone-400">
+                <span className="text-rating-star text-sm">{"★".repeat(Math.round(avgRating ?? 0))}</span>
+                <span className="text-xs text-muted-foreground">
                   {publishedReviews.length} review{publishedReviews.length !== 1 ? "s" : ""}
                 </span>
               </div>
-              <h2 className="text-lg font-semibold text-stone-900 mt-1">Guest Reviews</h2>
+              <h2 className="text-lg font-semibold text-foreground mt-1">Guest Reviews</h2>
             </div>
 
             <div className="space-y-4">
@@ -288,47 +288,47 @@ export default function BookingFlow({
                 return (
                   <div
                     key={review.id}
-                    className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-5 space-y-2"
+                    className="bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm p-5 space-y-2"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[#1E3A8A] text-white flex items-center justify-center text-xs font-semibold">
+                      <div className="w-9 h-9 rounded-full bg-booking-accent text-white flex items-center justify-center text-xs font-semibold">
                         {initials}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium text-stone-800">
+                          <p className="text-sm font-medium text-foreground">
                             {displayName}
                           </p>
                           {review.source !== "direct" && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200">
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-info/10 text-info border border-info/20">
                               {SOURCE_LABELS[review.source]}
                             </span>
                           )}
                         </div>
-                        <p className="text-amber-400 text-xs leading-none mt-0.5">
+                        <p className="text-rating-star text-xs leading-none mt-0.5">
                           {"★".repeat(review.rating)}
-                          <span className="text-stone-200">
+                          <span className="text-muted">
                             {"★".repeat(5 - review.rating)}
                           </span>
                         </p>
                       </div>
                     </div>
                     {review.title && (
-                      <p className="text-sm font-semibold text-stone-800">
+                      <p className="text-sm font-semibold text-foreground">
                         {review.title}
                       </p>
                     )}
-                    <p className="text-sm text-stone-600">
+                    <p className="text-sm text-muted-foreground">
                       {review.body.length > 200
                         ? review.body.slice(0, 200) + "…"
                         : review.body}
                     </p>
                     {review.propertyResponse && (
-                      <div className="bg-stone-50 border border-stone-200 rounded-md px-3 py-2 mt-1">
-                        <p className="text-xs font-medium text-stone-500">
+                      <div className="bg-muted border border-border rounded-md px-3 py-2 mt-1">
+                        <p className="text-xs font-medium text-muted-foreground">
                           {property.name}
                         </p>
-                        <p className="text-xs text-stone-600">
+                        <p className="text-xs text-muted-foreground">
                           {review.propertyResponse}
                         </p>
                       </div>

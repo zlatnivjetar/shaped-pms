@@ -68,7 +68,7 @@ export default async function RatesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Rates</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Rates</h1>
             <p className="text-muted-foreground">Manage seasonal rate plans.</p>
           </div>
           <CreateRatePlanDialog roomTypes={allRoomTypes} />
@@ -203,7 +203,7 @@ export default async function RatesPage() {
                       <TableCell className="text-sm text-muted-foreground">
                         {rt ? rt.name : "All room types"}
                       </TableCell>
-                      <TableCell className="font-semibold text-emerald-600">
+                      <TableCell className="font-semibold text-success">
                         {discount.percentage}% off
                       </TableCell>
                       <TableCell className="text-sm tabular-nums">

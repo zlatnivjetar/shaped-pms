@@ -90,8 +90,8 @@ function formatDate(dateStr: string) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-start py-2 text-sm">
-      <span className="text-stone-500">{label}</span>
-      <span className="text-stone-900 font-medium text-right max-w-[60%]">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-foreground font-medium text-right max-w-[60%]">
         {value}
       </span>
     </div>
@@ -193,27 +193,27 @@ function PaymentFormInner({
   return (
     <div className="space-y-4">
       {isSetupFlow ? (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
+        <div className="rounded-lg bg-info/10 border border-info/20 p-3 text-sm text-info">
           Your card will be saved now and charged{" "}
           <strong>{formatCurrency(paymentInfo.totalCents, property.currency)}</strong>{" "}
           on <strong>{paymentInfo.scheduledChargeDate}</strong>, before your arrival.
         </div>
       ) : isDeposit ? (
-        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
+        <div className="rounded-lg bg-info/10 border border-info/20 p-3 text-sm text-info">
           You will be charged{" "}
           <strong>{formatCurrency(paymentInfo.chargedAmountCents)}</strong> now
           as a deposit. The remaining balance is due at check-in.
         </div>
       ) : null}
       <PaymentElement />
-      <div className="flex items-center justify-center gap-1.5 text-xs text-stone-400">
+      <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
         <Lock className="h-3 w-3" />
         Secured by Stripe
       </div>
       <Button
         onClick={handlePay}
         disabled={!stripe || !elements || busy}
-        className="w-full h-10 bg-[#CA8A04] hover:bg-amber-700 text-white text-base"
+        className="w-full h-10 bg-booking-cta hover:bg-booking-cta/90 text-white text-base"
       >
         {isActionPending
           ? "Confirming booking…"
@@ -337,7 +337,7 @@ export default function StepConfirm({
   if (autoSubmit || (isPending && paymentInfo !== null && paymentInfo.clientSecret === "")) {
     return (
       <div className="text-center py-16">
-        <p className="text-stone-600 text-sm">Completing your reservation…</p>
+        <p className="text-muted-foreground text-sm">Completing your reservation…</p>
       </div>
     );
   }
@@ -348,20 +348,20 @@ export default function StepConfirm({
       <div className="mb-6">
         <button
           onClick={stage === "payment" ? () => setStage("summary") : handleBack}
-          className="text-sm text-stone-500 hover:text-stone-800 flex items-center gap-1 mb-3"
+          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-3"
           disabled={isPending || isCreatingPI}
         >
           ← {stage === "payment" ? "Back to summary" : "Edit details"}
         </button>
-        <h2 className="text-xl font-semibold text-stone-900">
+        <h2 className="text-xl font-semibold text-foreground">
           {stage === "payment" ? "Payment" : "Review & confirm"}
         </h2>
       </div>
 
       {/* Summary card — visible in both stages */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm divide-y divide-stone-100 mb-5">
+      <div className="bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm divide-y divide-border mb-5">
         <div className="p-4">
-          <p className="text-sm font-medium text-[#1E3A8A] uppercase tracking-wide mb-2">
+          <p className="text-sm font-medium text-booking-accent uppercase tracking-wide mb-2">
             Stay
           </p>
           <Row label="Room" value={selectedRoomType.name} />
@@ -378,7 +378,7 @@ export default function StepConfirm({
         </div>
 
         <div className="p-4">
-          <p className="text-sm font-medium text-[#1E3A8A] uppercase tracking-wide mb-2">
+          <p className="text-sm font-medium text-booking-accent uppercase tracking-wide mb-2">
             Guest
           </p>
           <Row
@@ -395,20 +395,20 @@ export default function StepConfirm({
         </div>
 
         <div className="p-4">
-          <p className="text-sm font-medium text-[#1E3A8A] uppercase tracking-wide mb-2">
+          <p className="text-sm font-medium text-booking-accent uppercase tracking-wide mb-2">
             Price
           </p>
           <Row
             label={`${formatCurrency(totalCents / nights)} × ${nights} ${nights === 1 ? "night" : "nights"}`}
             value={formatCurrency(totalCents)}
           />
-          <div className="flex justify-between items-center pt-2 mt-1 border-t border-stone-100">
-            <span className="font-semibold text-stone-900">Total</span>
-            <span className="text-lg font-bold text-stone-900">
+          <div className="flex justify-between items-center pt-2 mt-1 border-t border-border">
+            <span className="font-semibold text-foreground">Total</span>
+            <span className="text-lg font-bold text-foreground">
               {formatCurrency(totalCents, property.currency)}
             </span>
           </div>
-          <p className="text-xs text-stone-400 mt-2">
+          <p className="text-xs text-muted-foreground mt-2">
             {cancellationPolicyLabel(
               property.cancellationPolicy,
               property.cancellationDeadlineDays
@@ -421,14 +421,14 @@ export default function StepConfirm({
       {stage === "summary" && (
         <>
           {(paymentError || error) && (
-            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+            <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
               {paymentError ?? error}
             </div>
           )}
           <Button
             onClick={handleProceedToPayment}
             disabled={isCreatingPI || isPending}
-            className="w-full h-10 bg-[#CA8A04] hover:bg-amber-700 text-white text-base"
+            className="w-full h-10 bg-booking-cta hover:bg-booking-cta/90 text-white text-base"
           >
             {isCreatingPI ? "Setting up payment…" : "Proceed to payment →"}
           </Button>
@@ -439,7 +439,7 @@ export default function StepConfirm({
       {stage === "payment" && paymentInfo && stripePromise && (
         <>
           {(paymentError || error) && (
-            <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+            <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
               {paymentError ?? error}
             </div>
           )}
@@ -464,7 +464,7 @@ export default function StepConfirm({
       )}
 
       {stage === "payment" && !stripePromise && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
           Payment is not configured. Please contact the property.
         </div>
       )}
@@ -509,7 +509,7 @@ export default function StepConfirm({
         />
       </form>
 
-      <p className="text-xs text-stone-400 text-center mt-3">
+      <p className="text-xs text-muted-foreground text-center mt-3">
         By confirming, you agree to our booking terms.
       </p>
     </div>

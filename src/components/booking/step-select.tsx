@@ -122,12 +122,12 @@ export default function StepSelect({
       <div className="mb-6">
         <button
           onClick={handleBack}
-          className="text-sm text-stone-500 hover:text-stone-800 flex items-center gap-1 mb-3"
+          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-3"
         >
           ← Change dates
         </button>
-        <h2 className="text-xl font-semibold text-stone-900">Select a room</h2>
-        <p className="text-sm text-stone-500 mt-1">
+        <h2 className="text-xl font-semibold text-foreground">Select a room</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           {formatDate(checkIn)} → {formatDate(checkOut)} ·{" "}
           {nights} {nights === 1 ? "night" : "nights"} ·{" "}
           {adults + childCount} {adults + childCount === 1 ? "guest" : "guests"}
@@ -136,13 +136,13 @@ export default function StepSelect({
 
       {availableRoomTypes.length === 0 ? (
         <div className="text-center py-12 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm">
-          <p className="text-stone-600 font-medium">No rooms available</p>
-          <p className="text-sm text-stone-400 mt-1">
+          <p className="text-muted-foreground font-medium">No rooms available</p>
+          <p className="text-sm text-muted-foreground mt-1">
             Try different dates or fewer guests.
           </p>
           <button
             onClick={handleBack}
-            className="mt-4 text-sm text-stone-700 underline"
+            className="mt-4 text-sm text-foreground underline"
           >
             Change dates
           </button>
@@ -160,24 +160,24 @@ export default function StepSelect({
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-stone-900">{rt.name}</h3>
+                      <h3 className="font-semibold text-foreground">{rt.name}</h3>
                       {!blocked && hasDiscount && (
-                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                        <span className="inline-flex items-center rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
                           {rt.discountPercentage}% off
                         </span>
                       )}
                     </div>
                     {rt.description && (
-                      <p className="text-sm text-stone-500 mt-1 line-clamp-2">
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {rt.description}
                       </p>
                     )}
                     {blocked ? (
-                      <p className="text-sm text-amber-600 mt-2 font-medium">
+                      <p className="text-sm text-warning mt-2 font-medium">
                         {rt.ruleViolation}
                       </p>
                     ) : (
-                      <div className="flex flex-wrap gap-3 mt-3 text-sm text-stone-500">
+                      <div className="flex flex-wrap gap-3 mt-3 text-sm text-muted-foreground">
                         <span>Up to {rt.maxOccupancy} guests</span>
                         <span>·</span>
                         <span>
@@ -197,18 +197,18 @@ export default function StepSelect({
 
                 <div className="mt-4 flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-2xl font-semibold text-stone-900">
+                    <p className="text-2xl font-semibold text-foreground">
                       {formatCurrency(rt.totalCents)}
-                      <span className="text-sm font-normal text-stone-400 ml-1">
+                      <span className="text-sm font-normal text-muted-foreground ml-1">
                         total
                       </span>
                     </p>
                     {hasDiscount && !blocked && (
-                      <p className="text-xs text-stone-400 line-through">
+                      <p className="text-xs text-muted-foreground line-through">
                         {formatCurrency(rt.originalTotalCents)}
                       </p>
                     )}
-                    <p className="text-sm text-stone-400">
+                    <p className="text-sm text-muted-foreground">
                       {formatCurrency(rt.ratePerNightCents)} / night
                       {nights > 1 ? ` × ${nights}` : ""}
                     </p>
@@ -216,7 +216,7 @@ export default function StepSelect({
                   <Button
                     onClick={() => !blocked && handleSelect(rt.roomTypeId)}
                     disabled={blocked || isPending}
-                    className="h-10 bg-[#CA8A04] hover:bg-amber-700 text-white shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-10 bg-booking-cta hover:bg-booking-cta/90 text-white shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {pendingRoomTypeId === rt.roomTypeId ? "Loading…" : blocked ? "Unavailable" : "Select"}
                   </Button>
