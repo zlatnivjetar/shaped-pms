@@ -1,14 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { CircleAlert } from "lucide-react";
 import type { Property, RoomType, Review, Guest } from "@/db/schema";
-import { SOURCE_LABELS } from "@/lib/reviews";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { StarRating } from "@/components/ui/star-rating";
 import type { AvailableRoomType } from "@/lib/availability";
-import StepSearch from "./step-search";
-import StepSelect from "./step-select";
-import StepDetails from "./step-details";
+import { SOURCE_LABELS } from "@/lib/reviews";
 import StepConfirm from "./step-confirm";
 import StepComplete from "./step-complete";
+import StepDetails from "./step-details";
+import StepSearch from "./step-search";
+import StepSelect from "./step-select";
+import { StepIndicator } from "./step-indicator";
+import { bookingCardClassName } from "./styles";
 
 export type GuestDetails = {
   firstName: string;
@@ -54,46 +61,8 @@ interface Props {
 }
 
 const STORAGE_KEY = "booking-guest-details";
-
-const STEPS = ["search", "select", "details", "confirm"];
-const STEP_LABELS = ["Dates", "Room", "Details", "Confirm"];
-
-function StepIndicator({ current }: { current: string }) {
-  const idx = STEPS.indexOf(current);
-  if (idx === -1) return null;
-  return (
-    <div className="flex items-center justify-center mb-8">
-      {STEPS.map((step, i) => (
-        <div key={step} className="flex items-center">
-          {/* Dot + label column */}
-          <div className="flex flex-col items-center gap-1.5">
-            {i < idx ? (
-              /* Completed: gold dot with checkmark */
-              <div className="w-5 h-5 rounded-full bg-booking-cta flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-            ) : i === idx ? (
-              /* Current: filled navy circle */
-              <div className="w-5 h-5 rounded-full bg-booking-accent" />
-            ) : (
-              /* Upcoming: hollow circle */
-              <div className="w-5 h-5 rounded-full border-2 border-border" />
-            )}
-            <span className={`text-xs hidden sm:block ${i === idx ? "text-booking-accent font-medium" : i < idx ? "text-booking-cta" : "text-muted-foreground"}`}>
-              {STEP_LABELS[i]}
-            </span>
-          </div>
-          {/* Connecting line */}
-          {i < STEPS.length - 1 && (
-            <div className={`w-12 h-px mx-1 mb-4 ${i < idx ? "bg-booking-cta" : "bg-border"}`} />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
+const bookingStepTransitionClassName =
+  "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-[var(--duration-normal)] motion-safe:ease-[var(--ease-out)] motion-reduce:animate-none";
 
 export default function BookingFlow({
   property,
@@ -119,7 +88,6 @@ export default function BookingFlow({
     specialRequests: "",
   });
 
-  // Restore from sessionStorage on mount
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY);
@@ -131,7 +99,6 @@ export default function BookingFlow({
     }
   }, []);
 
-  // Persist to sessionStorage on change
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(guestDetails));
@@ -140,7 +107,6 @@ export default function BookingFlow({
     }
   }, [guestDetails]);
 
-  // Clear sessionStorage on completion
   useEffect(() => {
     if (step === "complete") {
       try {
@@ -153,21 +119,23 @@ export default function BookingFlow({
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="bg-white border-b border-border">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between gap-3">
+      <header className="border-b border-border bg-booking-background">
+        <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-booking-accent">
-              {property.city}{property.country ? `, ${property.country}` : ""}
+              {property.city}
+              {property.country ? `, ${property.country}` : ""}
             </p>
-            <h1 className="text-xl font-semibold text-foreground font-[family-name:--font-playfair]">{property.name}</h1>
+            <h1 className="font-[family-name:--font-playfair] text-xl font-semibold text-foreground">
+              {property.name}
+            </h1>
             {property.tagline && (
-              <p className="text-xs text-muted-foreground mt-0.5">{property.tagline}</p>
+              <p className="mt-0.5 text-xs text-booking-muted">{property.tagline}</p>
             )}
             {property.phone && (
               <a
                 href={`tel:${property.phone}`}
-                className="text-xs text-muted-foreground hover:text-foreground mt-0.5 block"
+                className="mt-0.5 block text-xs text-booking-muted transition-colors hover:text-foreground"
               >
                 {property.phone}
               </a>
@@ -178,99 +146,120 @@ export default function BookingFlow({
             <img
               src={property.logoUrl}
               alt={property.name}
-              className="h-10 w-auto object-contain flex-shrink-0"
+              className="h-10 w-auto flex-shrink-0 object-contain"
             />
           )}
         </div>
       </header>
 
-      {/* Content */}
-      <main className="max-w-lg mx-auto px-4 py-8">
+      <main className="mx-auto max-w-lg px-4 py-8">
         {step !== "complete" && <StepIndicator current={step} />}
 
-        {step === "search" && (
-          <StepSearch
-            propertySlug={property.slug}
-            checkInTime={property.checkInTime ?? undefined}
-            checkOutTime={property.checkOutTime ?? undefined}
-            initialCheckIn={checkIn}
-            initialCheckOut={checkOut}
-            initialAdults={adults}
-            initialChildren={childCount}
-          />
-        )}
+        <ErrorBoundary
+          size="compact"
+          title="Booking step unavailable"
+          description="We could not render this booking step. Try again to continue."
+        >
+          {step === "search" && (
+            <div className={bookingStepTransitionClassName}>
+              <StepSearch
+                propertySlug={property.slug}
+                checkInTime={property.checkInTime ?? undefined}
+                checkOutTime={property.checkOutTime ?? undefined}
+                initialCheckIn={checkIn}
+                initialCheckOut={checkOut}
+                initialAdults={adults}
+                initialChildren={childCount}
+              />
+            </div>
+          )}
 
-        {step === "select" && (
-          <StepSelect
-            propertySlug={property.slug}
-            checkIn={checkIn!}
-            checkOut={checkOut!}
-            adults={adults}
-            childCount={childCount}
-            availableRoomTypes={availableRoomTypes ?? []}
-            amenitiesByRoomType={amenitiesByRoomType}
-          />
-        )}
+          {step === "select" && (
+            <div className={bookingStepTransitionClassName}>
+              <StepSelect
+                propertySlug={property.slug}
+                checkIn={checkIn!}
+                checkOut={checkOut!}
+                adults={adults}
+                childCount={childCount}
+                availableRoomTypes={availableRoomTypes ?? []}
+                amenitiesByRoomType={amenitiesByRoomType}
+              />
+            </div>
+          )}
 
-        {step === "details" && selectedRoomType && checkIn && checkOut && (
-          <StepDetails
-            propertySlug={property.slug}
-            selectedRoomType={selectedRoomType}
-            checkIn={checkIn}
-            checkOut={checkOut}
-            adults={adults}
-            childCount={childCount}
-            roomTypeId={roomTypeId!}
-            guestDetails={guestDetails}
-            onGuestDetailsChange={setGuestDetails}
-          />
-        )}
+          {step === "details" && selectedRoomType && checkIn && checkOut && (
+            <div className={bookingStepTransitionClassName}>
+              <StepDetails
+                propertySlug={property.slug}
+                selectedRoomType={selectedRoomType}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                adults={adults}
+                childCount={childCount}
+                roomTypeId={roomTypeId!}
+                guestDetails={guestDetails}
+                onGuestDetailsChange={setGuestDetails}
+              />
+            </div>
+          )}
 
-        {step === "confirm" && selectedRoomType && checkIn && checkOut && (
-          <StepConfirm
-            property={property}
-            selectedRoomType={selectedRoomType}
-            checkIn={checkIn}
-            checkOut={checkOut}
-            adults={adults}
-            childCount={childCount}
-            roomTypeId={roomTypeId!}
-            totalCents={confirmTotal}
-            guestDetails={guestDetails}
-          />
-        )}
+          {step === "confirm" && selectedRoomType && checkIn && checkOut && (
+            <div className={bookingStepTransitionClassName}>
+              <StepConfirm
+                property={property}
+                selectedRoomType={selectedRoomType}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                adults={adults}
+                childCount={childCount}
+                roomTypeId={roomTypeId!}
+                totalCents={confirmTotal}
+                guestDetails={guestDetails}
+              />
+            </div>
+          )}
 
-        {step === "complete" && completedReservation && (
-          <StepComplete
-            reservation={completedReservation}
-            propertyName={property.name}
-            propertySlug={property.slug}
-          />
-        )}
+          {step === "complete" && completedReservation && (
+            <StepComplete
+              reservation={completedReservation}
+              propertyName={property.name}
+              propertySlug={property.slug}
+            />
+          )}
 
-        {/* Fallback for invalid state */}
-        {step === "complete" && !completedReservation && (
-          <div className="text-center py-16">
-            <p className="text-muted-foreground">Reservation not found.</p>
-          </div>
-        )}
+          {step === "complete" && !completedReservation && (
+            <div className={bookingCardClassName}>
+              <EmptyState
+                icon={CircleAlert}
+                size="compact"
+                title="Reservation not found"
+                description="We could not find the completed booking details for this confirmation."
+              />
+            </div>
+          )}
+        </ErrorBoundary>
 
-        {/* Reviews section — visible on search step */}
         {step === "search" && publishedReviews.length > 0 && (
           <section className="mt-12 space-y-6">
-            <div className="flex flex-col items-center text-center gap-1 mb-2">
+            <div className="mb-2 flex flex-col items-center gap-2 text-center">
               {avgRating !== null && (
-                <span className="text-5xl font-[family-name:--font-playfair] text-booking-cta">
+                <span className="font-[family-name:--font-playfair] text-5xl text-booking-cta">
                   {avgRating.toFixed(1)}
                 </span>
               )}
               <div className="flex items-center gap-2">
-                <span className="text-rating-star text-sm">{"★".repeat(Math.round(avgRating ?? 0))}</span>
+                <StarRating
+                  value={Math.round(avgRating ?? 0)}
+                  readOnly
+                  size="sm"
+                  aria-label={`Average rating ${avgRating?.toFixed(1) ?? "0"} out of 5`}
+                />
                 <span className="text-xs text-muted-foreground">
                   {publishedReviews.length} review{publishedReviews.length !== 1 ? "s" : ""}
                 </span>
               </div>
-              <h2 className="text-lg font-semibold text-foreground mt-1">Guest Reviews</h2>
+              <h2 className="mt-1 text-lg font-semibold text-foreground">Guest Reviews</h2>
             </div>
 
             <div className="space-y-4">
@@ -281,54 +270,53 @@ export default function BookingFlow({
                   : review.reviewerName ?? "Guest";
                 const initials = displayName
                   .split(" ")
-                  .map((w) => w[0])
+                  .map((word) => word[0])
                   .join("")
                   .toUpperCase()
                   .slice(0, 2);
+
                 return (
-                  <div
-                    key={review.id}
-                    className="bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm p-5 space-y-2"
-                  >
+                  <div key={review.id} className={`${bookingCardClassName} space-y-3 p-5`}>
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-booking-accent text-white flex items-center justify-center text-xs font-semibold">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-booking-accent text-xs font-semibold text-booking-accent-foreground">
                         {initials}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium text-foreground">
-                            {displayName}
-                          </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">{displayName}</p>
                           {review.source !== "direct" && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-info/10 text-info border border-info/20">
+                            <Badge
+                              variant="outline"
+                              className="border-info/20 bg-info/10 text-info"
+                            >
                               {SOURCE_LABELS[review.source]}
-                            </span>
+                            </Badge>
                           )}
                         </div>
-                        <p className="text-rating-star text-xs leading-none mt-0.5">
-                          {"★".repeat(review.rating)}
-                          <span className="text-muted">
-                            {"★".repeat(5 - review.rating)}
-                          </span>
-                        </p>
+                        <StarRating
+                          value={review.rating}
+                          readOnly
+                          size="sm"
+                          className="mt-0.5"
+                          aria-label={`${review.rating} out of 5 stars`}
+                        />
                       </div>
                     </div>
+
                     {review.title && (
-                      <p className="text-sm font-semibold text-foreground">
-                        {review.title}
-                      </p>
+                      <p className="text-sm font-semibold text-foreground">{review.title}</p>
                     )}
+
                     <p className="text-sm text-muted-foreground">
                       {review.body.length > 200
-                        ? review.body.slice(0, 200) + "…"
+                        ? `${review.body.slice(0, 200)}…`
                         : review.body}
                     </p>
+
                     {review.propertyResponse && (
-                      <div className="bg-muted border border-border rounded-md px-3 py-2 mt-1">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {property.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
+                      <div className="rounded-lg border border-border bg-muted/60 px-3 py-3">
+                        <p className="text-xs font-medium text-foreground">{property.name}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {review.propertyResponse}
                         </p>
                       </div>

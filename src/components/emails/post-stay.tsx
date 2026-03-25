@@ -1,16 +1,14 @@
+import { Section, Text } from "@react-email/components";
 import {
-  Html,
-  Head,
-  Body,
-  Container,
-  Heading,
-  Text,
-  Hr,
-  Section,
-  Preview,
-  Button,
-} from "@react-email/components";
-import { BRAND, MUTED, formatEmailDate } from "./shared";
+  EmailBodyText,
+  EmailButton,
+  EmailDivider,
+  EmailDocument,
+  EmailPanel,
+  EmailTitle,
+  MUTED,
+  formatEmailDate,
+} from "./shared";
 
 interface PostStayProps {
   guestFirstName: string;
@@ -28,80 +26,65 @@ export default function PostStay({
   confirmationCode,
 }: PostStayProps) {
   return (
-    <Html>
-      <Head />
-      <Preview>
-        Thank you for staying at {propertyName} — share your experience
-      </Preview>
-      <Body style={{ backgroundColor: "#f5f5f4", fontFamily: "sans-serif" }}>
-        <Container
+    <EmailDocument
+      preview={`Thank you for staying at ${propertyName} - share your experience`}
+      propertyName={propertyName}
+    >
+      <EmailTitle>Thank you for your stay</EmailTitle>
+      <EmailBodyText>
+        Hi {guestFirstName}, we hope you had a wonderful time at {propertyName}
+        . It was a pleasure having you with us
+        {checkOut ? ` through ${formatEmailDate(checkOut)}` : ""}.
+      </EmailBodyText>
+
+      <EmailPanel>
+        <Text
           style={{
-            maxWidth: "600px",
-            margin: "40px auto",
-            backgroundColor: "#ffffff",
-            borderRadius: "8px",
-            overflow: "hidden",
+            color: MUTED,
+            fontSize: "12px",
+            lineHeight: "18px",
+            fontWeight: "700",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            margin: "0 0 4px",
           }}
         >
-          <Section style={{ backgroundColor: BRAND, padding: "32px 40px" }}>
-            <Heading
-              style={{ color: "#ffffff", fontSize: "20px", margin: 0 }}
-            >
-              {propertyName}
-            </Heading>
-          </Section>
+          Booking reference
+        </Text>
+        <Text
+          style={{
+            color: MUTED,
+            fontSize: "15px",
+            lineHeight: "24px",
+            margin: 0,
+          }}
+        >
+          Your booking reference was <strong>{confirmationCode}</strong>.
+        </Text>
+      </EmailPanel>
 
-          <Section style={{ padding: "40px" }}>
-            <Heading
-              as="h2"
-              style={{ color: BRAND, fontSize: "22px", marginTop: 0 }}
-            >
-              Thank you for your stay!
-            </Heading>
-            <Text style={{ color: MUTED, fontSize: "15px" }}>
-              Hi {guestFirstName}, we hope you had a wonderful time at{" "}
-              {propertyName}. It was a pleasure having you with us
-              {checkOut ? ` through ${formatEmailDate(checkOut)}` : ""}.
-            </Text>
-            <Text style={{ color: MUTED, fontSize: "15px" }}>
-              Your booking reference was <strong>{confirmationCode}</strong>.
-            </Text>
+      <EmailDivider />
+      <EmailBodyText>
+        Your feedback means the world to us and helps future guests make
+        informed decisions. It only takes a minute.
+      </EmailBodyText>
 
-            <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
+      <Section style={{ textAlign: "center" }}>
+        <EmailButton href={reviewUrl}>Leave a review</EmailButton>
+      </Section>
 
-            <Text style={{ color: BRAND, fontSize: "15px", fontWeight: "500" }}>
-              How was your experience?
-            </Text>
-            <Text style={{ color: MUTED, fontSize: "14px" }}>
-              Your feedback means the world to us and helps future guests make
-              informed decisions. It only takes a minute!
-            </Text>
-
-            <Section style={{ textAlign: "center" as const, margin: "32px 0" }}>
-              <Button
-                href={reviewUrl}
-                style={{
-                  backgroundColor: BRAND,
-                  color: "#ffffff",
-                  padding: "14px 32px",
-                  borderRadius: "6px",
-                  fontSize: "15px",
-                  fontWeight: "600",
-                  textDecoration: "none",
-                  display: "inline-block",
-                }}
-              >
-                Leave a Review
-              </Button>
-            </Section>
-
-            <Text style={{ color: MUTED, fontSize: "12px" }}>
-              This link expires in 30 days. If you have any issues, simply
-              reply to this email.
-            </Text>
-          </Section>
-        </Container>
-      </Body>
-    </Html>
+      <EmailDivider />
+      <Text
+        style={{
+          color: MUTED,
+          fontSize: "12px",
+          lineHeight: "18px",
+          margin: 0,
+        }}
+      >
+        This link expires in 30 days. If you have any issues, simply reply to
+        this email.
+      </Text>
+    </EmailDocument>
   );
 }

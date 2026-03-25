@@ -1,18 +1,19 @@
+import { Section, Text } from "@react-email/components";
 import {
-  Html,
-  Head,
-  Body,
-  Container,
-  Heading,
-  Text,
-  Hr,
-  Section,
-  Preview,
-  Row,
-  Column,
-  Button,
-} from "@react-email/components";
-import { BRAND, MUTED, formatCurrency, formatEmailDate } from "./shared";
+  BRAND_FOREGROUND,
+  EmailBodyText,
+  EmailButton,
+  EmailCodePanel,
+  EmailDetailRow,
+  EmailDivider,
+  EmailDocument,
+  EmailPanel,
+  EmailSectionHeading,
+  EmailTitle,
+  MUTED,
+  formatCurrency,
+  formatEmailDate,
+} from "./shared";
 
 interface BookingConfirmationProps {
   guestFirstName: string;
@@ -49,231 +50,131 @@ export default function BookingConfirmation({
   checkInTime,
   manageUrl,
 }: BookingConfirmationProps) {
+  const balanceCents = totalCents - amountPaidCents;
+
   return (
-    <Html>
-      <Head />
-      <Preview>
-        Your booking is confirmed — {confirmationCode} · {propertyName}
-      </Preview>
-      <Body style={{ backgroundColor: "#f5f5f4", fontFamily: "sans-serif" }}>
-        <Container
-          style={{
-            maxWidth: "600px",
-            margin: "40px auto",
-            backgroundColor: "#ffffff",
-            borderRadius: "8px",
-            overflow: "hidden",
-          }}
-        >
-          {/* Header */}
-          <Section style={{ backgroundColor: BRAND, padding: "32px 40px" }}>
-            <Heading
-              style={{ color: "#ffffff", fontSize: "20px", margin: 0 }}
-            >
-              {propertyName}
-            </Heading>
-          </Section>
-
-          {/* Body */}
-          <Section style={{ padding: "40px" }}>
-            <Heading
-              as="h2"
-              style={{ color: BRAND, fontSize: "22px", marginTop: 0 }}
-            >
-              Booking Confirmed!
-            </Heading>
-            <Text style={{ color: MUTED, fontSize: "15px" }}>
-              Hi {guestFirstName}, your reservation is confirmed. We look
-              forward to welcoming you.
-            </Text>
-
-            {/* Confirmation code */}
-            <Section
-              style={{
-                backgroundColor: "#f5f5f4",
-                borderRadius: "6px",
-                padding: "16px 24px",
-                margin: "24px 0",
-                textAlign: "center" as const,
-              }}
-            >
-              <Text
-                style={{ color: MUTED, fontSize: "12px", margin: "0 0 4px" }}
-              >
-                CONFIRMATION CODE
-              </Text>
-              <Text
-                style={{
-                  color: BRAND,
-                  fontSize: "28px",
-                  fontWeight: "bold",
-                  letterSpacing: "4px",
-                  margin: 0,
-                }}
-              >
-                {confirmationCode}
-              </Text>
-            </Section>
-
-            <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
-
-            {/* Stay details */}
-            <Heading
-              as="h3"
-              style={{ color: BRAND, fontSize: "14px", marginBottom: "12px" }}
-            >
-              STAY DETAILS
-            </Heading>
-            <Row>
-              <Column>
-                <Text
-                  style={{ color: MUTED, fontSize: "12px", margin: "0 0 2px" }}
-                >
-                  CHECK-IN
-                </Text>
-                <Text style={{ color: BRAND, fontSize: "14px", margin: 0 }}>
-                  {formatEmailDate(checkIn)}
-                </Text>
-                {checkInTime && (
-                  <Text style={{ color: MUTED, fontSize: "12px", margin: 0 }}>
-                    from {checkInTime}
-                  </Text>
-                )}
-              </Column>
-              <Column>
-                <Text
-                  style={{ color: MUTED, fontSize: "12px", margin: "0 0 2px" }}
-                >
-                  CHECK-OUT
-                </Text>
-                <Text style={{ color: BRAND, fontSize: "14px", margin: 0 }}>
-                  {formatEmailDate(checkOut)}
-                </Text>
-              </Column>
-            </Row>
-            <Text style={{ color: BRAND, fontSize: "14px", margin: "16px 0 0" }}>
-              <strong>Room:</strong> {roomTypeName}
-            </Text>
-            <Text style={{ color: BRAND, fontSize: "14px", margin: "4px 0 0" }}>
-              <strong>Duration:</strong> {nights} night{nights !== 1 ? "s" : ""}
-            </Text>
-
-            <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
-
-            {/* Payment */}
-            <Heading
-              as="h3"
-              style={{ color: BRAND, fontSize: "14px", marginBottom: "12px" }}
-            >
-              PAYMENT SUMMARY
-            </Heading>
-            <Row>
-              <Column>
-                <Text style={{ color: BRAND, fontSize: "14px", margin: 0 }}>
-                  Total stay
-                </Text>
-              </Column>
-              <Column style={{ textAlign: "right" as const }}>
-                <Text style={{ color: BRAND, fontSize: "14px", margin: 0 }}>
-                  {formatCurrency(totalCents, currency)}
-                </Text>
-              </Column>
-            </Row>
-            <Row>
-              <Column>
-                <Text style={{ color: MUTED, fontSize: "14px", margin: 0 }}>
-                  {paymentType === "deposit" ? "Deposit paid" : "Amount paid"}
-                </Text>
-              </Column>
-              <Column style={{ textAlign: "right" as const }}>
-                <Text style={{ color: MUTED, fontSize: "14px", margin: 0 }}>
-                  {formatCurrency(amountPaidCents, currency)}
-                </Text>
-              </Column>
-            </Row>
-            {paymentType === "deposit" && (
-              <Text
-                style={{ color: MUTED, fontSize: "12px", marginTop: "8px" }}
-              >
-                The remaining balance of{" "}
-                {formatCurrency(totalCents - amountPaidCents, currency)} will be
-                collected at check-in.
-              </Text>
-            )}
-
-            {/* Manage booking */}
-            {manageUrl && (
+    <EmailDocument
+      preview={`Your booking is confirmed - ${confirmationCode} - ${propertyName}`}
+      propertyName={propertyName}
+      footer={
+        propertyAddress || propertyPhone ? (
+          <>
+            {propertyAddress ? (
               <>
-                <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
-                <Heading
-                  as="h3"
+                <Text
                   style={{
-                    color: BRAND,
-                    fontSize: "14px",
-                    marginBottom: "12px",
+                    color: BRAND_FOREGROUND,
+                    fontSize: "12px",
+                    lineHeight: "18px",
+                    fontWeight: "700",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    margin: "0 0 4px",
                   }}
                 >
-                  MANAGE YOUR BOOKING
-                </Heading>
+                  Property address
+                </Text>
                 <Text
                   style={{
                     color: MUTED,
-                    fontSize: "14px",
-                    margin: "0 0 16px",
+                    fontSize: "13px",
+                    lineHeight: "20px",
+                    margin: 0,
                   }}
                 >
-                  Need to cancel or view your booking details? Use the link
-                  below.
+                  {propertyAddress}
                 </Text>
-                <Button
-                  href={manageUrl}
-                  style={{
-                    backgroundColor: BRAND,
-                    color: "#ffffff",
-                    borderRadius: "6px",
-                    padding: "12px 24px",
-                    fontSize: "14px",
-                    fontWeight: "600",
-                    textDecoration: "none",
-                    display: "inline-block",
-                  }}
-                >
-                  Manage Booking
-                </Button>
               </>
-            )}
-          </Section>
+            ) : null}
+            {propertyPhone ? (
+              <Text
+                style={{
+                  color: MUTED,
+                  fontSize: "13px",
+                  lineHeight: "20px",
+                  margin: propertyAddress ? "8px 0 0" : 0,
+                }}
+              >
+                Tel: {propertyPhone}
+              </Text>
+            ) : null}
+          </>
+        ) : undefined
+      }
+    >
+      <EmailTitle>Booking confirmed</EmailTitle>
+      <EmailBodyText>
+        Hi {guestFirstName}, your reservation is confirmed. We look forward to
+        welcoming you.
+      </EmailBodyText>
 
-          {/* Footer */}
-          {(propertyAddress || propertyPhone) && (
-            <Section
-              style={{
-                backgroundColor: "#f5f5f4",
-                padding: "24px 40px",
-                borderTop: "1px solid #e7e5e4",
-              }}
-            >
-              {propertyAddress && (
-                <>
-                  <Text
-                    style={{ color: MUTED, fontSize: "12px", margin: "0 0 4px" }}
-                  >
-                    PROPERTY ADDRESS
-                  </Text>
-                  <Text style={{ color: BRAND, fontSize: "13px", margin: 0 }}>
-                    {propertyAddress}
-                  </Text>
-                </>
-              )}
-              {propertyPhone && (
-                <Text style={{ color: MUTED, fontSize: "12px", margin: "8px 0 0" }}>
-                  Tel: {propertyPhone}
-                </Text>
-              )}
-            </Section>
-          )}
-        </Container>
-      </Body>
-    </Html>
+      <EmailCodePanel code={confirmationCode} />
+
+      <EmailDivider />
+      <EmailSectionHeading>Stay details</EmailSectionHeading>
+      <EmailPanel>
+        <EmailDetailRow
+          label="Check-in"
+          value={formatEmailDate(checkIn)}
+        />
+        {checkInTime ? (
+          <Text
+            style={{
+              color: MUTED,
+              fontSize: "12px",
+              lineHeight: "18px",
+              margin: "4px 0 0",
+            }}
+          >
+            Check-in from {checkInTime}
+          </Text>
+        ) : null}
+        <EmailDetailRow label="Check-out" value={formatEmailDate(checkOut)} />
+        <EmailDetailRow label="Room" value={roomTypeName} />
+        <EmailDetailRow
+          label="Duration"
+          value={`${nights} night${nights !== 1 ? "s" : ""}`}
+        />
+      </EmailPanel>
+
+      <EmailDivider />
+      <EmailSectionHeading>Payment summary</EmailSectionHeading>
+      <EmailPanel>
+        <EmailDetailRow
+          label="Total stay"
+          value={formatCurrency(totalCents, currency)}
+        />
+        <EmailDetailRow
+          label={paymentType === "deposit" ? "Deposit paid" : "Amount paid"}
+          value={formatCurrency(amountPaidCents, currency)}
+        />
+        {paymentType === "deposit" ? (
+          <Text
+            style={{
+              color: MUTED,
+              fontSize: "12px",
+              lineHeight: "18px",
+              margin: "10px 0 0",
+            }}
+          >
+            The remaining balance of {formatCurrency(balanceCents, currency)}
+            will be collected at check-in.
+          </Text>
+        ) : null}
+      </EmailPanel>
+
+      {manageUrl ? (
+        <>
+          <EmailDivider />
+          <EmailSectionHeading>Manage your booking</EmailSectionHeading>
+          <EmailBodyText>
+            Need to cancel or review your booking details? Use the link below.
+          </EmailBodyText>
+          <Section style={{ textAlign: "center" }}>
+            <EmailButton href={manageUrl}>Manage booking</EmailButton>
+          </Section>
+        </>
+      ) : null}
+    </EmailDocument>
   );
 }

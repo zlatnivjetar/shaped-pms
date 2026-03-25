@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
+import { BookOpen } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,10 +102,10 @@ export default async function ReservationsPage({ searchParams }: Props) {
           : "Guest unavailable";
 
         return (
-          <Link href={`/reservations/${reservation.id}`} className="block space-y-0.5">
-            <div className="font-medium">{guestName}</div>
+          <Link href={`/reservations/${reservation.id}`} className="block max-w-[200px] space-y-0.5">
+            <div className="truncate font-medium" title={guestName}>{guestName}</div>
             {reservation.guest?.email && (
-              <div className="text-xs text-muted-foreground">
+              <div className="truncate text-xs text-muted-foreground" title={reservation.guest.email}>
                 {reservation.guest.email}
               </div>
             )}
@@ -115,8 +116,10 @@ export default async function ReservationsPage({ searchParams }: Props) {
     {
       id: "room",
       header: "Room",
-      cell: (reservation) =>
-        reservation.reservationRooms[0]?.roomType?.name ?? "Unassigned",
+      cell: (reservation) => {
+        const name = reservation.reservationRooms[0]?.roomType?.name ?? "Unassigned";
+        return <span className="block max-w-[140px] truncate" title={name}>{name}</span>;
+      },
     },
     {
       id: "check-in",
@@ -242,6 +245,7 @@ export default async function ReservationsPage({ searchParams }: Props) {
           data={allReservations}
           getRowKey={(reservation) => reservation.id}
           emptyState={{
+            icon: BookOpen,
             title: "No reservations found",
             description: "Try a different filter or wait for new bookings to arrive.",
           }}

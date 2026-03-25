@@ -1,11 +1,20 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AmenityChip } from "./amenity-chip";
 import type { AvailableRoomType } from "@/lib/availability";
+import { AmenityChip } from "./amenity-chip";
+import {
+  bookingCardClassName,
+  bookingCtaButtonClassName,
+  bookingGhostButtonClassName,
+  bookingTextLinkClassName,
+} from "./styles";
 
 function DetailsSkeleton() {
   return (
@@ -46,8 +55,8 @@ function formatCurrency(cents: number, currency = "EUR") {
   }).format(cents / 100);
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
+function formatDate(dateString: string) {
+  return new Date(`${dateString}T00:00:00Z`).toLocaleDateString("en-GB", {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -69,22 +78,22 @@ export default function StepSelect({
   const [isPending, startTransition] = useTransition();
   const [pendingRoomTypeId, setPendingRoomTypeId] = useState<string | null>(null);
 
-  // Prefetch details step for every available (non-blocked) room type on mount
   useEffect(() => {
     availableRoomTypes
-      .filter((rt) => rt.ruleViolation === null)
-      .forEach((rt) => {
+      .filter((roomType) => roomType.ruleViolation === null)
+      .forEach((roomType) => {
         const params = new URLSearchParams({
           step: "details",
           check_in: checkIn,
           check_out: checkOut,
           adults: String(adults),
           children: String(childCount),
-          room_type_id: rt.roomTypeId,
+          room_type_id: roomType.roomTypeId,
         });
+
         router.prefetch(`/${propertySlug}?${params.toString()}`);
       });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [adults, availableRoomTypes, checkIn, checkOut, childCount, propertySlug, router]);
 
   function handleSelect(roomTypeId: string) {
     const params = new URLSearchParams({
@@ -95,6 +104,7 @@ export default function StepSelect({
       children: String(childCount),
       room_type_id: roomTypeId,
     });
+
     setPendingRoomTypeId(roomTypeId);
     startTransition(() => router.push(`/${propertySlug}?${params.toString()}`));
   }
@@ -107,118 +117,145 @@ export default function StepSelect({
       adults: String(adults),
       children: String(childCount),
     });
+
     router.push(`/${propertySlug}?${params.toString()}`);
   }
 
   const nights =
-    (new Date(checkOut + "T00:00:00Z").getTime() -
-      new Date(checkIn + "T00:00:00Z").getTime()) /
+    (new Date(`${checkOut}T00:00:00Z`).getTime() -
+      new Date(`${checkIn}T00:00:00Z`).getTime()) /
     86400000;
 
-  if (isPending) return <DetailsSkeleton />;
+  if (isPending) {
+    return <DetailsSkeleton />;
+  }
 
   return (
     <div>
       <div className="mb-6">
-        <button
+        <Button
+          type="button"
+          variant="ghost"
           onClick={handleBack}
-          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-3"
+          className={`mb-3 px-0 ${bookingGhostButtonClassName}`}
         >
           ← Change dates
-        </button>
+        </Button>
         <h2 className="text-xl font-semibold text-foreground">Select a room</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {formatDate(checkIn)} → {formatDate(checkOut)} ·{" "}
-          {nights} {nights === 1 ? "night" : "nights"} ·{" "}
-          {adults + childCount} {adults + childCount === 1 ? "guest" : "guests"}
+        <p className="mt-1 text-sm text-muted-foreground">
+          {formatDate(checkIn)} → {formatDate(checkOut)} · {nights}{" "}
+          {nights === 1 ? "night" : "nights"} · {adults + childCount}{" "}
+          {adults + childCount === 1 ? "guest" : "guests"}
         </p>
       </div>
 
       {availableRoomTypes.length === 0 ? (
-        <div className="text-center py-12 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm">
-          <p className="text-muted-foreground font-medium">No rooms available</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Try different dates or fewer guests.
-          </p>
-          <button
-            onClick={handleBack}
-            className="mt-4 text-sm text-foreground underline"
-          >
-            Change dates
-          </button>
+        <div className={bookingCardClassName}>
+          <EmptyState
+            icon={Search}
+            size="compact"
+            title="No rooms available"
+            description="Try different dates, fewer guests, or a shorter stay."
+            action={(
+              <button
+                type="button"
+                onClick={handleBack}
+                className={bookingTextLinkClassName}
+              >
+                Change dates
+              </button>
+            )}
+          />
         </div>
       ) : (
         <div className="space-y-4">
-          {availableRoomTypes.map((rt) => {
-            const blocked = rt.ruleViolation !== null;
-            const hasDiscount = rt.discountPercentage > 0;
+          {availableRoomTypes.map((roomType) => {
+            const blocked = roomType.ruleViolation !== null;
+            const hasDiscount = roomType.discountPercentage > 0;
+
             return (
               <div
-                key={rt.roomTypeId}
-                className={`bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-5 ${blocked ? "opacity-60" : ""}`}
+                key={roomType.roomTypeId}
+                className={`${bookingCardClassName} p-5 ${blocked ? "opacity-50" : ""}`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-foreground">{rt.name}</h3>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-foreground">{roomType.name}</h3>
                       {!blocked && hasDiscount && (
-                        <span className="inline-flex items-center rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
-                          {rt.discountPercentage}% off
-                        </span>
+                        <Badge
+                          variant="outline"
+                          className="border-booking-cta/20 bg-booking-cta/10 text-booking-cta"
+                        >
+                          {roomType.discountPercentage}% off
+                        </Badge>
                       )}
                     </div>
-                    {rt.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {rt.description}
+
+                    {roomType.description && (
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {roomType.description}
                       </p>
                     )}
+
                     {blocked ? (
-                      <p className="text-sm text-warning mt-2 font-medium">
-                        {rt.ruleViolation}
+                      <p className="mt-3 text-sm font-medium text-warning">
+                        Not available for this stay: {roomType.ruleViolation}
                       </p>
                     ) : (
-                      <div className="flex flex-wrap gap-3 mt-3 text-sm text-muted-foreground">
-                        <span>Up to {rt.maxOccupancy} guests</span>
+                      <div className="mt-3 flex flex-wrap gap-3 text-sm text-muted-foreground">
+                        <span>Up to {roomType.maxOccupancy} guests</span>
                         <span>·</span>
                         <span>
-                          {rt.available} room{rt.available !== 1 ? "s" : ""} left
+                          {roomType.available} room{roomType.available !== 1 ? "s" : ""} left
                         </span>
                       </div>
                     )}
-                    {!blocked && amenitiesByRoomType[rt.roomTypeId]?.length > 0 && (
-                      <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3">
-                        {amenitiesByRoomType[rt.roomTypeId].map((a) => (
-                          <AmenityChip key={a.id} icon={a.icon} name={a.name} />
+
+                    {!blocked && amenitiesByRoomType[roomType.roomTypeId]?.length > 0 && (
+                      <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2">
+                        {amenitiesByRoomType[roomType.roomTypeId].map((amenity) => (
+                          <AmenityChip
+                            key={amenity.id}
+                            icon={amenity.icon}
+                            name={amenity.name}
+                          />
                         ))}
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-end justify-between gap-4">
+                <div className="mt-5 flex items-end justify-between gap-4 border-t border-border pt-4">
                   <div>
                     <p className="text-2xl font-semibold text-foreground">
-                      {formatCurrency(rt.totalCents)}
-                      <span className="text-sm font-normal text-muted-foreground ml-1">
+                      {formatCurrency(roomType.totalCents)}
+                      <span className="ml-1 text-sm font-normal text-muted-foreground">
                         total
                       </span>
                     </p>
                     {hasDiscount && !blocked && (
                       <p className="text-xs text-muted-foreground line-through">
-                        {formatCurrency(rt.originalTotalCents)}
+                        {formatCurrency(roomType.originalTotalCents)}
                       </p>
                     )}
                     <p className="text-sm text-muted-foreground">
-                      {formatCurrency(rt.ratePerNightCents)} / night
+                      {formatCurrency(roomType.ratePerNightCents)} / night
                       {nights > 1 ? ` × ${nights}` : ""}
                     </p>
                   </div>
+
                   <Button
-                    onClick={() => !blocked && handleSelect(rt.roomTypeId)}
+                    type="button"
+                    onClick={() => !blocked && handleSelect(roomType.roomTypeId)}
                     disabled={blocked || isPending}
-                    className="h-10 bg-booking-cta hover:bg-booking-cta/90 text-white shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`h-10 shrink-0 ${bookingCtaButtonClassName}`}
                   >
-                    {pendingRoomTypeId === rt.roomTypeId ? "Loading…" : blocked ? "Unavailable" : "Select"}
+                    {pendingRoomTypeId === roomType.roomTypeId
+                      ? "Loading…"
+                      : blocked
+                        ? "Unavailable"
+                        : "Select"}
                   </Button>
                 </div>
               </div>

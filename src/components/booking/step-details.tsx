@@ -1,22 +1,31 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { DetailRow } from "@/components/ui/detail-row";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import type { RoomType } from "@/db/schema";
+import type { GuestDetails } from "./booking-flow";
+import {
+  bookingCardClassName,
+  bookingCtaButtonClassName,
+  bookingGhostButtonClassName,
+  bookingInputClassName,
+} from "./styles";
 
 function ConfirmSkeleton() {
   return (
     <div className="space-y-5">
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm divide-y divide-stone-100">
-        {[5, 3, 2].map((rows, i) => (
-          <div key={i} className="p-4 space-y-3">
+      <div className={`${bookingCardClassName} divide-y divide-border`}>
+        {[5, 3, 2].map((rows, index) => (
+          <div key={index} className="space-y-3 p-4">
             <Skeleton className="h-4 w-16" />
-            {Array.from({ length: rows }).map((_, j) => (
-              <div key={j} className="flex justify-between">
+            {Array.from({ length: rows }).map((_, rowIndex) => (
+              <div key={rowIndex} className="flex justify-between">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-4 w-32" />
               </div>
@@ -28,8 +37,6 @@ function ConfirmSkeleton() {
     </div>
   );
 }
-import type { RoomType } from "@/db/schema";
-import type { GuestDetails } from "./booking-flow";
 
 interface Props {
   propertySlug: string;
@@ -43,8 +50,8 @@ interface Props {
   onGuestDetailsChange: (details: GuestDetails) => void;
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
+function formatDate(dateString: string) {
+  return new Date(`${dateString}T00:00:00Z`).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -67,7 +74,6 @@ export default function StepDetails({
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Prefetch confirm step on mount — all URL params are already known as props
   useEffect(() => {
     const params = new URLSearchParams({
       step: "confirm",
@@ -77,12 +83,13 @@ export default function StepDetails({
       children: String(childCount),
       room_type_id: roomTypeId,
     });
+
     router.prefetch(`/${propertySlug}?${params.toString()}`);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [adults, checkIn, checkOut, childCount, propertySlug, roomTypeId, router]);
 
   const nights =
-    (new Date(checkOut + "T00:00:00Z").getTime() -
-      new Date(checkIn + "T00:00:00Z").getTime()) /
+    (new Date(`${checkOut}T00:00:00Z`).getTime() -
+      new Date(`${checkIn}T00:00:00Z`).getTime()) /
     86400000;
 
   function handleBack() {
@@ -93,24 +100,38 @@ export default function StepDetails({
       adults: String(adults),
       children: String(childCount),
     });
+
     router.push(`/${propertySlug}?${params.toString()}`);
   }
 
   function validate() {
-    const errs: Record<string, string> = {};
-    if (!guestDetails.firstName.trim()) errs.firstName = "First name is required";
-    if (!guestDetails.lastName.trim()) errs.lastName = "Last name is required";
-    if (!guestDetails.email.trim()) errs.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestDetails.email))
-      errs.email = "Please enter a valid email address";
-    return errs;
+    const nextErrors: Record<string, string> = {};
+
+    if (!guestDetails.firstName.trim()) {
+      nextErrors.firstName = "First name is required";
+    }
+
+    if (!guestDetails.lastName.trim()) {
+      nextErrors.lastName = "Last name is required";
+    }
+
+    if (!guestDetails.email.trim()) {
+      nextErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestDetails.email)) {
+      nextErrors.email = "Please enter a valid email address";
+    }
+
+    return nextErrors;
   }
 
-  function handleContinue(e: React.FormEvent) {
-    e.preventDefault();
-    const errs = validate();
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+  function handleContinue(event: React.FormEvent) {
+    event.preventDefault();
+    const nextErrors = validate();
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
 
     const params = new URLSearchParams({
       step: "confirm",
@@ -120,120 +141,155 @@ export default function StepDetails({
       children: String(childCount),
       room_type_id: roomTypeId,
     });
+
     startTransition(() => router.push(`/${propertySlug}?${params.toString()}`));
   }
 
   function update(field: keyof GuestDetails, value: string) {
     onGuestDetailsChange({ ...guestDetails, [field]: value });
-    if (errors[field]) setErrors((e) => ({ ...e, [field]: "" }));
+
+    if (errors[field]) {
+      setErrors((current) => ({ ...current, [field]: "" }));
+    }
   }
 
-  if (isPending) return <ConfirmSkeleton />;
+  if (isPending) {
+    return <ConfirmSkeleton />;
+  }
 
   return (
     <div>
       <div className="mb-6">
-        <button
+        <Button
+          type="button"
+          variant="ghost"
           onClick={handleBack}
-          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-3"
+          className={`mb-3 px-0 ${bookingGhostButtonClassName}`}
         >
           ← Back to rooms
-        </button>
+        </Button>
         <h2 className="text-xl font-semibold text-foreground">Your details</h2>
       </div>
 
-      {/* Booking summary */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-4 mb-6 text-sm">
-        <p className="font-medium text-foreground">{selectedRoomType.name}</p>
-        <p className="text-muted-foreground mt-0.5">
-          {formatDate(checkIn)} → {formatDate(checkOut)} ·{" "}
-          {nights} {nights === 1 ? "night" : "nights"}
+      <div className={`${bookingCardClassName} mb-6 p-4`}>
+        <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-booking-accent">
+          Booking summary
         </p>
-        <p className="text-muted-foreground">
-          {adults} {adults === 1 ? "adult" : "adults"}
-          {childCount > 0 ? `, ${childCount} ${childCount === 1 ? "child" : "children"}` : ""}
-        </p>
+        <div className="space-y-0.5">
+          <DetailRow label="Room" value={selectedRoomType.name} />
+          <DetailRow label="Check-in" value={formatDate(checkIn)} />
+          <DetailRow label="Check-out" value={formatDate(checkOut)} />
+          <DetailRow
+            label="Stay"
+            value={`${nights} ${nights === 1 ? "night" : "nights"}`}
+          />
+          <DetailRow
+            label="Guests"
+            value={`${adults} ${adults === 1 ? "adult" : "adults"}${childCount > 0 ? `, ${childCount} ${childCount === 1 ? "child" : "children"}` : ""}`}
+          />
+        </div>
       </div>
 
       <form onSubmit={handleContinue} className="space-y-4" noValidate>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="firstName">First name *</Label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            label={
+              <>
+                First name <span className="text-destructive">*</span>
+              </>
+            }
+            htmlFor="firstName"
+            error={errors.firstName}
+          >
             <Input
               id="firstName"
               value={guestDetails.firstName}
-              onChange={(e) => update("firstName", e.target.value)}
+              onChange={(event) => update("firstName", event.target.value)}
               placeholder="Jane"
               autoComplete="given-name"
-              className="bg-white focus-visible:ring-ring/50"
+              className={bookingInputClassName}
             />
-            {errors.firstName && (
-              <p className="text-xs text-destructive">{errors.firstName}</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="lastName">Last name *</Label>
+          </FormField>
+
+          <FormField
+            label={
+              <>
+                Last name <span className="text-destructive">*</span>
+              </>
+            }
+            htmlFor="lastName"
+            error={errors.lastName}
+          >
             <Input
               id="lastName"
               value={guestDetails.lastName}
-              onChange={(e) => update("lastName", e.target.value)}
+              onChange={(event) => update("lastName", event.target.value)}
               placeholder="Smith"
               autoComplete="family-name"
-              className="bg-white focus-visible:ring-ring/50"
+              className={bookingInputClassName}
             />
-            {errors.lastName && (
-              <p className="text-xs text-destructive">{errors.lastName}</p>
-            )}
-          </div>
+          </FormField>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email address *</Label>
+        <FormField
+          label={
+            <>
+              Email address <span className="text-destructive">*</span>
+            </>
+          }
+          htmlFor="email"
+          error={errors.email}
+        >
           <Input
             id="email"
             type="email"
             value={guestDetails.email}
-            onChange={(e) => update("email", e.target.value)}
+            onChange={(event) => update("email", event.target.value)}
             placeholder="jane@example.com"
             autoComplete="email"
-            className="bg-white focus-visible:ring-ring/50"
+            className={bookingInputClassName}
           />
-          {errors.email && (
-            <p className="text-xs text-destructive">{errors.email}</p>
-          )}
-        </div>
+        </FormField>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="phone">Phone number <span className="text-muted-foreground">(optional)</span></Label>
+        <FormField
+          label={
+            <>
+              Phone number <span className="text-muted-foreground">(optional)</span>
+            </>
+          }
+          htmlFor="phone"
+        >
           <Input
             id="phone"
             type="tel"
             value={guestDetails.phone}
-            onChange={(e) => update("phone", e.target.value)}
+            onChange={(event) => update("phone", event.target.value)}
             placeholder="+385 91 234 5678"
             autoComplete="tel"
-            className="bg-white focus-visible:ring-ring/50"
+            className={bookingInputClassName}
           />
-        </div>
+        </FormField>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="specialRequests">
-            Special requests <span className="text-muted-foreground">(optional)</span>
-          </Label>
+        <FormField
+          label={
+            <>
+              Special requests <span className="text-muted-foreground">(optional)</span>
+            </>
+          }
+          htmlFor="specialRequests"
+          description="Share arrival notes or accessibility requests. We’ll pass them to the property."
+        >
           <Textarea
             id="specialRequests"
             value={guestDetails.specialRequests}
-            onChange={(e) => update("specialRequests", e.target.value)}
+            onChange={(event) => update("specialRequests", event.target.value)}
             placeholder="Early check-in, ground floor room, etc."
-            rows={3}
-            className="bg-white focus-visible:ring-ring/50"
+            rows={4}
+            className={bookingInputClassName}
           />
-        </div>
+        </FormField>
 
-        <Button
-          type="submit"
-          className="w-full h-10 bg-booking-cta hover:bg-booking-cta/90 text-white mt-2"
-        >
+        <Button type="submit" className={`mt-2 h-10 w-full ${bookingCtaButtonClassName}`}>
           Continue to review
         </Button>
       </form>

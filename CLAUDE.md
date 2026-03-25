@@ -2,38 +2,42 @@
 
 Property Management System for hospitality. Features 1–18 complete.
 
-## Current Phase: UI Overhaul
+## Design System
 
-Full design-system standardization across dashboard, booking engine, auth, and email templates.
-7 sessions, 16 milestones. Read these before starting any UI work:
+All colors come from CSS custom properties defined in `globals.css` and exported as JS constants in `src/lib/design-tokens.ts`. Never use hardcoded hex or raw Tailwind palette classes for semantic meaning.
+
+### Design References
 
 | Document | Purpose |
 |---|---|
-| `/UI-OVERHAUL-PLAN.md` | Master plan — milestones, tasks, session scope, acceptance criteria |
 | `/docs/color-palette.md` | All color tokens, derived from Shaped Brand Identity |
 | `/docs/brand-identity.md` | Shaped brand identity (colors, type, spacing, shadows, motion) |
+| `/UI-OVERHAUL-PLAN.md` | Full overhaul plan (16 milestones, all complete) |
 
-### Session Tracker
+### Shared Components
 
-| Session | Milestones | Status |
+Use these instead of rebuilding patterns:
+
+| Component | Location | Purpose |
 |---|---|---|
-| 1 | M1 (Tokens) + M2 (Primitives) + M3 (Typography) | Not started |
-| 2 | M4 (Shell/Nav) + M6 (Tables/Filters) + M7 (Forms) | Not started |
-| 3 | M5 (Dashboard Pages) | Not started |
-| 4 | M8 (Booking) + M9 (Auth/Portal/Review) | Not started |
-| 5 | M10 (States) + M14 (Motion) + M15 (Email) | Not started |
-| 6 | M11 (Accessibility) + M12 (Responsive) | Not started |
-| 7 | M13 (Dark Mode) + M16 (Final Audit) | Not started |
+| `PageHeader` | `ui/page-header.tsx` | Page title + breadcrumbs + actions |
+| `SectionHeader` | `ui/section-header.tsx` | Section title + optional action |
+| `StatusBadge` | `ui/status-badge.tsx` | Status indicator with centralized style maps |
+| `KpiCard` | `dashboard/kpi-card.tsx` | Metric card for dashboard |
+| `DataTable` | `ui/data-table.tsx` | Typed table with columns, empty state, footer |
+| `FilterBar` | `ui/filter-bar.tsx` | Filter container with fields and actions |
+| `EmptyState` | `ui/empty-state.tsx` | Empty data view with icon, title, description |
+| `ErrorBoundary` | `ui/error-boundary.tsx` | React error boundary + error state card |
+| `InlineError` | `ui/inline-error.tsx` | Inline error message |
+| `SubmitButton` | `ui/submit-button.tsx` | Form submit with loading spinner |
+| `StarRating` | `ui/star-rating.tsx` | Interactive or display star rating |
+| `DetailRow` | `ui/detail-row.tsx` | Label-value pair display |
+| `StepIndicator` | `booking/step-indicator.tsx` | Booking flow step progress |
 
-### UI Overhaul Rules
-
-1. **Start every session** by reading the relevant milestones in `UI-OVERHAUL-PLAN.md`.
-2. **Don't skip sessions.** Each builds on the last.
-3. **All colors come from tokens.** Never use hardcoded hex or raw Tailwind palette classes for semantic meaning.
-4. **Use shared primitives.** PageHeader, StatusBadge, DataTable, etc. — don't rebuild patterns that exist.
-5. **UI only.** Do not modify database schema, API routes, or business logic during the overhaul.
-6. **Commit working states.** Don't go hours without pushing.
-7. **Run `/completed`** after finishing each session's milestones.
+Status style maps live in `src/lib/status-styles.ts`. Toast helpers in `src/components/ui/toast.ts`.
+Loading skeletons in `src/components/ui/loading-skeletons.tsx`.
+Booking surface styles in `src/components/booking/styles.ts`.
+Email layout primitives in `src/components/emails/shared.tsx`.
 
 ## Tech Stack
 

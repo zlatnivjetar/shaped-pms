@@ -53,7 +53,7 @@ function Write-MarkdownTracker($state) {
   $lines = [System.Collections.Generic.List[string]]::new()
   $lines.Add("# UI Session Tracker")
   $lines.Add("")
-  $lines.Add("Generated from `automation/ui-overhaul/session-state.json`.")
+  $lines.Add("Generated from automation/ui-overhaul/session-state.json.")
   $lines.Add("")
   $lines.Add("| Session | Name | Milestones | Status | Completed At |")
   $lines.Add("|---|---|---|---|---|")
@@ -109,6 +109,21 @@ function Write-MarkdownTracker($state) {
 function Test-CleanWorktree {
   $status = git -C $RepoRoot status --porcelain
   return [string]::IsNullOrWhiteSpace(($status | Out-String))
+}
+
+function Get-RelativePath([string]$BasePath, [string]$TargetPath) {
+  $baseFullPath = [System.IO.Path]::GetFullPath($BasePath)
+  $targetFullPath = [System.IO.Path]::GetFullPath($TargetPath)
+
+  if (-not $baseFullPath.EndsWith([System.IO.Path]::DirectorySeparatorChar.ToString())) {
+    $baseFullPath += [System.IO.Path]::DirectorySeparatorChar
+  }
+
+  $baseUri = New-Object System.Uri($baseFullPath)
+  $targetUri = New-Object System.Uri($targetFullPath)
+  $relativeUri = $baseUri.MakeRelativeUri($targetUri)
+
+  return [System.Uri]::UnescapeDataString($relativeUri.ToString()).Replace('/', [System.IO.Path]::DirectorySeparatorChar)
 }
 
 function Get-NextSession($state) {
@@ -201,7 +216,7 @@ function Invoke-CodexSession($state, $session) {
     }
   }
 
-  $prompt | & codex @args 2>&1 | Tee-Object -FilePath $jsonlPath
+  $null = $prompt | & codex @args 2>&1 | Tee-Object -FilePath $jsonlPath | Out-Null
   if ($LASTEXITCODE -ne 0) {
     throw "codex exec failed with exit code $LASTEXITCODE"
   }
@@ -232,8 +247,8 @@ function Update-SessionFromResult($state, $session, $runResult) {
   $session.changed_files = @($result.changed_files)
   $session.blockers = @($result.blockers)
   $session.follow_ups = @($result.follow_ups)
-  $session.last_jsonl_path = [System.IO.Path]::GetRelativePath($RepoRoot, $runResult.JsonlPath)
-  $session.last_result_path = [System.IO.Path]::GetRelativePath($RepoRoot, $runResult.ResultPath)
+  $session.last_jsonl_path = Get-RelativePath -BasePath $RepoRoot -TargetPath $runResult.JsonlPath
+  $session.last_result_path = Get-RelativePath -BasePath $RepoRoot -TargetPath $runResult.ResultPath
 
   if ($result.outcome -eq "completed") {
     $session.completed_at = (Get-Date).ToUniversalTime().ToString("o")
@@ -275,6 +290,7 @@ while ($keepRunning) {
     Update-SessionFromResult -state $state -session $session -runResult $runResult
     Write-State $state
     Write-MarkdownTracker $state
+    Write-Host ("<== Session {0} finished with status '{1}'" -f $session.id, $session.status)
 
     if ($session.status -ne "completed") {
       Write-Warning ("Session {0} finished with status '{1}'. Stopping loop." -f $session.id, $session.status)

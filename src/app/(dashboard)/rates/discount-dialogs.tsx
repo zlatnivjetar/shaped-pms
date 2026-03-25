@@ -192,7 +192,11 @@ export function EditDiscountDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Edit discount"
+        >
           <Pencil className="h-3.5 w-3.5" />
         </Button>
       </DialogTrigger>
@@ -215,7 +219,12 @@ export function DeleteDiscountButton({ discount }: { discount: Discount }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="text-destructive hover:text-destructive"
+          aria-label="Delete discount"
+        >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </AlertDialogTrigger>

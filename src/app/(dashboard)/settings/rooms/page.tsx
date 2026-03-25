@@ -1,27 +1,24 @@
-import { db } from "@/db";
-import { roomTypes, rooms } from "@/db/schema";
+import Link from "next/link";
 import { asc } from "drizzle-orm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { DoorOpen, Settings2 } from "lucide-react";
+
 import {
   AddRoomDialog,
   DeleteRoomButton,
   RoomStatusSelect,
 } from "../../rooms/room-dialogs";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Settings2 } from "lucide-react";
-
-const statusVariant: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  available: "default",
-  maintenance: "secondary",
-  out_of_service: "destructive",
-};
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeader } from "@/components/ui/section-header";
+import { db } from "@/db";
+import { properties, roomTypes, rooms } from "@/db/schema";
+import { formatCurrency } from "@/lib/table-formatters";
+import { SettingsNav } from "../settings-nav";
 
 export default async function SettingsRoomsPage() {
+  const [property] = await db.select().from(properties).limit(1);
   const allRoomTypes = await db
     .select()
     .from(roomTypes)
@@ -33,97 +30,109 @@ export default async function SettingsRoomsPage() {
     .orderBy(asc(rooms.roomNumber));
 
   const roomsByType = new Map(
-    allRoomTypes.map((rt) => [
-      rt.id,
-      { roomType: rt, rooms: [] as typeof allRooms },
-    ])
+    allRoomTypes.map((roomType) => [
+      roomType.id,
+      { roomType, rooms: [] as typeof allRooms },
+    ]),
   );
+
   for (const room of allRooms) {
     roomsByType.get(room.roomTypeId)?.rooms.push(room);
   }
 
-  if (allRoomTypes.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold">Rooms</h2>
-          <p className="text-muted-foreground text-sm">
-            Manage individual rooms grouped by type.
-          </p>
-        </div>
-        <div className="rounded-md border border-dashed p-10 text-center text-muted-foreground">
-          <p>No room types yet.</p>
-          <Button asChild className="mt-4" variant="outline">
-            <Link href="/settings/room-types">Create room types first →</Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Rooms</h2>
-          <p className="text-muted-foreground text-sm">
-            {allRooms.length} rooms across {allRoomTypes.length} types.
-          </p>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/settings/room-types">
-            <Settings2 className="mr-2 h-4 w-4" />
-            Manage Types
-          </Link>
-        </Button>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Room Settings"
+        description={`${allRooms.length} room${allRooms.length === 1 ? "" : "s"} across ${allRoomTypes.length} room type${allRoomTypes.length === 1 ? "" : "s"}.`}
+        actions={(
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/room-types">
+              <Settings2 className="mr-2 h-4 w-4" />
+              Manage Types
+            </Link>
+          </Button>
+        )}
+      />
+      <SettingsNav />
 
-      <div className="space-y-4">
-        {[...roomsByType.values()].map(({ roomType, rooms: typeRooms }) => (
-          <Card key={roomType.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base">{roomType.name}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    €{(roomType.baseRateCents / 100).toFixed(0)}/night · up to{" "}
-                    {roomType.maxOccupancy} guests ·{" "}
-                    {typeRooms.length} room{typeRooms.length !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                <AddRoomDialog roomType={roomType} />
-              </div>
-            </CardHeader>
-            {typeRooms.length > 0 && (
-              <CardContent className="pt-0">
-                <div className="divide-y rounded-md border">
-                  {typeRooms.map((room) => (
-                    <div
-                      key={room.id}
-                      className="flex items-center justify-between px-4 py-2.5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium text-sm">
-                          Room {room.roomNumber}
-                        </span>
-                        {room.floor && (
-                          <span className="text-xs text-muted-foreground">
-                            Floor {room.floor}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <RoomStatusSelect room={room} />
-                        <DeleteRoomButton room={room} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            )}
+      <section className="space-y-4">
+        <SectionHeader
+          title="Room Inventory"
+          description="Manage individual rooms, floor assignments, and operational status by room type."
+        />
+
+        {allRoomTypes.length === 0 ? (
+          <Card>
+            <CardContent>
+              <EmptyState
+                icon={DoorOpen}
+                size="compact"
+                title="No rooms"
+                description="Create room types before adding individual rooms to inventory."
+                action={(
+                  <Button asChild variant="outline">
+                    <Link href="/settings/room-types">Create room types first</Link>
+                  </Button>
+                )}
+              />
+            </CardContent>
           </Card>
-        ))}
-      </div>
+        ) : (
+          <div className="space-y-4">
+            {[...roomsByType.values()].map(({ roomType, rooms: typeRooms }) => (
+              <Card key={roomType.id} className="gap-0">
+                <CardHeader className="border-b">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1">
+                      <CardTitle>{roomType.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {formatCurrency(roomType.baseRateCents, property?.currency ?? "EUR")}/night · up to {roomType.maxOccupancy} guests · {typeRooms.length} room
+                        {typeRooms.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <AddRoomDialog roomType={roomType} />
+                  </div>
+                </CardHeader>
+
+                {typeRooms.length > 0 ? (
+                  <CardContent className="p-0">
+                    <div className="divide-y">
+                      {typeRooms.map((room) => (
+                        <div
+                          key={room.id}
+                          className="flex min-h-14 flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="text-sm font-medium">Room {room.roomNumber}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {room.floor ? `Floor ${room.floor}` : "Floor not assigned"}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <RoomStatusSelect room={room} />
+                            <DeleteRoomButton room={room} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                ) : (
+                  <CardContent>
+                    <EmptyState
+                      icon={DoorOpen}
+                      size="compact"
+                      title="No rooms"
+                      description="Add your first room in this category to start tracking availability."
+                      action={<AddRoomDialog roomType={roomType} />}
+                    />
+                  </CardContent>
+                )}
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

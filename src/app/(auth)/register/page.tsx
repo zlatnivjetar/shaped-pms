@@ -1,12 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signUp } from "@/lib/auth-client";
 import { Building2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { signUp } from "@/lib/auth-client";
 import {
   Card,
   CardContent,
@@ -15,7 +13,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Link from "next/link";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { InlineError } from "@/components/ui/inline-error";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,81 +26,92 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
     setLoading(true);
+
     try {
-      const { error } = await signUp.email({ name, email, password });
-      if (error) {
-        setError(error.message ?? "Registration failed");
+      const { error: signUpError } = await signUp.email({ name, email, password });
+      if (signUpError) {
+        setError(signUpError.message ?? "Registration failed");
       } else {
         router.push("/dashboard");
         router.refresh();
         return;
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Registration failed");
     }
+
     setLoading(false);
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader className="text-center">
-        <div className="flex justify-center mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+    <Card className="w-full max-w-md gap-0 overflow-hidden py-0">
+      <CardHeader className="border-b border-border text-center">
+        <div className="mb-2 flex justify-center">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <Building2 className="h-5 w-5" />
           </div>
         </div>
         <CardTitle>Create account</CardTitle>
-        <CardDescription>Set up your Shaped PMS account</CardDescription>
+        <CardDescription>Set up your Shaped PMS account.</CardDescription>
       </CardHeader>
+
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+        <CardContent className="space-y-4 pt-6">
+          {error && <InlineError>{error}</InlineError>}
+
+          <FormField label="Name" htmlFor="name">
             <Input
               id="name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(event) => setName(event.target.value)}
               placeholder="Your name"
               required
               autoFocus
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+          </FormField>
+
+          <FormField label="Email" htmlFor="email">
             <Input
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@preelook.com"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="admin@example.com"
               required
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+          </FormField>
+
+          <FormField label="Password" htmlFor="password">
             <Input
               id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               required
               minLength={8}
             />
-          </div>
+          </FormField>
         </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating account..." : "Create account"}
-          </Button>
-          <p className="text-sm text-muted-foreground text-center">
+
+        <CardFooter className="flex flex-col gap-3 border-t border-border py-6">
+          <SubmitButton
+            isPending={loading}
+            pendingLabel="Creating account…"
+            className="w-full"
+          >
+            Create account
+          </SubmitButton>
+          <p className="text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="underline underline-offset-4">
+            <Link
+              href="/login"
+              className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+            >
               Sign in
             </Link>
           </p>

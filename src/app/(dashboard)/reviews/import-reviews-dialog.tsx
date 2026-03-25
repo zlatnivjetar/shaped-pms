@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { importOtaReviews, type ImportResult } from "./actions";
+import { Alert } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +11,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { InlineError } from "@/components/ui/inline-error";
+import { showError, showInfo, showSuccess } from "@/components/ui/toast";
 
 const EXAMPLE_JSON = `[
   {
@@ -37,6 +40,21 @@ export default function ImportReviewsDialog() {
     startTransition(async () => {
       const res = await importOtaReviews(json);
       setResult(res);
+
+      if (res.errors.length > 0) {
+        showError(
+          "Import completed with issues",
+          `${res.imported} imported, ${res.skipped} skipped.`,
+        );
+      } else if (res.imported > 0) {
+        showSuccess(
+          "Reviews imported",
+          `${res.imported} imported, ${res.skipped} skipped.`,
+        );
+      } else {
+        showInfo("No new reviews imported", `${res.skipped} skipped.`);
+      }
+
       if (res.imported > 0 && res.errors.length === 0) {
         setTimeout(() => setOpen(false), 1500);
       }
@@ -90,26 +108,20 @@ export default function ImportReviewsDialog() {
             className="w-full text-xs font-mono rounded border border-input px-3 py-2 focus:outline-none focus:border-ring resize-y"
           />
 
-          {result && (
-            <div
-              className={`rounded-md px-4 py-3 text-sm space-y-1 ${
-                result.errors.length > 0
-                  ? "bg-destructive/10 border border-destructive/20 text-destructive"
-                  : "bg-success/10 border border-success/20 text-success"
-              }`}
-            >
-              <p className="font-medium">
-                {result.imported} imported, {result.skipped} skipped
-              </p>
-              {result.errors.length > 0 && (
+          {result &&
+            (result.errors.length > 0 ? (
+              <InlineError heading={`${result.imported} imported, ${result.skipped} skipped`}>
                 <ul className="list-disc list-inside space-y-0.5 text-xs">
                   {result.errors.map((e, i) => (
                     <li key={i}>{e}</li>
                   ))}
                 </ul>
-              )}
-            </div>
-          )}
+              </InlineError>
+            ) : (
+              <Alert variant="success">
+                {result.imported} imported, {result.skipped} skipped
+              </Alert>
+            ))}
 
           <div className="flex justify-end gap-2">
             <Button

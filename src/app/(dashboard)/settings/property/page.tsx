@@ -1,7 +1,11 @@
+import { notFound } from "next/navigation";
+
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeader } from "@/components/ui/section-header";
 import { db } from "@/db";
 import { properties } from "@/db/schema";
-import { notFound } from "next/navigation";
 import { PropertyForm } from "../property-form";
+import { SettingsNav } from "../settings-nav";
 
 export default async function SettingsPropertyPage() {
   const [property] = await db.select().from(properties).limit(1);
@@ -11,8 +15,22 @@ export default async function SettingsPropertyPage() {
   }
 
   return (
-    <div className="max-w-3xl">
-      <PropertyForm property={property} />
+    <div className="space-y-8">
+      <PageHeader
+        title="Property Settings"
+        description="Core identity, operations, policies, and contact details for the property."
+      />
+      <SettingsNav />
+
+      <section className="max-w-5xl space-y-4">
+        <SectionHeader
+          title="Property Profile"
+          description="Update the information used across the dashboard, booking flow, and guest communications."
+        />
+        <div className="max-w-3xl">
+          <PropertyForm property={property} />
+        </div>
+      </section>
     </div>
   );
 }

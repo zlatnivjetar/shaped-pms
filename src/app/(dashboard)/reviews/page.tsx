@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
+import { Star } from "lucide-react";
 
 import type { ReviewSource } from "@/db/schema";
 import ImportReviewsDialog from "./import-reviews-dialog";
@@ -7,6 +8,7 @@ import ReviewActions from "./review-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   FilterBar,
   FilterBarActions,
@@ -192,8 +194,13 @@ export default async function ReviewsPage({ searchParams }: Props) {
 
         {allReviews.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
-              No reviews found for the selected filters.
+            <CardContent>
+              <EmptyState
+                icon={Star}
+                size="compact"
+                title="No reviews"
+                description="No reviews match the current filters yet. Clear the filters or import OTA feedback."
+              />
             </CardContent>
           </Card>
         ) : (
@@ -242,10 +249,8 @@ export default async function ReviewsPage({ searchParams }: Props) {
                       <p className="text-sm font-semibold">{review.title}</p>
                     )}
 
-                    <p className="text-sm text-muted-foreground">
-                      {review.body.length > 300
-                        ? `${review.body.slice(0, 300)}…`
-                        : review.body}
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {review.body}
                     </p>
 
                     {review.propertyResponse && (

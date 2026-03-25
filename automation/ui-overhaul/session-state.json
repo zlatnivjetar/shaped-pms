@@ -1,166 +1,331 @@
 {
-  "project": "shaped-pms",
-  "source_plan": "UI-OVERHAUL-PLAN.md",
-  "updated_at": "2026-03-25T15:30:00Z",
-  "sessions": [
-    {
-      "id": 1,
-      "name": "Foundation",
-      "milestones": ["M1", "M2", "M3"],
-      "status": "completed",
-      "summary": "Treated as completed for the workflow because tokens and core primitives already exist in the repo.",
-      "completed_at": "2026-03-25T15:30:00Z",
-      "verification": {
-        "eslint": "not_run",
-        "tsc": "not_run",
-        "tests": "not_run"
-      },
-      "blockers": [],
-      "follow_ups": [],
-      "changed_files": [
-        "src/app/globals.css",
-        "src/lib/design-tokens.ts",
-        "src/lib/status-styles.ts",
-        "src/components/ui/status-badge.tsx",
-        "src/components/ui/page-header.tsx",
-        "src/components/ui/section-header.tsx",
-        "src/components/ui/detail-row.tsx",
-        "src/components/dashboard/kpi-card.tsx"
-      ],
-      "last_jsonl_path": "",
-      "last_result_path": ""
-    },
-    {
-      "id": 2,
-      "name": "Infrastructure",
-      "milestones": ["M4", "M6", "M7"],
-      "status": "completed",
-      "summary": "Shell/nav, table/filter infrastructure, and shared dashboard form primitives are implemented.",
-      "completed_at": "2026-03-25T16:20:00Z",
-      "verification": {
-        "eslint": "passed",
-        "tsc": "passed",
-        "tests": "passed"
-      },
-      "blockers": [],
-      "follow_ups": [
-        "Session 3 should adopt the new table/filter primitives across dashboard pages."
-      ],
-      "changed_files": [
-        "src/app/layout.tsx",
-        "src/app/(dashboard)/layout.tsx",
-        "src/components/dashboard/app-sidebar.tsx",
-        "src/components/dashboard/dashboard-header.tsx",
-        "src/components/theme-provider.tsx",
-        "src/components/ui/breadcrumb.tsx",
-        "src/components/ui/theme-toggle.tsx",
-        "src/components/ui/data-table.tsx",
-        "src/components/ui/filter-bar.tsx",
-        "src/components/ui/pagination.tsx",
-        "src/lib/table-formatters.ts",
-        "src/components/ui/form-field.tsx",
-        "src/components/ui/form-section.tsx",
-        "src/components/ui/form-message.tsx",
-        "src/components/ui/submit-button.tsx",
-        "src/app/(dashboard)/settings/property-form.tsx",
-        "src/app/(dashboard)/rates/rate-plan-form.tsx",
-        "src/app/(dashboard)/settings/amenities/amenity-form.tsx",
-        "src/app/(dashboard)/room-types/room-type-form.tsx",
-        "src/app/(dashboard)/rooms/room-dialogs.tsx",
-        "src/app/(dashboard)/rates/discount-dialogs.tsx"
-      ],
-      "last_jsonl_path": "",
-      "last_result_path": ""
-    },
-    {
-      "id": 3,
-      "name": "Dashboard Pages",
-      "milestones": ["M5"],
-      "status": "not_started",
-      "summary": "",
-      "completed_at": "",
-      "verification": {
-        "eslint": "not_run",
-        "tsc": "not_run",
-        "tests": "not_run"
-      },
-      "blockers": [],
-      "follow_ups": [],
-      "changed_files": [],
-      "last_jsonl_path": "",
-      "last_result_path": ""
-    },
-    {
-      "id": 4,
-      "name": "Public-Facing Surfaces",
-      "milestones": ["M8", "M9"],
-      "status": "not_started",
-      "summary": "",
-      "completed_at": "",
-      "verification": {
-        "eslint": "not_run",
-        "tsc": "not_run",
-        "tests": "not_run"
-      },
-      "blockers": [],
-      "follow_ups": [],
-      "changed_files": [],
-      "last_jsonl_path": "",
-      "last_result_path": ""
-    },
-    {
-      "id": 5,
-      "name": "State Treatments and Polish",
-      "milestones": ["M10", "M14", "M15"],
-      "status": "not_started",
-      "summary": "",
-      "completed_at": "",
-      "verification": {
-        "eslint": "not_run",
-        "tsc": "not_run",
-        "tests": "not_run"
-      },
-      "blockers": [],
-      "follow_ups": [],
-      "changed_files": [],
-      "last_jsonl_path": "",
-      "last_result_path": ""
-    },
-    {
-      "id": 6,
-      "name": "Accessibility and Responsive",
-      "milestones": ["M11", "M12"],
-      "status": "not_started",
-      "summary": "",
-      "completed_at": "",
-      "verification": {
-        "eslint": "not_run",
-        "tsc": "not_run",
-        "tests": "not_run"
-      },
-      "blockers": [],
-      "follow_ups": [],
-      "changed_files": [],
-      "last_jsonl_path": "",
-      "last_result_path": ""
-    },
-    {
-      "id": 7,
-      "name": "Dark Mode and Final Audit",
-      "milestones": ["M13", "M16"],
-      "status": "not_started",
-      "summary": "",
-      "completed_at": "",
-      "verification": {
-        "eslint": "not_run",
-        "tsc": "not_run",
-        "tests": "not_run"
-      },
-      "blockers": [],
-      "follow_ups": [],
-      "changed_files": [],
-      "last_jsonl_path": "",
-      "last_result_path": ""
-    }
-  ]
+    "project":  "shaped-pms",
+    "source_plan":  "UI-OVERHAUL-PLAN.md",
+    "updated_at":  "2026-03-25T17:39:29.7829517Z",
+    "sessions":  [
+                     {
+                         "id":  1,
+                         "name":  "Foundation",
+                         "milestones":  [
+                                            "M1",
+                                            "M2",
+                                            "M3"
+                                        ],
+                         "status":  "completed",
+                         "summary":  "Treated as completed for the workflow because tokens and core primitives already exist in the repo.",
+                         "completed_at":  "2026-03-25T15:30:00Z",
+                         "verification":  {
+                                              "eslint":  "not_run",
+                                              "tsc":  "not_run",
+                                              "tests":  "not_run"
+                                          },
+                         "blockers":  [
+
+                                      ],
+                         "follow_ups":  [
+
+                                        ],
+                         "changed_files":  [
+                                               "src/app/globals.css",
+                                               "src/lib/design-tokens.ts",
+                                               "src/lib/status-styles.ts",
+                                               "src/components/ui/status-badge.tsx",
+                                               "src/components/ui/page-header.tsx",
+                                               "src/components/ui/section-header.tsx",
+                                               "src/components/ui/detail-row.tsx",
+                                               "src/components/dashboard/kpi-card.tsx"
+                                           ],
+                         "last_jsonl_path":  "",
+                         "last_result_path":  ""
+                     },
+                     {
+                         "id":  2,
+                         "name":  "Infrastructure",
+                         "milestones":  [
+                                            "M4",
+                                            "M6",
+                                            "M7"
+                                        ],
+                         "status":  "completed",
+                         "summary":  "Shell/nav, table/filter infrastructure, and shared dashboard form primitives are implemented.",
+                         "completed_at":  "2026-03-25T16:20:00Z",
+                         "verification":  {
+                                              "eslint":  "passed",
+                                              "tsc":  "passed",
+                                              "tests":  "passed"
+                                          },
+                         "blockers":  [
+
+                                      ],
+                         "follow_ups":  [
+                                            "Session 3 should adopt the new table/filter primitives across dashboard pages."
+                                        ],
+                         "changed_files":  [
+                                               "src/app/layout.tsx",
+                                               "src/app/(dashboard)/layout.tsx",
+                                               "src/components/dashboard/app-sidebar.tsx",
+                                               "src/components/dashboard/dashboard-header.tsx",
+                                               "src/components/theme-provider.tsx",
+                                               "src/components/ui/breadcrumb.tsx",
+                                               "src/components/ui/theme-toggle.tsx",
+                                               "src/components/ui/data-table.tsx",
+                                               "src/components/ui/filter-bar.tsx",
+                                               "src/components/ui/pagination.tsx",
+                                               "src/lib/table-formatters.ts",
+                                               "src/components/ui/form-field.tsx",
+                                               "src/components/ui/form-section.tsx",
+                                               "src/components/ui/form-message.tsx",
+                                               "src/components/ui/submit-button.tsx",
+                                               "src/app/(dashboard)/settings/property-form.tsx",
+                                               "src/app/(dashboard)/rates/rate-plan-form.tsx",
+                                               "src/app/(dashboard)/settings/amenities/amenity-form.tsx",
+                                               "src/app/(dashboard)/room-types/room-type-form.tsx",
+                                               "src/app/(dashboard)/rooms/room-dialogs.tsx",
+                                               "src/app/(dashboard)/rates/discount-dialogs.tsx"
+                                           ],
+                         "last_jsonl_path":  "",
+                         "last_result_path":  ""
+                     },
+                     {
+                         "id":  3,
+                         "name":  "Dashboard Pages",
+                         "milestones":  [
+                                            "M5"
+                                        ],
+                         "status":  "completed",
+                         "summary":  "Completed the remaining Session 3 dashboard-page gaps around shared alert treatment and calendar dialog standardization. The broader M5 page adoption from Sessions 1-2 was already largely present in the worktree, and lint/typecheck now pass against the current Session 3 state.",
+                         "completed_at":  "2026-03-25T17:49:48Z",
+                         "verification":  {
+                                              "eslint":  "passed",
+                                              "tsc":  "passed",
+                                              "tests":  "failed"
+                                          },
+                         "blockers":  [
+                                          "`npm run test` could not complete in this sandbox: Vitest/Vite fails during startup while loading `vitest.config.ts` with `spawn EPERM`."
+                                      ],
+                         "follow_ups":  [
+                                            "Re-run `npm run test` in an environment that allows the Vitest/Vite child-process startup path.",
+                                            "Existing ESLint warnings in booking/test files remain unrelated to Session 3 scope."
+                                        ],
+                         "changed_files":  [
+                                               "src/components/ui/alert.tsx",
+                                               "src/app/(dashboard)/settings/property-form.tsx",
+                                               "src/app/(dashboard)/reservations/[id]/payment-actions.tsx",
+                                               "src/app/(dashboard)/rates/availability-calendar.tsx"
+                                           ],
+                         "last_jsonl_path":  "automation/ui-overhaul/runs/session-3-20260325-174143.jsonl",
+                         "last_result_path":  "automation/ui-overhaul/runs/session-3-20260325-174143-result.json"
+                     },
+                     {
+                         "id":  4,
+                         "name":  "Public-Facing Surfaces",
+                         "milestones":  [
+                                            "M8",
+                                            "M9"
+                                        ],
+                         "status":  "completed",
+                         "summary":  "Completed Session 4 public-facing work across M8 and M9. The booking flow now uses shared booking surface styles, an extracted step indicator, reusable star ratings, token-based CTA/input treatments, and token-themed Stripe Elements. Auth pages were rebuilt onto shared card/form/button primitives, the guest portal now uses StatusBadge, DetailRow, and AlertDialog patterns, and review/guest error states were unified with reusable public state cards plus consistent 404/access-denied pages.",
+                         "completed_at":  "2026-03-25T18:11:44Z",
+                         "verification":  {
+                                              "eslint":  "passed",
+                                              "tsc":  "passed",
+                                              "tests":  "failed"
+                                          },
+                         "blockers":  [
+                                          "`npm run test` is blocked in this sandbox: Vitest/Vite fails during startup while loading `vitest.config.ts` because spawning `esbuild` returns `spawn EPERM`."
+                                      ],
+                         "follow_ups":  [
+                                            "Re-run `npm run test` in an environment that allows Vitest/Vite to spawn its `esbuild` child process.",
+                                            "If auth interruption routing is introduced later, point denied flows at `/access-denied` to reuse the new public error treatment."
+                                        ],
+                         "changed_files":  [
+                                               "src/app/(auth)/layout.tsx",
+                                               "src/app/(auth)/login/page.tsx",
+                                               "src/app/(auth)/register/page.tsx",
+                                               "src/app/(booking)/manage/[confirmationCode]/cancel-button.tsx",
+                                               "src/app/(booking)/manage/[confirmationCode]/page.tsx",
+                                               "src/app/(review)/layout.tsx",
+                                               "src/app/(review)/review/[token]/page.tsx",
+                                               "src/app/(review)/review/[token]/review-form.tsx",
+                                               "src/app/access-denied/page.tsx",
+                                               "src/app/not-found.tsx",
+                                               "src/components/booking/booking-flow.tsx",
+                                               "src/components/booking/step-complete.tsx",
+                                               "src/components/booking/step-confirm.tsx",
+                                               "src/components/booking/step-details.tsx",
+                                               "src/components/booking/step-indicator.tsx",
+                                               "src/components/booking/step-search.tsx",
+                                               "src/components/booking/step-select.tsx",
+                                               "src/components/booking/styles.ts",
+                                               "src/components/public/public-state-card.tsx",
+                                               "src/components/ui/star-rating.tsx",
+                                               "src/components/ui/submit-button.tsx",
+                                               "src/lib/design-tokens.ts"
+                                           ],
+                         "last_jsonl_path":  "automation\\ui-overhaul\\runs\\session-4-20260325-175613.jsonl",
+                         "last_result_path":  "automation\\ui-overhaul\\runs\\session-4-20260325-175613-result.json"
+                     },
+                     {
+                         "id":  5,
+                         "name":  "State Treatments and Polish",
+                         "milestones":  [
+                                            "M10",
+                                            "M14",
+                                            "M15"
+                                        ],
+                         "status":  "completed",
+                         "summary":  "Completed Session 5 for M10, M14, and M15. Added shared EmptyState, InlineError, ErrorBoundary, toast helpers, and reusable loading skeletons; wired route-level loading/error fallbacks across dashboard surfaces; standardized motion tokens and reduced-motion handling in shared UI primitives and booking flow transitions; applied consistent empty/error states across dashboard, booking, and review flows; and aligned all five email templates to shared palette-driven email layout primitives.",
+                         "completed_at":  "2026-03-25T17:34:49.4723412Z",
+                         "verification":  {
+                                              "eslint":  "passed",
+                                              "tsc":  "passed",
+                                              "tests":  "failed"
+                                          },
+                         "blockers":  [
+                                          "`npm run test` is blocked in this sandbox: Vitest/Vite fails during startup while loading `vitest.config.ts` because spawning `esbuild` returns `spawn EPERM`."
+                                      ],
+                         "follow_ups":  [
+                                            "Re-run `npm run test` in an environment that allows Vitest/Vite to spawn its `esbuild` child process.",
+                                            "Verify the updated email templates in target clients called out by the plan (Gmail web/mobile, Outlook desktop/web, Apple Mail)."
+                                        ],
+                         "changed_files":  [
+                                               "src/app/globals.css",
+                                               "src/app/layout.tsx",
+                                               "src/app/(auth)/error.tsx",
+                                               "src/app/(auth)/login/page.tsx",
+                                               "src/app/(auth)/register/page.tsx",
+                                               "src/app/(booking)/error.tsx",
+                                               "src/app/(booking)/manage/[confirmationCode]/cancel-button.tsx",
+                                               "src/app/(dashboard)/error.tsx",
+                                               "src/app/(dashboard)/calendar/loading.tsx",
+                                               "src/app/(dashboard)/calendar/page.tsx",
+                                               "src/app/(dashboard)/dashboard/loading.tsx",
+                                               "src/app/(dashboard)/dashboard/page.tsx",
+                                               "src/app/(dashboard)/guests/loading.tsx",
+                                               "src/app/(dashboard)/guests/page.tsx",
+                                               "src/app/(dashboard)/rates/loading.tsx",
+                                               "src/app/(dashboard)/rates/availability-calendar.tsx",
+                                               "src/app/(dashboard)/rates/page.tsx",
+                                               "src/app/(dashboard)/reservations/loading.tsx",
+                                               "src/app/(dashboard)/reservations/page.tsx",
+                                               "src/app/(dashboard)/reservations/[id]/loading.tsx",
+                                               "src/app/(dashboard)/reservations/[id]/payment-actions.tsx",
+                                               "src/app/(dashboard)/reservations/[id]/reservation-actions.tsx",
+                                               "src/app/(dashboard)/reviews/loading.tsx",
+                                               "src/app/(dashboard)/reviews/import-reviews-dialog.tsx",
+                                               "src/app/(dashboard)/reviews/page.tsx",
+                                               "src/app/(dashboard)/reviews/review-actions.tsx",
+                                               "src/app/(dashboard)/room-types/room-type-dialogs.tsx",
+                                               "src/app/(dashboard)/settings/loading.tsx",
+                                               "src/app/(dashboard)/settings/amenities/loading.tsx",
+                                               "src/app/(dashboard)/settings/amenities/page.tsx",
+                                               "src/app/(dashboard)/settings/property/loading.tsx",
+                                               "src/app/(dashboard)/settings/property-form.tsx",
+                                               "src/app/(dashboard)/settings/room-types/loading.tsx",
+                                               "src/app/(dashboard)/settings/room-types/page.tsx",
+                                               "src/app/(dashboard)/settings/rooms/loading.tsx",
+                                               "src/app/(dashboard)/settings/rooms/page.tsx",
+                                               "src/app/(dashboard)/settings/settings-nav.tsx",
+                                               "src/app/(review)/error.tsx",
+                                               "src/app/(review)/review/[token]/review-form.tsx",
+                                               "src/components/booking/booking-flow.tsx",
+                                               "src/components/booking/step-complete.tsx",
+                                               "src/components/booking/step-confirm.tsx",
+                                               "src/components/booking/step-indicator.tsx",
+                                               "src/components/booking/step-search.tsx",
+                                               "src/components/booking/step-select.tsx",
+                                               "src/components/booking/styles.ts",
+                                               "src/components/emails/booking-confirmation.tsx",
+                                               "src/components/emails/cancellation.tsx",
+                                               "src/components/emails/post-stay.tsx",
+                                               "src/components/emails/pre-arrival.tsx",
+                                               "src/components/emails/review-request.tsx",
+                                               "src/components/emails/shared.ts",
+                                               "src/components/emails/shared.tsx",
+                                               "src/components/ui/alert-dialog.tsx",
+                                               "src/components/ui/badge.tsx",
+                                               "src/components/ui/button.tsx",
+                                               "src/components/ui/card.tsx",
+                                               "src/components/ui/data-table.tsx",
+                                               "src/components/ui/dialog.tsx",
+                                               "src/components/ui/empty-state.tsx",
+                                               "src/components/ui/error-boundary.tsx",
+                                               "src/components/ui/form-message.tsx",
+                                               "src/components/ui/inline-error.tsx",
+                                               "src/components/ui/input.tsx",
+                                               "src/components/ui/loading-skeletons.tsx",
+                                               "src/components/ui/select.tsx",
+                                               "src/components/ui/sheet.tsx",
+                                               "src/components/ui/sidebar.tsx",
+                                               "src/components/ui/skeleton.tsx",
+                                               "src/components/ui/sonner.tsx",
+                                               "src/components/ui/table.tsx",
+                                               "src/components/ui/toast.ts"
+                                           ],
+                         "last_jsonl_path":  "automation\\ui-overhaul\\runs\\session-5-20260325-181450.jsonl",
+                         "last_result_path":  "automation\\ui-overhaul\\runs\\session-5-20260325-181450-result.json"
+                     },
+                     {
+                         "id":  6,
+                         "name":  "Accessibility and Responsive",
+                         "milestones":  [
+                                            "M11",
+                                            "M12"
+                                        ],
+                         "status":  "completed",
+                         "summary":  "Completed M11 (Accessibility Baseline) and M12 (Responsive & Mobile). M11: Changed FilterBarField span to label element with htmlFor for proper form-label association; wired id/htmlFor in guests page search input; added aria-label and focus ring to booking-rule delete button (raw button in BookingRulesContent); added descriptive aria-label and focus ring to availability calendar cell buttons; added min-h/min-w 44px to booking stepper +/- buttons for touch target compliance. M12: Added overflow-x-auto inner wrapper and min-w-[600px] to DataTable for horizontal scroll on mobile; added sm:grid-cols-3 breakpoint to KPI grid so it steps 2→3→4→5 columns instead of jumping 2→4.",
+                         "completed_at":  "2026-03-25T19:30:00Z",
+                         "verification":  {
+                                              "eslint":  "passed",
+                                              "tsc":  "passed",
+                                              "tests":  "not_run"
+                                          },
+                         "blockers":  [
+                                          "`npm run test` is blocked in this sandbox: Vitest/Vite fails during startup while loading `vitest.config.ts` because spawning `esbuild` returns `spawn EPERM`."
+                                      ],
+                         "follow_ups":  [
+                                            "Re-run `npm run test` in an environment that allows Vitest/Vite to spawn its `esbuild` child process.",
+                                            "Wire htmlFor/id pairs in any additional FilterBar pages that add search inputs in the future.",
+                                            "Session 7 (M13 Dark Mode + M16 Final Audit) can now start."
+                                        ],
+                         "changed_files":  [
+                                               "src/components/ui/filter-bar.tsx",
+                                               "src/components/ui/data-table.tsx",
+                                               "src/app/(dashboard)/guests/page.tsx",
+                                               "src/app/(dashboard)/room-types/room-type-dialogs.tsx",
+                                               "src/app/(dashboard)/rates/availability-calendar.tsx",
+                                               "src/app/(dashboard)/dashboard/page.tsx",
+                                               "src/components/booking/step-search.tsx"
+                                           ],
+                         "last_jsonl_path":  "",
+                         "last_result_path":  ""
+                     },
+                     {
+                         "id":  7,
+                         "name":  "Dark Mode and Final Audit",
+                         "milestones":  [
+                                            "M13",
+                                            "M16"
+                                        ],
+                         "status":  "not_started",
+                         "summary":  "",
+                         "completed_at":  "",
+                         "verification":  {
+                                              "eslint":  "not_run",
+                                              "tsc":  "not_run",
+                                              "tests":  "not_run"
+                                          },
+                         "blockers":  [
+
+                                      ],
+                         "follow_ups":  [
+
+                                        ],
+                         "changed_files":  [
+
+                                           ],
+                         "last_jsonl_path":  "",
+                         "last_result_path":  ""
+                     }
+                 ]
 }

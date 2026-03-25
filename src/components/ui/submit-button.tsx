@@ -10,15 +10,18 @@ type SubmitButtonProps = Omit<
 > & {
   children: ReactNode;
   pendingLabel?: ReactNode;
+  isPending?: boolean;
 };
 
 export function SubmitButton({
   children,
   pendingLabel = "Saving...",
+  isPending = false,
   disabled,
   ...props
 }: SubmitButtonProps) {
-  const { pending } = useFormStatus();
+  const { pending: formPending } = useFormStatus();
+  const pending = formPending || isPending;
 
   return (
     <Button type="submit" disabled={disabled || pending} {...props}>

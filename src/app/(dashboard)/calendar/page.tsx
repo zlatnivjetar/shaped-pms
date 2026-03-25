@@ -1,7 +1,10 @@
+import { CalendarDays } from "lucide-react";
 import { db } from "@/db";
 import { properties } from "@/db/schema";
 import { getCalendarAvailability } from "@/lib/availability";
 import { AvailabilityCalendar } from "@/app/(dashboard)/rates/availability-calendar";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionHeader } from "@/components/ui/section-header";
 
@@ -57,11 +60,28 @@ export default async function CalendarPage({
           title="Availability Grid"
           description="Use the monthly matrix to spot sell-out dates and override rates."
         />
-        <AvailabilityCalendar
-          propertyId={property.id}
-          month={safeMonth}
-          data={calendarData}
-        />
+        <ErrorBoundary
+          size="compact"
+          title="Calendar unavailable"
+          description="The availability grid could not be rendered. Try again."
+        >
+          {calendarData.length === 0 ? (
+            <div className="rounded-xl border bg-card shadow-sm">
+              <EmptyState
+                icon={CalendarDays}
+                size="compact"
+                title="No calendar data yet"
+                description="Add room types and rooms first, then availability will populate automatically."
+              />
+            </div>
+          ) : (
+            <AvailabilityCalendar
+              propertyId={property.id}
+              month={safeMonth}
+              data={calendarData}
+            />
+          )}
+        </ErrorBoundary>
       </section>
     </div>
   );
