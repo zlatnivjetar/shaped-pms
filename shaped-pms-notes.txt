@@ -1,0 +1,13 @@
+All things marked as TODO and:
+
+- modern datepicker
+- discount logic
+- selectable rates on select room
+- embedded reviews/ratings on the booking flow
+- rich room details on select room card click/view room details
+- add card auth mode
+- add descriptions for transactions (ID - payment mode)
+- skeleton loaders
+- design improvements
+- guest details add "last active"
+- add descriptions to Stripe transactions (booking id, payment mode)
