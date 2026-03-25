@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
+
 import { cn } from "@/lib/utils";
 
 interface SectionHeaderProps {
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
   className?: string;
 }
 

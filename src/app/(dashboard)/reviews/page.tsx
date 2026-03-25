@@ -1,13 +1,25 @@
+import Link from "next/link";
+import { and, desc, eq } from "drizzle-orm";
+
+import type { ReviewSource } from "@/db/schema";
+import ImportReviewsDialog from "./import-reviews-dialog";
+import ReviewActions from "./review-actions";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  FilterBar,
+  FilterBarActions,
+  FilterBarField,
+  FilterBarResetLink,
+} from "@/components/ui/filter-bar";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeader } from "@/components/ui/section-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { db } from "@/db";
 import { properties, reviews } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
-import Link from "next/link";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { REVIEW_STATUS_STYLES } from "@/lib/status-styles";
-import ReviewActions from "./review-actions";
-import ImportReviewsDialog from "./import-reviews-dialog";
 import { SOURCE_LABELS } from "@/lib/reviews";
-import type { ReviewSource } from "@/db/schema";
+import { REVIEW_STATUS_STYLES } from "@/lib/status-styles";
 
 const VALID_STATUSES = ["pending", "published", "hidden"] as const;
 type ReviewStatus = (typeof VALID_STATUSES)[number];
@@ -22,7 +34,7 @@ const VALID_SOURCES = [
 ] as const;
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
+  return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -41,6 +53,14 @@ function StarDisplay({ rating }: { rating: number }) {
 
 interface Props {
   searchParams: Promise<{ status?: string; source?: string }>;
+}
+
+function buildUrl(params: { status?: string; source?: string }) {
+  const url = new URLSearchParams();
+  if (params.status) url.set("status", params.status);
+  if (params.source) url.set("source", params.source);
+  const query = url.toString();
+  return query ? `/reviews?${query}` : "/reviews";
 }
 
 export default async function ReviewsPage({ searchParams }: Props) {
@@ -62,7 +82,7 @@ export default async function ReviewsPage({ searchParams }: Props) {
     where: and(
       eq(reviews.propertyId, property.id),
       isValidStatus ? eq(reviews.status, statusFilter as ReviewStatus) : undefined,
-      isValidSource ? eq(reviews.source, sourceFilter as ReviewSource) : undefined
+      isValidSource ? eq(reviews.source, sourceFilter as ReviewSource) : undefined,
     ),
     orderBy: [desc(reviews.createdAt)],
     with: {
@@ -70,8 +90,7 @@ export default async function ReviewsPage({ searchParams }: Props) {
     },
   });
 
-  // Compute average rating across ALL reviews (not filtered)
-  const allReviewsForAvg =
+  const allReviewsForAverage =
     isValidStatus || isValidSource
       ? await db.query.reviews.findMany({
           where: eq(reviews.propertyId, property.id),
@@ -79,185 +98,181 @@ export default async function ReviewsPage({ searchParams }: Props) {
         })
       : allReviews;
 
-  const avgRating =
-    allReviewsForAvg.length > 0
-      ? allReviewsForAvg.reduce((sum, r) => sum + r.rating, 0) /
-        allReviewsForAvg.length
+  const averageRating =
+    allReviewsForAverage.length > 0
+      ? allReviewsForAverage.reduce((sum, review) => sum + review.rating, 0) /
+        allReviewsForAverage.length
       : null;
-
-  const statusTabs: { label: string; status?: string }[] = [
-    { label: "All" },
-    { label: "Pending", status: "pending" },
-    { label: "Published", status: "published" },
-    { label: "Hidden", status: "hidden" },
-  ];
-
-  function buildUrl(params: { status?: string; source?: string }) {
-    const parts: string[] = [];
-    if (params.status) parts.push(`status=${params.status}`);
-    if (params.source) parts.push(`source=${params.source}`);
-    return parts.length ? `/reviews?${parts.join("&")}` : "/reviews";
-  }
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Reviews</h1>
-          {avgRating !== null && (
-            <p className="text-muted-foreground text-sm mt-1">
-              Average rating:{" "}
-              <span className="font-semibold text-foreground">
-                {avgRating.toFixed(1)}
-              </span>{" "}
-              <span className="text-rating-star">★</span> from{" "}
-              {allReviewsForAvg.length} review
-              {allReviewsForAvg.length !== 1 ? "s" : ""}
-            </p>
-          )}
-        </div>
-        <ImportReviewsDialog />
-      </div>
+      <PageHeader
+        title="Reviews"
+        description={
+          averageRating !== null
+            ? (
+              <>
+                Average rating{" "}
+                <span className="font-semibold text-foreground">
+                  {averageRating.toFixed(1)}
+                </span>{" "}
+                <span className="text-rating-star">★</span> across{" "}
+                {allReviewsForAverage.length} review
+                {allReviewsForAverage.length === 1 ? "" : "s"}
+              </>
+            )
+            : "No reviews available yet."
+        }
+        actions={<ImportReviewsDialog />}
+      />
 
-      {/* Status tabs */}
-      <div className="flex gap-1 border-b border-border">
-        {statusTabs.map((tab) => {
-          const isActive =
-            tab.status === statusFilter ||
-            (!tab.status && !statusFilter);
-          return (
-            <Link
-              key={tab.label}
-              href={buildUrl({ status: tab.status, source: sourceFilter })}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                isActive
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+      <FilterBar
+        title="Filters"
+        description="Review status and source can be combined to narrow the feed."
+        actions={
+          isValidStatus || isValidSource ? (
+            <FilterBarResetLink href="/reviews">Clear filters</FilterBarResetLink>
+          ) : null
+        }
+      >
+        <FilterBarField label="Status" className="w-full">
+          <FilterBarActions>
+            <Button
+              asChild
+              size="sm"
+              variant={!isValidStatus ? "default" : "outline"}
             >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Source filter */}
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href={buildUrl({ status: statusFilter })}
-          className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-            !sourceFilter
-              ? "bg-foreground text-background border-foreground"
-              : "border-border text-muted-foreground hover:border-foreground"
-          }`}
-        >
-          All sources
-        </Link>
-        {VALID_SOURCES.map((src) => (
-          <Link
-            key={src}
-            href={buildUrl({ status: statusFilter, source: src })}
-            className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-              sourceFilter === src
-                ? "bg-foreground text-background border-foreground"
-                : "border-border text-muted-foreground hover:border-foreground"
-            }`}
-          >
-            {SOURCE_LABELS[src]}
-          </Link>
-        ))}
-      </div>
-
-      {/* Reviews list */}
-      {allReviews.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No reviews found.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {allReviews.map((review) => {
-            const guest = review.guest;
-            const guestName = guest
-              ? `${guest.firstName} ${guest.lastName}`
-              : review.reviewerName ?? "Unknown Guest";
-
-            return (
-              <div
-                key={review.id}
-                className="bg-card border border-border rounded-lg p-5 space-y-3"
+              <Link href={buildUrl({ source: sourceFilter })}>All</Link>
+            </Button>
+            {VALID_STATUSES.map((status) => (
+              <Button
+                asChild
+                key={status}
+                size="sm"
+                variant={statusFilter === status ? "default" : "outline"}
               >
-                {/* Review header */}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-foreground">
-                        {guestName}
-                      </span>
-                      <StatusBadge status={review.status} styleMap={REVIEW_STATUS_STYLES} />
-                      {review.source !== "direct" && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-info/10 text-info border border-info/20">
-                          {SOURCE_LABELS[review.source]}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <StarDisplay rating={review.rating} />
-                      {review.sourceRatingRaw !== null &&
-                        review.source !== "direct" && (
-                          <span className="text-xs text-muted-foreground">
-                            ({review.sourceRatingRaw} raw)
+                <Link href={buildUrl({ status, source: sourceFilter })}>
+                  {REVIEW_STATUS_STYLES[status].label}
+                </Link>
+              </Button>
+            ))}
+          </FilterBarActions>
+        </FilterBarField>
+
+        <FilterBarField label="Source" className="w-full">
+          <FilterBarActions>
+            <Button
+              asChild
+              size="sm"
+              variant={!isValidSource ? "default" : "outline"}
+            >
+              <Link href={buildUrl({ status: statusFilter })}>All sources</Link>
+            </Button>
+            {VALID_SOURCES.map((source) => (
+              <Button
+                asChild
+                key={source}
+                size="sm"
+                variant={sourceFilter === source ? "default" : "outline"}
+              >
+                <Link href={buildUrl({ status: statusFilter, source })}>
+                  {SOURCE_LABELS[source]}
+                </Link>
+              </Button>
+            ))}
+          </FilterBarActions>
+        </FilterBarField>
+      </FilterBar>
+
+      <section className="space-y-4">
+        <SectionHeader
+          title="Review Feed"
+          description={`${allReviews.length} review${allReviews.length === 1 ? "" : "s"} in the current view.`}
+        />
+
+        {allReviews.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+              No reviews found for the selected filters.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {allReviews.map((review) => {
+              const guestName = review.guest
+                ? `${review.guest.firstName} ${review.guest.lastName}`
+                : review.reviewerName ?? "Unknown Guest";
+
+              return (
+                <Card key={review.id}>
+                  <CardContent className="space-y-4 pt-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{guestName}</span>
+                          <StatusBadge
+                            status={review.status}
+                            styleMap={REVIEW_STATUS_STYLES}
+                            dot
+                          />
+                          {review.source !== "direct" && (
+                            <Badge variant="outline">
+                              {SOURCE_LABELS[review.source]}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          <StarDisplay rating={review.rating} />
+                          {review.sourceRatingRaw !== null &&
+                            review.source !== "direct" && (
+                              <span>({review.sourceRatingRaw} raw)</span>
+                            )}
+                          <span>·</span>
+                          <span>
+                            {formatDate(review.stayDateStart)} - {formatDate(review.stayDateEnd)}
                           </span>
-                        )}
-                      <span>·</span>
-                      <span>
-                        {formatDate(review.stayDateStart)} –{" "}
-                        {formatDate(review.stayDateEnd)}
+                        </div>
+                      </div>
+                      <span className="whitespace-nowrap text-xs text-muted-foreground">
+                        {formatDate(review.createdAt.toISOString().slice(0, 10))}
                       </span>
                     </div>
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {formatDate(review.createdAt.toISOString().slice(0, 10))}
-                  </span>
-                </div>
 
-                {/* Review content */}
-                {review.title && (
-                  <p className="font-semibold text-foreground text-sm">
-                    {review.title}
-                  </p>
-                )}
-                <p className="text-sm text-muted-foreground">
-                  {review.body.length > 300
-                    ? review.body.slice(0, 300) + "…"
-                    : review.body}
-                </p>
+                    {review.title && (
+                      <p className="text-sm font-semibold">{review.title}</p>
+                    )}
 
-                {/* Property response */}
-                {review.propertyResponse && (
-                  <div className="bg-muted border border-border rounded-md px-4 py-3">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">
-                      Property response
+                    <p className="text-sm text-muted-foreground">
+                      {review.body.length > 300
+                        ? `${review.body.slice(0, 300)}…`
+                        : review.body}
                     </p>
-                    <p className="text-sm text-foreground">
-                      {review.propertyResponse}
-                    </p>
-                  </div>
-                )}
 
-                {/* Actions */}
-                <div className="pt-1 border-t border-border">
-                  <ReviewActions
-                    reviewId={review.id}
-                    currentStatus={review.status}
-                    existingResponse={review.propertyResponse}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                    {review.propertyResponse && (
+                      <div className="rounded-lg border bg-muted px-4 py-3">
+                        <p className="mb-1 text-xs font-medium text-muted-foreground">
+                          Property response
+                        </p>
+                        <p className="text-sm text-foreground">
+                          {review.propertyResponse}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="border-t pt-4">
+                      <ReviewActions
+                        reviewId={review.id}
+                        currentStatus={review.status}
+                        existingResponse={review.propertyResponse}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

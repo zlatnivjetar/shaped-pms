@@ -93,12 +93,12 @@ export function DataTable<T>({
             stickyHeader && "sticky top-0 z-10 bg-card",
           )}
         >
-          <TableRow>
+          <TableRow className="bg-muted/40 hover:bg-muted/40">
             {columns.map((column) => (
               <TableHead
                 key={column.id}
                 className={cn(
-                  "h-11 px-4 text-sm font-medium text-muted-foreground",
+                  "h-11 px-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground",
                   ALIGN_CLASSES[column.align ?? "left"],
                   column.headerClassName,
                 )}

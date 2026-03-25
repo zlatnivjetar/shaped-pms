@@ -1,3 +1,21 @@
+import Link from "next/link";
+import {
+  CalendarDays,
+  DoorOpen,
+  LogIn,
+  LogOut,
+  Users,
+} from "lucide-react";
+
+import { KpiCard } from "@/components/dashboard/kpi-card";
+import {
+  type DataTableColumn,
+  DataTable,
+} from "@/components/ui/data-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeader } from "@/components/ui/section-header";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Button } from "@/components/ui/button";
 import { db } from "@/db";
 import { properties } from "@/db/schema";
 import {
@@ -5,46 +23,39 @@ import {
   getRecentActivity,
   getRevenueMetrics,
 } from "@/lib/dashboard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { RESERVATION_STATUS_STYLES } from "@/lib/status-styles";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Users, LogIn, LogOut, CalendarDays } from "lucide-react";
-import Link from "next/link";
+import { formatCurrency, formatDate } from "@/lib/table-formatters";
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-function formatCurrency(cents: number, currency = "EUR") {
-  return new Intl.NumberFormat("en-EU", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
-}
-
-export default async function DashboardPage() {
-  const today = new Date().toLocaleDateString("en-US", {
+function formatToday() {
+  return new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+}
 
+function formatTrend(current: number, previous: number) {
+  if (previous <= 0) {
+    if (current <= 0) {
+      return { direction: "neutral" as const, value: "No change" };
+    }
+
+    return { direction: "up" as const, value: "New this month" };
+  }
+
+  const delta = ((current - previous) / previous) * 100;
+  if (delta === 0) {
+    return { direction: "neutral" as const, value: "0% vs last month" };
+  }
+
+  return {
+    direction: delta > 0 ? ("up" as const) : ("down" as const),
+    value: `${Math.abs(delta).toFixed(0)}% vs last month`,
+  };
+}
+
+export default async function DashboardPage() {
   const [property] = await db.select().from(properties).limit(1);
   if (!property) {
     return <p className="text-muted-foreground">No property found.</p>;
@@ -56,199 +67,161 @@ export default async function DashboardPage() {
     getRevenueMetrics(property.id),
   ]);
 
+  type RecentActivityRow = (typeof recentActivity)[number];
+
+  const recentActivityColumns: DataTableColumn<RecentActivityRow>[] = [
+    {
+      id: "code",
+      header: "Code",
+      className: "font-mono text-xs font-semibold",
+      cell: (reservation) => (
+        <Button asChild variant="link" size="sm" className="h-auto p-0 font-mono text-xs">
+          <Link href={`/reservations/${reservation.id}`}>
+            {reservation.confirmationCode}
+          </Link>
+        </Button>
+      ),
+    },
+    {
+      id: "guest",
+      header: "Guest",
+      cell: (reservation) => {
+        const guestName = reservation.guest
+          ? `${reservation.guest.firstName} ${reservation.guest.lastName}`
+          : "Guest unavailable";
+
+        return (
+          <Link href={`/reservations/${reservation.id}`} className="block space-y-0.5">
+            <div className="font-medium">{guestName}</div>
+            {reservation.guest?.email && (
+              <div className="text-xs text-muted-foreground">
+                {reservation.guest.email}
+              </div>
+            )}
+          </Link>
+        );
+      },
+    },
+    {
+      id: "check-in",
+      header: "Check-in",
+      className: "tabular-nums whitespace-nowrap",
+      cell: (reservation) => formatDate(reservation.checkIn),
+    },
+    {
+      id: "check-out",
+      header: "Check-out",
+      className: "tabular-nums whitespace-nowrap",
+      cell: (reservation) => formatDate(reservation.checkOut),
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (reservation) => (
+        <StatusBadge
+          status={reservation.status}
+          styleMap={RESERVATION_STATUS_STYLES}
+          dot
+        />
+      ),
+    },
+    {
+      id: "total",
+      header: "Total",
+      align: "right",
+      className: "font-semibold tabular-nums",
+      cell: (reservation) =>
+        formatCurrency(reservation.totalCents, reservation.currency),
+    },
+  ];
+
+  const revenueTrend = formatTrend(
+    revenue.thisMonthCents,
+    revenue.lastMonthCents,
+  );
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">{today}</p>
+      <PageHeader
+        title="Dashboard"
+        description={formatToday()}
+      />
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-5">
+        <KpiCard
+          title="Today's Arrivals"
+          value={kpis.arrivals}
+          subtitle="Scheduled to arrive today"
+          icon={LogIn}
+        />
+        <KpiCard
+          title="Today's Departures"
+          value={kpis.departures}
+          subtitle="Scheduled to depart today"
+          icon={LogOut}
+        />
+        <KpiCard
+          title="In-House Guests"
+          value={kpis.inHouse}
+          subtitle="Currently checked in"
+          icon={DoorOpen}
+        />
+        <KpiCard
+          title="7-Day Occupancy"
+          value={`${kpis.occupancy7Days}%`}
+          subtitle="Projected occupancy"
+          icon={CalendarDays}
+        />
+        <KpiCard
+          title="30-Day Occupancy"
+          value={`${kpis.occupancy30Days}%`}
+          subtitle="Forward-looking occupancy"
+          icon={Users}
+        />
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Today&apos;s Arrivals
-            </CardTitle>
-            <LogIn className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{kpis.arrivals}</div>
-            <p className="text-xs text-muted-foreground">Arrivals today</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Today&apos;s Departures
-            </CardTitle>
-            <LogOut className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{kpis.departures}</div>
-            <p className="text-xs text-muted-foreground">Departures today</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In-House Guests</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{kpis.inHouse}</div>
-            <p className="text-xs text-muted-foreground">Currently in-house</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              7-Day Occupancy
-            </CardTitle>
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{kpis.occupancy7Days}%</div>
-            <p className="text-xs text-muted-foreground">Next 7 days</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              30-Day Occupancy
-            </CardTitle>
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{kpis.occupancy30Days}%</div>
-            <p className="text-xs text-muted-foreground">Next 30 days</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Revenue Summary */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Revenue</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                This Month
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(revenue.thisMonthCents, property.currency)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Excluding cancelled &amp; no-show
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Last Month
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(revenue.lastMonthCents, property.currency)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Excluding cancelled &amp; no-show
-              </p>
-            </CardContent>
-          </Card>
+      <section className="space-y-4">
+        <SectionHeader
+          title="Revenue"
+          description="A month-over-month snapshot based on confirmed stays."
+        />
+        <div className="grid gap-4 md:grid-cols-2">
+          <KpiCard
+            title="This Month"
+            value={formatCurrency(revenue.thisMonthCents, property.currency)}
+            subtitle="Excluding cancelled and no-show reservations"
+            trend={revenueTrend}
+            icon={CalendarDays}
+          />
+          <KpiCard
+            title="Last Month"
+            value={formatCurrency(revenue.lastMonthCents, property.currency)}
+            subtitle="Used as the comparison baseline"
+            icon={CalendarDays}
+          />
         </div>
-      </div>
+      </section>
 
-      {/* Recent Activity */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Recent Activity</h2>
-          <Link
-            href="/reservations"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            View all →
-          </Link>
-        </div>
-
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Guest</TableHead>
-                <TableHead>Check-in</TableHead>
-                <TableHead>Check-out</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentActivity.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center text-muted-foreground py-10 text-sm"
-                  >
-                    No reservations yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                recentActivity.map((r) => {
-                  const guestName = r.guest
-                    ? `${r.guest.firstName} ${r.guest.lastName}`
-                    : "—";
-                  return (
-                    <TableRow
-                      key={r.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                    >
-                      <TableCell>
-                        <Link
-                          href={`/reservations/${r.id}`}
-                          className="font-mono text-sm font-medium hover:underline"
-                        >
-                          {r.confirmationCode}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={`/reservations/${r.id}`} className="block">
-                          <span className="font-medium">{guestName}</span>
-                          {r.guest && (
-                            <span className="block text-xs text-muted-foreground">
-                              {r.guest.email}
-                            </span>
-                          )}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-sm tabular-nums whitespace-nowrap">
-                        {formatDate(r.checkIn)}
-                      </TableCell>
-                      <TableCell className="text-sm tabular-nums whitespace-nowrap">
-                        {formatDate(r.checkOut)}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={r.status} styleMap={RESERVATION_STATUS_STYLES} />
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-sm">
-                        {formatCurrency(r.totalCents, r.currency)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <section className="space-y-4">
+        <SectionHeader
+          title="Recent Activity"
+          description="The latest reservations created for this property."
+          action={(
+            <Button asChild variant="outline" size="sm">
+              <Link href="/reservations">View all reservations</Link>
+            </Button>
+          )}
+        />
+        <DataTable
+          columns={recentActivityColumns}
+          data={recentActivity}
+          getRowKey={(reservation) => reservation.id}
+          emptyState={{
+            title: "No reservations yet",
+            description: "Recent arrivals and departures will appear here.",
+          }}
+        />
+      </section>
     </div>
   );
 }
