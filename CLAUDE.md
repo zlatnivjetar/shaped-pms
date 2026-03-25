@@ -1,147 +1,58 @@
-# Shaped PMS                                                                                                                                                                                                                                                                                                                                      
-  Property Management System replacing a WordPress hospitality stack (MotoPress Hotel Booking + Shaped Core plugin).                                                         
-  ## Current Status                                                                                                                                                       
-                                                                                                                                                                          
-  Milestones 1–18 complete. See `/docs/m*-summary.md` for what was built per milestone.
-  Milestones 16–20 defined in `/docs/gap-analysis.md` — produced by analyzing the
-  Shaped Core plugin against this PMS to identify every missing feature.
+# Shaped PMS
 
-  ## Reference Documents
+Property Management System for hospitality. Features 1–18 complete.
 
-  | Document | Purpose |
-  |---|---|
-  | `/docs/schema.md` | Database schema — source of truth for all tables |
-  | `/docs/m1-summary.md` – `m15-summary.md` | What was built and verified per milestone |
-  | `/docs/gap-analysis.md` | Feature inventory + implementation plan for M7–M20 |
-  | `/docs/roomcloud-api-spec.md` | RoomCloud XML OTA API v3.8 — full spec for channel manager integration (M19) |
+## Current Phase: UI Overhaul
 
-  Read the relevant milestone summaries and gap analysis before starting work.
-  The RoomCloud spec is only needed for Milestone 19.
+Full design-system standardization across dashboard, booking engine, auth, and email templates.
+7 sessions, 16 milestones. Read these before starting any UI work:
 
-  ## Tech Stack
+| Document | Purpose |
+|---|---|
+| `/UI-OVERHAUL-PLAN.md` | Master plan — milestones, tasks, session scope, acceptance criteria |
+| `/docs/color-palette.md` | All color tokens, derived from Shaped Brand Identity |
+| `/docs/brand-identity.md` | Shaped brand identity (colors, type, spacing, shadows, motion) |
 
-  | Layer | Choice |
-  |---|---|
-  | Language | TypeScript (strict mode) |
-  | Framework | Next.js 15 (App Router) |
-  | Database | Neon |
-  | ORM | Drizzle ORM |
-  | Payments | Stripe |
-  | Email | Resend + React Email |
-  | Styling | Tailwind CSS 4 |
-  | UI Components | shadcn/ui |
-  | Deployment | Vercel |
-  | Auth | Better Auth |
-  | Validation | Zod |
-  | Testing | Vitest |
+### Session Tracker
 
-  ## Database Schema (Source of Truth)
+| Session | Milestones | Status |
+|---|---|---|
+| 1 | M1 (Tokens) + M2 (Primitives) + M3 (Typography) | Not started |
+| 2 | M4 (Shell/Nav) + M6 (Tables/Filters) + M7 (Forms) | Not started |
+| 3 | M5 (Dashboard Pages) | Not started |
+| 4 | M8 (Booking) + M9 (Auth/Portal/Review) | Not started |
+| 5 | M10 (States) + M14 (Motion) + M15 (Email) | Not started |
+| 6 | M11 (Accessibility) + M12 (Responsive) | Not started |
+| 7 | M13 (Dark Mode) + M16 (Final Audit) | Not started |
 
-  See `/docs/schema.md` for the full schema — all tables, columns, and constraints.
-  **Change that file first, then change the code.**
+### UI Overhaul Rules
 
-  ## Project Structure
+1. **Start every session** by reading the relevant milestones in `UI-OVERHAUL-PLAN.md`.
+2. **Don't skip sessions.** Each builds on the last.
+3. **All colors come from tokens.** Never use hardcoded hex or raw Tailwind palette classes for semantic meaning.
+4. **Use shared primitives.** PageHeader, StatusBadge, DataTable, etc. — don't rebuild patterns that exist.
+5. **UI only.** Do not modify database schema, API routes, or business logic during the overhaul.
+6. **Commit working states.** Don't go hours without pushing.
+7. **Run `/completed`** after finishing each session's milestones.
 
-  shaped-pms/
-  ├── src/
-  │   ├── app/
-  │   │   ├── (dashboard)/                  # Authenticated property dashboard
-  │   │   │   ├── dashboard/                # Live KPIs + recent bookings
-  │   │   │   ├── room-types/               # Room type CRUD + booking rules
-  │   │   │   ├── rooms/                    # Room CRUD + status toggle
-  │   │   │   ├── rates/                    # Rate plans + availability calendar + discounts
-  │   │   │   ├── reservations/             # List + [id] detail with status transitions
-  │   │   │   ├── guests/                   # Guest list with lifetime stats
-  │   │   │   ├── reviews/                  # Review moderation + property responses
-  │   │   │   ├── calendar/                 # Availability calendar (standalone)
-  │   │   │   ├── settings/                 # Property settings + amenities
-  │   │   │   └── layout.tsx
-  │   │   ├── (auth)/                       # Login + register pages (M18)
-  │   │   │   ├── login/                    # Email/password sign-in
-  │   │   │   └── register/                 # Account creation
-  │   │   ├── (booking)/                    # Public guest-facing booking engine
-  │   │   │   ├── [propertySlug]/           # 5-step booking flow + layout.tsx (JSON-LD)
-  │   │   │   ├── manage/[confirmationCode] # Guest self-service portal
-  │   │   │   └── layout.tsx
-  │   │   ├── (review)/                     # Token-based review submission
-  │   │   │   └── review/[token]/
-  │   │   ├── api/auth/[...all]/            # Better Auth handler (M18)
-  │   │   ├── api/v1/                       # REST API
-  │   │   │   ├── properties/[slug]/        # GET property, availability, rooms, reviews
-  │   │   │   ├── reservations/             # POST create OTA reservation
-  │   │   │   ├── reservations/[id]/        # GET by confirmation code
-  │   │   │   ├── reservations/[id]/cancel/ # PATCH cancel + rollback
-  │   │   │   ├── cron/daily/               # Pre-arrival + review request emails
-  │   │   │   ├── cron/abandoned/           # Abandoned booking cleanup
-  │   │   │   └── webhooks/stripe/          # Stripe webhook handler
-  │   │   └── layout.tsx
-  │   ├── db/
-  │   │   ├── schema.ts                     # Drizzle schema (source of truth)
-  │   │   ├── migrations/                   # Generated SQL migrations (0000–0010)
-  │   │   ├── index.ts                      # Neon HTTP connection + Drizzle client
-  │   │   ├── seed.ts                       # Preelook Apartments base seed
-  │   │   ├── seed-reservations.ts          # Test guests + reservations
-  │   │   ├── seed-reviews.ts               # Test published reviews
-  │   │   ├── seed-amenities.ts             # Amenity assignments for Preelook
-  │   │   └── init-inventory.ts             # Backfill 365-day inventory
-  │   ├── lib/
-  │   │   ├── auth.ts                       # Better Auth server config + drizzle adapter (M18)
-  │   │   ├── auth-client.ts                # Better Auth client — signIn/signUp/signOut/useSession (M18)
-  │   │   ├── availability.ts               # Availability engine + booking rules
-  │   │   ├── pricing.ts                    # Rate + discount resolution
-  │   │   ├── payments.ts                   # Stripe: PI, SetupIntent, capture, refund
-  │   │   ├── email.ts                      # Resend integration + sendAndLog
-  │   │   ├── reviews.ts                    # Review token generation + validation
-  │   │   ├── cancellation.ts               # Manage token + refund policy calculation
-  │   │   ├── dashboard.ts                  # Live KPI queries
-  │   │   ├── inventory.ts                  # upsertInventory() helper
-  │   │   ├── api-utils.ts                  # apiResponse(), apiError(), getAuthenticatedProperty()
-  │   │   ├── confirmation-code.ts          # SHP-XXXXX generator
-  │   │   ├── jsonld.ts                     # buildLodgingBusinessJsonLd() — schema.org JSON-LD (M17)
-  │   │   └── validators.ts                 # Zod schemas
-  │   ├── components/
-  │   │   ├── ui/                           # shadcn/ui primitives
-  │   │   ├── dashboard/                    # app-sidebar.tsx
-  │   │   ├── booking/                      # booking-flow + step-* components
-  │   │   └── emails/                       # React Email templates
-  │   └── hooks/
-  │       └── use-mobile.ts
-  ├── docs/
-  │   ├── schema.md                         # Database schema (source of truth)
-  │   ├── gap-analysis.md                   # M7–M20 feature inventory + plans
-  │   ├── m*-summary.md                     # Per-milestone build summaries
-  │   └── roomcloud-api-spec.md             # RoomCloud XML OTA API v3.8 (M19)
-  ├── tests/
-  │   ├── availability.test.ts
-  │   └── pricing.test.ts
-  ├── drizzle.config.ts
-  ├── vercel.json
-  ├── .env.local
-  ├── .env.example
-  ├── README.md
-  └── ARCHITECTURE.md
+## Tech Stack
 
-  ## Build Rules
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 15 (App Router), TypeScript strict |
+| Styling | Tailwind CSS 4 + shadcn/ui |
+| Font | Manrope (variable, Google Fonts) + Geist Mono |
+| Database | Neon + Drizzle ORM |
+| Auth | Better Auth |
+| Payments | Stripe |
+| Email | Resend + React Email |
+| Deployment | Vercel |
 
-  1. **Start every session by confirming** which milestone you're on and what's next within it.
-  2. **Don't skip ahead.** Each milestone builds on the last.
-  3. **Commit working states.** Don't go hours without pushing.
-  4. **Deploy after every milestone.** The Vercel URL always reflects the latest completed milestone.
-  5. **Write tests alongside code** for availability and pricing. Everything else: manual testing for MVP.
-  6. **When stuck, isolate.** Build logic in a standalone file, verify it, then integrate.
-  7. **This schema is the source of truth.** Change this document first, then change the code.
-  8. **Read the gap analysis** before starting any milestone M7+. It contains architecture decisions, spec references, and acceptance criteria.
-  9. **After writing a milestone summary**, review the Project Structure section in this file and update it if new routes, lib files, or components were added.
-  10. **Commit and push to GitHub after writing summary**
+## Feature Development References
 
-  ## Seed Data: Preelook Apartments
+These are paused during the UI overhaul but preserved for later:
 
-  Every milestone uses real data:
-
-  - **Property:** Preelook Apartments, Rijeka, Croatia
-  - **Room types:** Actual types from the property
-  - **Rooms:** Real room numbers
-  - **Rates:** Realistic seasonal pricing (summer high, winter low, shoulder months)
-  - **Test reservations:** Mix of confirmed, checked-out, cancelled across date ranges and channels
-
-  Update the seed script as new tables are added per milestone.
+- `/docs/schema.md` — Database schema (source of truth)
+- `/docs/gap-analysis.md` — Feature inventory for M16–M20
+- `/docs/m*-summary.md` — Per-milestone build summaries
+- `/docs/roomcloud-api-spec.md` — RoomCloud API (M19)
