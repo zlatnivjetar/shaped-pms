@@ -2,6 +2,8 @@ import { db } from "@/db";
 import { properties } from "@/db/schema";
 import { getCalendarAvailability } from "@/lib/availability";
 import { AvailabilityCalendar } from "@/app/(dashboard)/rates/availability-calendar";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeader } from "@/components/ui/section-header";
 
 type SearchParams = Promise<{ month?: string }>;
 
@@ -11,13 +13,14 @@ function currentMonthStr(): string {
 }
 
 function monthBounds(month: string): { startDate: string; endDate: string } {
-  const [y, m] = month.split("-").map(Number);
-  const end = new Date(y, m, 0);
-  const fmt = (y: number, m: number, d: number) =>
-    `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const [year, monthNumber] = month.split("-").map(Number);
+  const end = new Date(year, monthNumber, 0);
+  const format = (valueYear: number, valueMonth: number, day: number) =>
+    `${valueYear}-${String(valueMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
   return {
-    startDate: fmt(y, m, 1),
-    endDate: fmt(end.getFullYear(), end.getMonth() + 1, end.getDate()),
+    startDate: format(year, monthNumber, 1),
+    endDate: format(end.getFullYear(), end.getMonth() + 1, end.getDate()),
   };
 }
 
@@ -28,8 +31,7 @@ export default async function CalendarPage({
 }) {
   const { month = currentMonthStr() } = await searchParams;
 
-  const monthRegex = /^\d{4}-\d{2}$/;
-  const safeMonth = monthRegex.test(month) ? month : currentMonthStr();
+  const safeMonth = /^\d{4}-\d{2}$/.test(month) ? month : currentMonthStr();
 
   const [property] = await db.select().from(properties).limit(1);
   if (!property) {
@@ -40,22 +42,27 @@ export default async function CalendarPage({
   const calendarData = await getCalendarAvailability(
     property.id,
     startDate,
-    endDate
+    endDate,
   );
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
-        <p className="text-muted-foreground">
-          Availability and rates at a glance.
-        </p>
-      </div>
-      <AvailabilityCalendar
-        propertyId={property.id}
-        month={safeMonth}
-        data={calendarData}
+      <PageHeader
+        title="Calendar"
+        description="Availability and rate overrides for the selected month."
       />
+
+      <section className="space-y-4">
+        <SectionHeader
+          title="Availability Grid"
+          description="Use the monthly matrix to spot sell-out dates and override rates."
+        />
+        <AvailabilityCalendar
+          propertyId={property.id}
+          month={safeMonth}
+          data={calendarData}
+        />
+      </section>
     </div>
   );
 }

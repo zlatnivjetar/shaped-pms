@@ -1,33 +1,51 @@
-import { db } from "@/db";
-import {
-  properties,
-  roomTypes,
-  ratePlans,
-  discounts,
-  type RoomType,
-  type RatePlan,
-  type Discount,
-} from "@/db/schema";
 import { asc, eq } from "drizzle-orm";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  CreateRatePlanDialog,
-  EditRatePlanDialog,
-  DeleteRatePlanButton,
-} from "./rate-plan-dialogs";
+
 import {
   CreateDiscountDialog,
-  EditDiscountDialog,
   DeleteDiscountButton,
+  EditDiscountDialog,
 } from "./discount-dialogs";
+import {
+  CreateRatePlanDialog,
+  DeleteRatePlanButton,
+  EditRatePlanDialog,
+} from "./rate-plan-dialogs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  type DataTableColumn,
+  DataTable,
+} from "@/components/ui/data-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeader } from "@/components/ui/section-header";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { db } from "@/db";
+import {
+  discounts,
+  properties,
+  ratePlans,
+  roomTypes,
+  type Discount,
+  type RatePlan,
+  type RoomType,
+} from "@/db/schema";
+import { RATE_STATUS_STYLES } from "@/lib/status-styles";
+import { formatCurrency, formatDateRange } from "@/lib/table-formatters";
+
+function formatOptionalDateRange(start?: string | null, end?: string | null) {
+  if (start && end) {
+    return formatDateRange(start, end);
+  }
+
+  if (start) {
+    return `From ${start}`;
+  }
+
+  if (end) {
+    return `Until ${end}`;
+  }
+
+  return "Always active";
+}
 
 export default async function RatesPage() {
   const [property] = await db.select().from(properties).limit(1);
@@ -60,187 +78,174 @@ export default async function RatesPage() {
     plansByRoomType.set(plan.roomTypeId, existing);
   }
 
-  const roomTypeById = new Map(allRoomTypes.map((rt) => [rt.id, rt]));
+  const roomTypeById = new Map(allRoomTypes.map((roomType) => [roomType.id, roomType]));
+
+  const ratePlanColumns: DataTableColumn<RatePlan>[] = [
+    {
+      id: "name",
+      header: "Name",
+      className: "font-medium",
+      cell: (plan) => plan.name,
+    },
+    {
+      id: "dates",
+      header: "Dates",
+      className: "tabular-nums whitespace-nowrap",
+      cell: (plan) => formatOptionalDateRange(plan.dateStart, plan.dateEnd),
+    },
+    {
+      id: "rate",
+      header: "Rate",
+      className: "tabular-nums",
+      cell: (plan) => `${formatCurrency(plan.rateCents, property.currency)}/night`,
+    },
+    {
+      id: "priority",
+      header: "Priority",
+      align: "right",
+      className: "tabular-nums",
+      cell: (plan) => plan.priority,
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (plan) => (
+        <StatusBadge status={plan.status} styleMap={RATE_STATUS_STYLES} dot />
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      align: "right",
+      className: "w-[96px]",
+      cell: (plan) => (
+        <div className="flex justify-end gap-1">
+          <EditRatePlanDialog ratePlan={plan} roomTypes={allRoomTypes} />
+          <DeleteRatePlanButton ratePlan={plan} />
+        </div>
+      ),
+    },
+  ];
+
+  const discountColumns: DataTableColumn<Discount>[] = [
+    {
+      id: "name",
+      header: "Name",
+      className: "font-medium",
+      cell: (discount) => discount.name,
+    },
+    {
+      id: "room-type",
+      header: "Room Type",
+      cell: (discount) =>
+        discount.roomTypeId
+          ? roomTypeById.get(discount.roomTypeId)?.name ?? "Unknown"
+          : "All room types",
+    },
+    {
+      id: "discount",
+      header: "Discount",
+      className: "font-semibold text-success tabular-nums",
+      cell: (discount) => `${discount.percentage}% off`,
+    },
+    {
+      id: "dates",
+      header: "Dates",
+      className: "whitespace-nowrap",
+      cell: (discount) =>
+        formatOptionalDateRange(discount.dateStart, discount.dateEnd),
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (discount) => (
+        <StatusBadge status={discount.status} styleMap={RATE_STATUS_STYLES} dot />
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      align: "right",
+      className: "w-[96px]",
+      cell: (discount) => (
+        <div className="flex justify-end gap-1">
+          <EditDiscountDialog discount={discount} roomTypes={allRoomTypes} />
+          <DeleteDiscountButton discount={discount} />
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-8">
-      {/* ─── Rate Plans ─── */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Rates</h1>
-            <p className="text-muted-foreground">Manage seasonal rate plans.</p>
-          </div>
-          <CreateRatePlanDialog roomTypes={allRoomTypes} />
-        </div>
+      <PageHeader
+        title="Rates"
+        description="Manage seasonal pricing, promotional discounts, and priority rules."
+      />
+
+      <section className="space-y-4">
+        <SectionHeader
+          title="Rate Plans"
+          description="Seasonal pricing that overrides the room type base rate."
+          action={<CreateRatePlanDialog roomTypes={allRoomTypes} />}
+        />
 
         {allRoomTypes.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No room types found.</p>
+          <Card>
+            <CardContent className="py-12 text-center text-sm text-muted-foreground">
+              No room types found. Create a room type before adding rate plans.
+            </CardContent>
+          </Card>
         ) : (
-          allRoomTypes.map((rt: RoomType) => {
-            const typePlans = plansByRoomType.get(rt.id) ?? [];
-            return (
-              <div key={rt.id} className="space-y-2">
-                <div className="flex items-baseline gap-2">
-                  <h3 className="font-semibold">{rt.name}</h3>
-                  <span className="text-sm text-muted-foreground">
-                    Base rate: €{(rt.baseRateCents / 100).toFixed(0)}/night
-                  </span>
-                </div>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Dates</TableHead>
-                        <TableHead>Rate</TableHead>
-                        <TableHead>Priority</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-[80px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {typePlans.length === 0 ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={6}
-                            className="text-center text-muted-foreground py-6 text-sm"
-                          >
-                            No rate plans. Base rate (€
-                            {(rt.baseRateCents / 100).toFixed(0)}) applies all
-                            year.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        typePlans.map((plan) => (
-                          <TableRow key={plan.id}>
-                            <TableCell className="font-medium">
-                              {plan.name}
-                            </TableCell>
-                            <TableCell className="text-sm tabular-nums">
-                              {plan.dateStart} → {plan.dateEnd}
-                            </TableCell>
-                            <TableCell>
-                              €{(plan.rateCents / 100).toFixed(0)}/night
-                            </TableCell>
-                            <TableCell>{plan.priority}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  plan.status === "active"
-                                    ? "default"
-                                    : "secondary"
-                                }
-                              >
-                                {plan.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <EditRatePlanDialog
-                                  ratePlan={plan}
-                                  roomTypes={allRoomTypes}
-                                />
-                                <DeleteRatePlanButton ratePlan={plan} />
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+          <div className="space-y-4">
+            {allRoomTypes.map((roomType: RoomType) => {
+              const roomTypePlans = plansByRoomType.get(roomType.id) ?? [];
 
-      {/* ─── Discounts ─── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight">Discounts</h2>
-            <p className="text-muted-foreground text-sm">
-              Percentage discounts applied on top of rate plans.
-            </p>
+              return (
+                <Card key={roomType.id} className="gap-0 overflow-hidden">
+                  <CardHeader className="border-b">
+                    <div className="space-y-1">
+                      <CardTitle>{roomType.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Base rate: {formatCurrency(roomType.baseRateCents, property.currency)}/night
+                      </p>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <DataTable
+                      className="rounded-none border-0 shadow-none"
+                      columns={ratePlanColumns}
+                      data={roomTypePlans}
+                      getRowKey={(plan) => plan.id}
+                      emptyState={{
+                        title: "No rate plans",
+                        description: "The base room rate applies until you add a seasonal override.",
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-          <CreateDiscountDialog roomTypes={allRoomTypes} />
-        </div>
+        )}
+      </section>
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Room Type</TableHead>
-                <TableHead>Discount</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[80px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {allDiscounts.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center text-muted-foreground py-6 text-sm"
-                  >
-                    No discounts configured.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                allDiscounts.map((discount: Discount) => {
-                  const rt = discount.roomTypeId
-                    ? roomTypeById.get(discount.roomTypeId)
-                    : null;
-                  return (
-                    <TableRow key={discount.id}>
-                      <TableCell className="font-medium">
-                        {discount.name}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {rt ? rt.name : "All room types"}
-                      </TableCell>
-                      <TableCell className="font-semibold text-success">
-                        {discount.percentage}% off
-                      </TableCell>
-                      <TableCell className="text-sm tabular-nums">
-                        {discount.dateStart && discount.dateEnd
-                          ? `${discount.dateStart} → ${discount.dateEnd}`
-                          : discount.dateStart
-                            ? `From ${discount.dateStart}`
-                            : discount.dateEnd
-                              ? `Until ${discount.dateEnd}`
-                              : "Always active"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            discount.status === "active" ? "default" : "secondary"
-                          }
-                        >
-                          {discount.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <EditDiscountDialog
-                            discount={discount}
-                            roomTypes={allRoomTypes}
-                          />
-                          <DeleteDiscountButton discount={discount} />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <section className="space-y-4">
+        <SectionHeader
+          title="Discounts"
+          description="Percentage discounts stacked on top of the active rate plan."
+          action={<CreateDiscountDialog roomTypes={allRoomTypes} />}
+        />
+        <DataTable
+          columns={discountColumns}
+          data={allDiscounts}
+          getRowKey={(discount) => discount.id}
+          emptyState={{
+            title: "No discounts configured",
+            description: "Create a discount to support promotions, packages, or seasonal offers.",
+          }}
+        />
+      </section>
     </div>
   );
 }

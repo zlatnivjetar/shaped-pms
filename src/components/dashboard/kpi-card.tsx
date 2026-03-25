@@ -1,6 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Minus,
+  type LucideIcon,
+} from "lucide-react";
 
 interface KpiCardProps {
   title: string;
@@ -15,6 +20,13 @@ interface KpiCardProps {
 }
 
 export function KpiCard({ title, value, subtitle, icon: Icon, trend, className }: KpiCardProps) {
+  const TrendIcon =
+    trend?.direction === "up"
+      ? ArrowUpRight
+      : trend?.direction === "down"
+        ? ArrowDownRight
+        : Minus;
+
   return (
     <Card className={cn("", className)}>
       <CardContent className="pt-6">
@@ -27,12 +39,13 @@ export function KpiCard({ title, value, subtitle, icon: Icon, trend, className }
           {trend && (
             <span
               className={cn(
-                "text-xs font-medium",
+                "inline-flex items-center gap-1 text-xs font-medium",
                 trend.direction === "up" && "text-success",
                 trend.direction === "down" && "text-destructive",
                 trend.direction === "neutral" && "text-muted-foreground",
               )}
             >
+              <TrendIcon className="h-3 w-3" />
               {trend.value}
             </span>
           )}
