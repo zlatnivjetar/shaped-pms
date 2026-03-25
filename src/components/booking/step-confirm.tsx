@@ -1,28 +1,82 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTheme } from "next-themes";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
   PaymentElement,
-  useStripe,
   useElements,
+  useStripe,
 } from "@stripe/react-stripe-js";
 import { Lock } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { DetailRow } from "@/components/ui/detail-row";
+import { InlineError } from "@/components/ui/inline-error";
 import type { Property, RoomType } from "@/db/schema";
+import { hexTokens, darkHexTokens } from "@/lib/design-tokens";
+import {
+  createPaymentIntentForBooking,
+  createReservation,
+} from "@/app/(booking)/[propertySlug]/actions";
 import type { GuestDetails } from "./booking-flow";
 import {
-  createReservation,
-  createPaymentIntentForBooking,
-  type PaymentIntentResult,
-} from "@/app/(booking)/[propertySlug]/actions";
+  bookingCardClassName,
+  bookingCtaButtonClassName,
+  bookingGhostButtonClassName,
+} from "./styles";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
+
+function buildStripeAppearance(isDark: boolean) {
+  const t = isDark ? darkHexTokens : hexTokens;
+  return {
+    theme: (isDark ? "night" : "stripe") as "night" | "stripe",
+    variables: {
+      colorPrimary: t.bookingCta,
+      colorBackground: t.bookingCard,
+      colorText: t.foreground,
+      colorTextSecondary: t.bookingMuted,
+      colorDanger: t.destructive,
+      colorSuccess: t.success,
+      colorTextPlaceholder: t.bookingMuted,
+      colorIcon: t.bookingMuted,
+      borderRadius: "8px",
+      fontFamily: "Manrope, system-ui, sans-serif",
+      spacingUnit: "4px",
+    },
+    rules: {
+      ".Input": {
+        backgroundColor: t.bookingCard,
+        borderColor: t.border,
+        boxShadow: "none",
+      },
+      ".Input:focus": {
+        borderColor: t.bookingAccent,
+        boxShadow: `0 0 0 1px ${t.bookingAccent}`,
+      },
+      ".Label": {
+        color: t.bookingMuted,
+      },
+      ".Tab": {
+        borderColor: t.border,
+        backgroundColor: t.bookingCard,
+      },
+      ".Tab:hover": {
+        color: t.foreground,
+      },
+      ".Tab--selected": {
+        borderColor: t.bookingCta,
+        color: t.foreground,
+        boxShadow: `0 0 0 1px ${t.bookingCta}`,
+      },
+    },
+  };
+}
 
 interface Props {
   property: Property;
@@ -64,21 +118,20 @@ function formatCurrency(cents: number, currency = "EUR") {
   }).format(cents / 100);
 }
 
-function cancellationPolicyLabel(
-  policy: string,
-  days: number
-): string {
+function cancellationPolicyLabel(policy: string, days: number): string {
   if (policy === "flexible") {
     return `Free cancellation up to ${days} day${days !== 1 ? "s" : ""} before arrival`;
   }
+
   if (policy === "moderate") {
     return `50% refund if cancelled up to ${days} day${days !== 1 ? "s" : ""} before arrival; no refund after`;
   }
+
   return "Non-refundable";
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr + "T00:00:00Z").toLocaleDateString("en-GB", {
+function formatDate(dateString: string) {
+  return new Date(`${dateString}T00:00:00Z`).toLocaleDateString("en-GB", {
     weekday: "short",
     day: "numeric",
     month: "long",
@@ -86,19 +139,6 @@ function formatDate(dateStr: string) {
     timeZone: "UTC",
   });
 }
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between items-start py-2 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-foreground font-medium text-right max-w-[60%]">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-// ─── PaymentFormInner (must live inside <Elements>) ───────────────────────────
 
 function PaymentFormInner({
   property,
@@ -120,7 +160,7 @@ function PaymentFormInner({
   childCount: number;
   roomTypeId: string;
   onSuccess: () => void;
-  onError: (msg: string) => void;
+  onError: (message: string) => void;
   isActionPending: boolean;
 }) {
   const stripe = useStripe();
@@ -129,7 +169,10 @@ function PaymentFormInner({
   const isSetupFlow = paymentInfo.type === "setup";
 
   async function handlePay() {
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) {
+      return;
+    }
+
     setIsProcessing(true);
 
     const { error: submitError } = await elements.submit();
@@ -155,6 +198,7 @@ function PaymentFormInner({
         confirmParams: { return_url: returnUrl.toString() },
         redirect: "if_required",
       });
+
       if (error) {
         onError(error.message ?? "Card setup failed. Please try again.");
         setIsProcessing(false);
@@ -164,26 +208,29 @@ function PaymentFormInner({
         onError("Unexpected setup state. Please try again.");
         setIsProcessing(false);
       }
+
+      return;
+    }
+
+    returnUrl.searchParams.set("payment_intent", paymentInfo.paymentIntentId);
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { return_url: returnUrl.toString() },
+      redirect: "if_required",
+    });
+
+    if (error) {
+      onError(error.message ?? "Payment failed. Please try again.");
+      setIsProcessing(false);
+    } else if (
+      paymentIntent &&
+      (paymentIntent.status === "succeeded" ||
+        paymentIntent.status === "requires_capture")
+    ) {
+      onSuccess();
     } else {
-      returnUrl.searchParams.set("payment_intent", paymentInfo.paymentIntentId);
-      const { error, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        confirmParams: { return_url: returnUrl.toString() },
-        redirect: "if_required",
-      });
-      if (error) {
-        onError(error.message ?? "Payment failed. Please try again.");
-        setIsProcessing(false);
-      } else if (
-        paymentIntent &&
-        (paymentIntent.status === "succeeded" ||
-          paymentIntent.status === "requires_capture")
-      ) {
-        onSuccess();
-      } else {
-        onError("Unexpected payment state. Please try again.");
-        setIsProcessing(false);
-      }
+      onError("Unexpected payment state. Please try again.");
+      setIsProcessing(false);
     }
   }
 
@@ -193,32 +240,42 @@ function PaymentFormInner({
   return (
     <div className="space-y-4">
       {isSetupFlow ? (
-        <div className="rounded-lg bg-info/10 border border-info/20 p-3 text-sm text-info">
+        <Alert variant="info">
           Your card will be saved now and charged{" "}
-          <strong>{formatCurrency(paymentInfo.totalCents, property.currency)}</strong>{" "}
-          on <strong>{paymentInfo.scheduledChargeDate}</strong>, before your arrival.
-        </div>
+          <strong>{formatCurrency(paymentInfo.totalCents, property.currency)}</strong> on{" "}
+          <strong>{paymentInfo.scheduledChargeDate}</strong>, before your arrival.
+        </Alert>
       ) : isDeposit ? (
-        <div className="rounded-lg bg-info/10 border border-info/20 p-3 text-sm text-info">
+        <Alert variant="info">
           You will be charged{" "}
-          <strong>{formatCurrency(paymentInfo.chargedAmountCents)}</strong> now
-          as a deposit. The remaining balance is due at check-in.
-        </div>
+          <strong>
+            {formatCurrency(paymentInfo.chargedAmountCents, property.currency)}
+          </strong>{" "}
+          now as a deposit. The remaining balance is due at check-in.
+        </Alert>
       ) : null}
-      <PaymentElement />
+
+      <div className={`${bookingCardClassName} p-4`}>
+        <PaymentElement />
+      </div>
+
       <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
         <Lock className="h-3 w-3" />
         Secured by Stripe
       </div>
+
       <Button
+        type="button"
         onClick={handlePay}
         disabled={!stripe || !elements || busy}
-        className="w-full h-10 bg-booking-cta hover:bg-booking-cta/90 text-white text-base"
+        className={`h-10 w-full text-base ${bookingCtaButtonClassName}`}
       >
         {isActionPending
           ? "Confirming booking…"
           : isProcessing
-            ? isSetupFlow ? "Saving card…" : "Processing payment…"
+            ? isSetupFlow
+              ? "Saving card…"
+              : "Processing payment…"
             : isSetupFlow
               ? "Save card & confirm booking"
               : `Pay ${formatCurrency(paymentInfo.chargedAmountCents, property.currency)}${isDeposit ? " deposit" : ""}`}
@@ -226,8 +283,6 @@ function PaymentFormInner({
     </div>
   );
 }
-
-// ─── StepConfirm ──────────────────────────────────────────────────────────────
 
 export default function StepConfirm({
   property,
@@ -244,6 +299,8 @@ export default function StepConfirm({
   const searchParams = useSearchParams();
   const [error, formAction, isPending] = useActionState(createReservation, null);
   const formRef = useRef<HTMLFormElement>(null);
+  const { resolvedTheme } = useTheme();
+  const stripeAppearance = buildStripeAppearance(resolvedTheme === "dark");
 
   const [stage, setStage] = useState<"summary" | "payment">("summary");
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
@@ -252,30 +309,30 @@ export default function StepConfirm({
   const [autoSubmit, setAutoSubmit] = useState(false);
 
   const nights =
-    (new Date(checkOut + "T00:00:00Z").getTime() -
-      new Date(checkIn + "T00:00:00Z").getTime()) /
+    (new Date(`${checkOut}T00:00:00Z`).getTime() -
+      new Date(`${checkIn}T00:00:00Z`).getTime()) /
     86400000;
 
-  // Handle 3DS return: detect payment_intent or setup_intent + code params in URL
   useEffect(() => {
-    const piId = searchParams.get("payment_intent");
-    const siId = searchParams.get("setup_intent");
+    const paymentIntentId = searchParams.get("payment_intent");
+    const setupIntentId = searchParams.get("setup_intent");
     const code = searchParams.get("code");
-    if (piId && code) {
+
+    if (paymentIntentId && code) {
       setPaymentInfo({
         type: "payment",
         clientSecret: "",
-        paymentIntentId: piId,
+        paymentIntentId,
         chargedAmountCents: 0,
         paymentType: "full_payment",
         reservationCode: code,
       });
       setAutoSubmit(true);
-    } else if (siId && code) {
+    } else if (setupIntentId && code) {
       setPaymentInfo({
         type: "setup",
         clientSecret: "",
-        setupIntentId: siId,
+        setupIntentId,
         customerId: "",
         totalCents: 0,
         reservationCode: code,
@@ -283,9 +340,8 @@ export default function StepConfirm({
       });
       setAutoSubmit(true);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
-  // Once paymentInfo is ready for auto-submit, trigger form submission
   useEffect(() => {
     if (autoSubmit && paymentInfo) {
       formRef.current?.requestSubmit();
@@ -296,6 +352,7 @@ export default function StepConfirm({
   async function handleProceedToPayment() {
     setIsCreatingPI(true);
     setPaymentError(null);
+
     try {
       const result = await createPaymentIntentForBooking(property.slug, {
         roomTypeId,
@@ -307,14 +364,19 @@ export default function StepConfirm({
         guestFirstName: guestDetails.firstName,
         guestLastName: guestDetails.lastName,
       });
+
       if ("error" in result) {
         setPaymentError(result.error);
         return;
       }
+
       setPaymentInfo(result as PaymentInfo);
       setStage("payment");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not set up payment. Please try again.";
+    } catch (caught) {
+      const message =
+        caught instanceof Error
+          ? caught.message
+          : "Could not set up payment. Please try again.";
       setPaymentError(message);
     } finally {
       setIsCreatingPI(false);
@@ -330,146 +392,155 @@ export default function StepConfirm({
       children: String(childCount),
       room_type_id: roomTypeId,
     });
+
     router.push(`/${property.slug}?${params.toString()}`);
   }
 
-  // Show loading screen during 3DS auto-submit or action pending
-  if (autoSubmit || (isPending && paymentInfo !== null && paymentInfo.clientSecret === "")) {
+  if (
+    autoSubmit ||
+    (isPending && paymentInfo !== null && paymentInfo.clientSecret === "")
+  ) {
     return (
-      <div className="text-center py-16">
-        <p className="text-muted-foreground text-sm">Completing your reservation…</p>
+      <div className="py-16 text-center">
+        <p className="text-sm text-muted-foreground">Completing your reservation…</p>
       </div>
     );
   }
 
+  const combinedError = paymentError ?? error;
+
   return (
     <div>
-      {/* Header */}
       <div className="mb-6">
-        <button
+        <Button
+          type="button"
+          variant="ghost"
           onClick={stage === "payment" ? () => setStage("summary") : handleBack}
-          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-3"
           disabled={isPending || isCreatingPI}
+          className={`mb-3 px-0 ${bookingGhostButtonClassName}`}
         >
           ← {stage === "payment" ? "Back to summary" : "Edit details"}
-        </button>
+        </Button>
         <h2 className="text-xl font-semibold text-foreground">
           {stage === "payment" ? "Payment" : "Review & confirm"}
         </h2>
       </div>
 
-      {/* Summary card — visible in both stages */}
-      <div className="bg-booking-card/90 backdrop-blur-sm rounded-xl shadow-sm divide-y divide-border mb-5">
+      <div className={`${bookingCardClassName} mb-5 divide-y divide-border`}>
         <div className="p-4">
-          <p className="text-sm font-medium text-booking-accent uppercase tracking-wide mb-2">
+          <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-booking-accent">
             Stay
           </p>
-          <Row label="Room" value={selectedRoomType.name} />
-          <Row label="Check-in" value={formatDate(checkIn)} />
-          <Row label="Check-out" value={formatDate(checkOut)} />
-          <Row
-            label="Duration"
-            value={`${nights} ${nights === 1 ? "night" : "nights"}`}
-          />
-          <Row
-            label="Guests"
-            value={`${adults} ${adults === 1 ? "adult" : "adults"}${childCount > 0 ? `, ${childCount} ${childCount === 1 ? "child" : "children"}` : ""}`}
-          />
+          <div className="space-y-0.5">
+            <DetailRow label="Room" value={selectedRoomType.name} />
+            <DetailRow label="Check-in" value={formatDate(checkIn)} />
+            <DetailRow label="Check-out" value={formatDate(checkOut)} />
+            <DetailRow
+              label="Duration"
+              value={`${nights} ${nights === 1 ? "night" : "nights"}`}
+            />
+            <DetailRow
+              label="Guests"
+              value={`${adults} ${adults === 1 ? "adult" : "adults"}${childCount > 0 ? `, ${childCount} ${childCount === 1 ? "child" : "children"}` : ""}`}
+            />
+          </div>
         </div>
 
         <div className="p-4">
-          <p className="text-sm font-medium text-booking-accent uppercase tracking-wide mb-2">
+          <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-booking-accent">
             Guest
           </p>
-          <Row
-            label="Name"
-            value={`${guestDetails.firstName} ${guestDetails.lastName}`}
-          />
-          <Row label="Email" value={guestDetails.email} />
-          {guestDetails.phone && (
-            <Row label="Phone" value={guestDetails.phone} />
-          )}
-          {guestDetails.specialRequests && (
-            <Row label="Requests" value={guestDetails.specialRequests} />
-          )}
+          <div className="space-y-0.5">
+            <DetailRow
+              label="Name"
+              value={`${guestDetails.firstName} ${guestDetails.lastName}`}
+            />
+            <DetailRow label="Email" value={guestDetails.email} />
+            {guestDetails.phone && <DetailRow label="Phone" value={guestDetails.phone} />}
+            {guestDetails.specialRequests && (
+              <DetailRow
+                label="Requests"
+                value={
+                  <span className="max-w-[16rem] whitespace-pre-wrap break-words text-right">
+                    {guestDetails.specialRequests}
+                  </span>
+                }
+              />
+            )}
+          </div>
         </div>
 
         <div className="p-4">
-          <p className="text-sm font-medium text-booking-accent uppercase tracking-wide mb-2">
+          <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-booking-accent">
             Price
           </p>
-          <Row
-            label={`${formatCurrency(totalCents / nights)} × ${nights} ${nights === 1 ? "night" : "nights"}`}
-            value={formatCurrency(totalCents)}
-          />
-          <div className="flex justify-between items-center pt-2 mt-1 border-t border-border">
+          <div className="space-y-0.5">
+            <DetailRow
+              label={`${formatCurrency(totalCents / nights, property.currency)} × ${nights} ${nights === 1 ? "night" : "nights"}`}
+              value={formatCurrency(totalCents, property.currency)}
+            />
+          </div>
+          <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
             <span className="font-semibold text-foreground">Total</span>
             <span className="text-lg font-bold text-foreground">
               {formatCurrency(totalCents, property.currency)}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="mt-2 text-xs text-muted-foreground">
             {cancellationPolicyLabel(
               property.cancellationPolicy,
-              property.cancellationDeadlineDays
+              property.cancellationDeadlineDays,
             )}
           </p>
         </div>
       </div>
 
-      {/* Stage: summary */}
-      {stage === "summary" && (
-        <>
-          {(paymentError || error) && (
-            <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              {paymentError ?? error}
-            </div>
-          )}
-          <Button
-            onClick={handleProceedToPayment}
-            disabled={isCreatingPI || isPending}
-            className="w-full h-10 bg-booking-cta hover:bg-booking-cta/90 text-white text-base"
-          >
-            {isCreatingPI ? "Setting up payment…" : "Proceed to payment →"}
-          </Button>
-        </>
-      )}
-
-      {/* Stage: payment */}
-      {stage === "payment" && paymentInfo && stripePromise && (
-        <>
-          {(paymentError || error) && (
-            <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-              {paymentError ?? error}
-            </div>
-          )}
-          <Elements
-            stripe={stripePromise}
-            options={{ clientSecret: paymentInfo.clientSecret }}
-          >
-            <PaymentFormInner
-              property={property}
-              paymentInfo={paymentInfo}
-              checkIn={checkIn}
-              checkOut={checkOut}
-              adults={adults}
-              childCount={childCount}
-              roomTypeId={roomTypeId}
-              onSuccess={() => formRef.current?.requestSubmit()}
-              onError={(msg) => setPaymentError(msg)}
-              isActionPending={isPending}
-            />
-          </Elements>
-        </>
-      )}
-
-      {stage === "payment" && !stripePromise && (
-        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-          Payment is not configured. Please contact the property.
+      {combinedError && (
+        <div className="mb-4">
+          <InlineError>{combinedError}</InlineError>
         </div>
       )}
 
-      {/* Hidden reservation creation form */}
+      {stage === "summary" && (
+        <Button
+          type="button"
+          onClick={handleProceedToPayment}
+          disabled={isCreatingPI || isPending}
+          className={`h-10 w-full text-base ${bookingCtaButtonClassName}`}
+        >
+          {isCreatingPI ? "Setting up payment…" : "Proceed to payment"}
+        </Button>
+      )}
+
+      {stage === "payment" && paymentInfo && stripePromise && (
+        <Elements
+          stripe={stripePromise}
+          options={{
+            clientSecret: paymentInfo.clientSecret,
+            appearance: stripeAppearance,
+          }}
+        >
+          <PaymentFormInner
+            property={property}
+            paymentInfo={paymentInfo}
+            checkIn={checkIn}
+            checkOut={checkOut}
+            adults={adults}
+            childCount={childCount}
+            roomTypeId={roomTypeId}
+            onSuccess={() => formRef.current?.requestSubmit()}
+            onError={(message) => setPaymentError(message)}
+            isActionPending={isPending}
+          />
+        </Elements>
+      )}
+
+      {stage === "payment" && !stripePromise && (
+        <InlineError>
+          Payment is not configured. Please contact the property.
+        </InlineError>
+      )}
+
       <form ref={formRef} action={formAction} className="hidden">
         <input type="hidden" name="propertyId" value={property.id} />
         <input type="hidden" name="propertySlug" value={property.slug} />
@@ -509,7 +580,7 @@ export default function StepConfirm({
         />
       </form>
 
-      <p className="text-xs text-muted-foreground text-center mt-3">
+      <p className="mt-3 text-center text-xs text-muted-foreground">
         By confirming, you agree to our booking terms.
       </p>
     </div>

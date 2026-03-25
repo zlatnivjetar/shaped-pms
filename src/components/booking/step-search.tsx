@@ -1,24 +1,30 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarIcon, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
+import { InlineError } from "@/components/ui/inline-error";
+import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  bookingCardClassName,
+  bookingCtaButtonClassName,
+  bookingSecondaryButtonClassName,
+} from "./styles";
 
 function SelectSkeleton() {
   return (
     <div className="space-y-4">
-      {[0, 1].map((i) => (
-        <div key={i} className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-5">
-          <div className="space-y-2 mb-4">
+      {[0, 1].map((index) => (
+        <div key={index} className={`${bookingCardClassName} p-5`}>
+          <div className="mb-4 space-y-2">
             <Skeleton className="h-5 w-40" />
             <Skeleton className="h-4 w-56" />
             <Skeleton className="h-4 w-32" />
-            <div className="flex gap-2 mt-3">
+            <div className="mt-3 flex gap-2">
               <Skeleton className="h-6 w-16 rounded-full" />
               <Skeleton className="h-6 w-16 rounded-full" />
               <Skeleton className="h-6 w-20 rounded-full" />
@@ -51,17 +57,20 @@ const todayStr = new Date().toISOString().slice(0, 10);
 const tomorrowStr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 const dayAfterStr = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
 
-function toDate(str: string): Date {
-  return new Date(str + "T00:00:00");
+function toDate(dateString: string): Date {
+  return new Date(`${dateString}T00:00:00`);
 }
 
 function toStr(date: Date): string {
-  return date.toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
+  return date.toLocaleDateString("en-CA");
 }
 
-function formatDisplay(str: string): string {
-  if (!str) return "Select date";
-  return toDate(str).toLocaleDateString("en-GB", {
+function formatDisplay(dateString: string): string {
+  if (!dateString) {
+    return "Select date";
+  }
+
+  return toDate(dateString).toLocaleDateString("en-GB", {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -89,14 +98,16 @@ export default function StepSearch({
 
   const today = toDate(todayStr);
   const minCheckOut = (() => {
-    const d = toDate(checkIn);
-    d.setDate(d.getDate() + 1);
-    return d;
+    const date = toDate(checkIn);
+    date.setDate(date.getDate() + 1);
+    return date;
   })();
 
-  // Debounced prefetch of select step whenever dates/guests form a valid combination
   useEffect(() => {
-    if (!checkIn || !checkOut || checkIn >= checkOut || checkIn < todayStr) return;
+    if (!checkIn || !checkOut || checkIn >= checkOut || checkIn < todayStr) {
+      return;
+    }
+
     const params = new URLSearchParams({
       step: "select",
       check_in: checkIn,
@@ -104,40 +115,55 @@ export default function StepSearch({
       adults: String(adults),
       children: String(children),
     });
-    const t = setTimeout(() => router.prefetch(`/${propertySlug}?${params.toString()}`), 300);
-    return () => clearTimeout(t);
-  }, [checkIn, checkOut, adults, children, propertySlug, router]);
+
+    const timeout = setTimeout(
+      () => router.prefetch(`/${propertySlug}?${params.toString()}`),
+      300,
+    );
+
+    return () => clearTimeout(timeout);
+  }, [adults, checkIn, checkOut, children, propertySlug, router]);
 
   function handleCheckInSelect(date: Date | undefined) {
-    if (!date) return;
-    const val = toStr(date);
-    setCheckIn(val);
-    if (val >= checkOut) {
-      const next = new Date(date);
-      next.setDate(next.getDate() + 1);
-      setCheckOut(toStr(next));
+    if (!date) {
+      return;
     }
+
+    const value = toStr(date);
+    setCheckIn(value);
+
+    if (value >= checkOut) {
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      setCheckOut(toStr(nextDay));
+    }
+
     setCheckInOpen(false);
   }
 
   function handleCheckOutSelect(date: Date | undefined) {
-    if (!date) return;
+    if (!date) {
+      return;
+    }
+
     setCheckOut(toStr(date));
     setCheckOutOpen(false);
   }
 
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSearch(event: React.FormEvent) {
+    event.preventDefault();
     setError("");
 
     if (!checkIn || !checkOut) {
       setError("Please select check-in and check-out dates.");
       return;
     }
+
     if (checkIn >= checkOut) {
       setError("Check-out must be after check-in.");
       return;
     }
+
     if (checkIn < todayStr) {
       setError("Check-in cannot be in the past.");
       return;
@@ -150,17 +176,20 @@ export default function StepSearch({
       adults: String(adults),
       children: String(children),
     });
+
     startTransition(() => router.push(`/${propertySlug}?${params.toString()}`));
   }
 
-  if (isPending) return <SelectSkeleton />;
+  if (isPending) {
+    return <SelectSkeleton />;
+  }
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm p-6">
+    <div className={`${bookingCardClassName} p-6`}>
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-foreground">Find your stay</h2>
         {(checkInTime || checkOutTime) && (
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             {checkInTime && `Check-in from ${checkInTime}`}
             {checkInTime && checkOutTime && " · "}
             {checkOutTime && `Check-out by ${checkOutTime}`}
@@ -169,7 +198,6 @@ export default function StepSearch({
       </div>
 
       <form onSubmit={handleSearch} className="space-y-5">
-        {/* Date pickers */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label>Check-in</Label>
@@ -178,9 +206,9 @@ export default function StepSearch({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full justify-start text-left font-normal"
+                  className="w-full justify-start bg-booking-card text-left font-normal text-foreground hover:bg-muted focus-visible:border-booking-accent focus-visible:ring-booking-accent/25"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <CalendarIcon className="mr-2 h-4 w-4 text-booking-muted" />
                   {formatDisplay(checkIn)}
                 </Button>
               </PopoverTrigger>
@@ -202,9 +230,9 @@ export default function StepSearch({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full justify-start text-left font-normal"
+                  className="w-full justify-start bg-booking-card text-left font-normal text-foreground hover:bg-muted focus-visible:border-booking-accent focus-visible:ring-booking-accent/25"
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <CalendarIcon className="mr-2 h-4 w-4 text-booking-muted" />
                   {formatDisplay(checkOut)}
                 </Button>
               </PopoverTrigger>
@@ -220,7 +248,6 @@ export default function StepSearch({
           </div>
         </div>
 
-        {/* Guest steppers */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label>Adults</Label>
@@ -229,9 +256,10 @@ export default function StepSearch({
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setAdults((n) => Math.max(1, n - 1))}
+                onClick={() => setAdults((count) => Math.max(1, count - 1))}
                 disabled={adults <= 1}
                 aria-label="Decrease adults"
+                className={`min-h-[44px] min-w-[44px] ${bookingSecondaryButtonClassName}`}
               >
                 <Minus className="h-4 w-4" />
               </Button>
@@ -242,9 +270,10 @@ export default function StepSearch({
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setAdults((n) => Math.min(10, n + 1))}
+                onClick={() => setAdults((count) => Math.min(10, count + 1))}
                 disabled={adults >= 10}
                 aria-label="Increase adults"
+                className={`min-h-[44px] min-w-[44px] ${bookingSecondaryButtonClassName}`}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -258,9 +287,10 @@ export default function StepSearch({
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setChildren((n) => Math.max(0, n - 1))}
+                onClick={() => setChildren((count) => Math.max(0, count - 1))}
                 disabled={children <= 0}
                 aria-label="Decrease children"
+                className={`min-h-[44px] min-w-[44px] ${bookingSecondaryButtonClassName}`}
               >
                 <Minus className="h-4 w-4" />
               </Button>
@@ -271,9 +301,10 @@ export default function StepSearch({
                 type="button"
                 variant="outline"
                 size="icon"
-                onClick={() => setChildren((n) => Math.min(10, n + 1))}
+                onClick={() => setChildren((count) => Math.min(10, count + 1))}
                 disabled={children >= 10}
                 aria-label="Increase children"
+                className={`min-h-[44px] min-w-[44px] ${bookingSecondaryButtonClassName}`}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -281,12 +312,9 @@ export default function StepSearch({
           </div>
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <InlineError>{error}</InlineError>}
 
-        <Button
-          type="submit"
-          className="w-full h-10 bg-booking-cta hover:bg-booking-cta/90 text-white"
-        >
+        <Button type="submit" className={`h-10 w-full ${bookingCtaButtonClassName}`}>
           Search available rooms
         </Button>
       </form>

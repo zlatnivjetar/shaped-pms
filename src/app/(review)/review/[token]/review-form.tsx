@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { CheckCircle2 } from "lucide-react";
 import { submitReview } from "./actions";
+import { PublicStateCard } from "@/components/public/public-state-card";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { InlineError } from "@/components/ui/inline-error";
+import { StarRating } from "@/components/ui/star-rating";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { Textarea } from "@/components/ui/textarea";
+import { bookingInputClassName } from "@/components/booking/styles";
 
 interface ReviewFormProps {
   token: string;
@@ -11,43 +20,9 @@ interface ReviewFormProps {
   checkOut: string;
 }
 
-function StarRating({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  const [hovered, setHovered] = useState(0);
-  return (
-    <div className="flex gap-1" role="group" aria-label="Rating">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          onClick={() => onChange(star)}
-          onMouseEnter={() => setHovered(star)}
-          onMouseLeave={() => setHovered(0)}
-          className="text-4xl leading-none transition-colors focus:outline-none"
-          aria-label={`${star} star${star !== 1 ? "s" : ""}`}
-        >
-          <span
-            className={
-              star <= (hovered || value)
-                ? "text-rating-star"
-                : "text-muted"
-            }
-          >
-            ★
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
+function formatDate(dateString: string): string {
+  const [year, month, day] = dateString.split("-").map(Number);
 
-function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -69,15 +44,21 @@ export default function ReviewForm({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const ratingError =
+    error === "Please select a star rating." ? error : null;
+  const bodyError =
+    error === "Your review must be at least 10 characters." ? error : null;
+  const showAlert = Boolean(error && !ratingError && !bodyError);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError("");
 
     if (rating === 0) {
       setError("Please select a star rating.");
       return;
     }
+
     if (body.trim().length < 10) {
       setError("Your review must be at least 10 characters.");
       return;
@@ -89,6 +70,7 @@ export default function ReviewForm({
         title: title.trim() || undefined,
         body: body.trim(),
       });
+
       if (result.success) {
         setSuccess(true);
       } else {
@@ -99,22 +81,21 @@ export default function ReviewForm({
 
   if (success) {
     return (
-      <div className="text-center py-12 space-y-4">
-        <div className="text-5xl">🎉</div>
-        <h2 className="text-2xl font-semibold text-foreground">
-          Thank you, {guestFirstName}!
-        </h2>
-        <p className="text-muted-foreground">
-          Your review has been submitted and will be published shortly.
-        </p>
-      </div>
+      <PublicStateCard
+        icon={CheckCircle2}
+        eyebrow="Guest review"
+        title={`Thank you, ${guestFirstName}!`}
+        description="Your review has been submitted and will be published shortly."
+        tone="success"
+        className="max-w-none border-none bg-transparent shadow-none"
+      />
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <p className="text-sm text-muted-foreground mb-1">
+        <p className="mb-1 text-sm text-muted-foreground">
           Stay: {formatDate(checkIn)} – {formatDate(checkOut)}
         </p>
         <p className="text-muted-foreground">
@@ -122,72 +103,74 @@ export default function ReviewForm({
         </p>
       </div>
 
-      {/* Star rating */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground">
-          Overall rating <span className="text-destructive">*</span>
-        </label>
-        <StarRating value={rating} onChange={setRating} />
-        {rating > 0 && (
-          <p className="text-sm text-muted-foreground">
-            {["", "Poor", "Fair", "Good", "Very good", "Excellent"][rating]}
-          </p>
-        )}
-      </div>
+      <FormField
+        label={
+          <>
+            Overall rating <span className="text-destructive">*</span>
+          </>
+        }
+        error={ratingError}
+        description={
+          rating > 0
+            ? ["", "Poor", "Fair", "Good", "Very good", "Excellent"][rating]
+            : "Choose the rating that best reflects your overall stay."
+        }
+      >
+        <StarRating
+          value={rating}
+          onChange={setRating}
+          size="lg"
+          aria-label="Overall stay rating"
+        />
+      </FormField>
 
-      {/* Title */}
-      <div className="space-y-1">
-        <label
-          htmlFor="review-title"
-          className="block text-sm font-medium text-foreground"
-        >
-          Title (optional)
-        </label>
-        <input
+      <FormField
+        label="Title (optional)"
+        htmlFor="review-title"
+        description="Keep it short and specific."
+      >
+        <Input
           id="review-title"
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(event) => setTitle(event.target.value)}
           placeholder="Summarise your stay"
           maxLength={120}
-          className="w-full rounded-md border border-input px-3 py-2 text-sm shadow-sm focus:border-ring focus:outline-none"
+          className={bookingInputClassName}
         />
-      </div>
+      </FormField>
 
-      {/* Body */}
-      <div className="space-y-1">
-        <label
-          htmlFor="review-body"
-          className="block text-sm font-medium text-foreground"
-        >
-          Your review <span className="text-destructive">*</span>
-        </label>
-        <textarea
+      <FormField
+        label={
+          <>
+            Your review <span className="text-destructive">*</span>
+          </>
+        }
+        htmlFor="review-body"
+        error={bodyError}
+        description={`${body.length} / 2000 characters`}
+      >
+        <Textarea
           id="review-body"
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(event) => setBody(event.target.value)}
           placeholder="Tell future guests about your experience..."
-          rows={5}
+          rows={6}
           minLength={10}
           required
-          className="w-full rounded-md border border-input px-3 py-2 text-sm shadow-sm focus:border-ring focus:outline-none resize-none"
+          className={`${bookingInputClassName} resize-none`}
         />
-        <p className="text-xs text-muted-foreground">{body.length} / 2000 characters</p>
-      </div>
+      </FormField>
 
-      {error && (
-        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-          {error}
-        </p>
-      )}
+      {showAlert && <InlineError>{error}</InlineError>}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-md bg-foreground px-4 py-2.5 text-sm font-semibold text-background hover:bg-foreground/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      <SubmitButton
+        isPending={isPending}
+        pendingLabel="Submitting…"
+        className="w-full"
       >
-        {isPending ? "Submitting…" : "Submit Review"}
-      </button>
+        Submit review
+      </SubmitButton>
     </form>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BookOpen,
   CalendarDays,
   DoorOpen,
   LogIn,
@@ -147,7 +148,7 @@ export default async function DashboardPage() {
         description={formatToday()}
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         <KpiCard
           title="Today's Arrivals"
           value={kpis.arrivals}
@@ -217,8 +218,9 @@ export default async function DashboardPage() {
           data={recentActivity}
           getRowKey={(reservation) => reservation.id}
           emptyState={{
-            title: "No reservations yet",
-            description: "Recent arrivals and departures will appear here.",
+            icon: BookOpen,
+            title: "No recent bookings",
+            description: "New arrivals and departures will appear here as reservations come in.",
           }}
         />
       </section>

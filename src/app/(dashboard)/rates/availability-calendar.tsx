@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import type { CalendarRoomTypeData, CalendarDayData } from "@/lib/availability";
+
+import type { CalendarRoomTypeData } from "@/lib/availability";
 import { setRateOverride } from "./actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,44 +13,53 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatRate(cents: number): string {
-  return `€${(cents / 100).toFixed(0)}`;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
 }
 
 function getCellColor(available: number, totalUnits: number): string {
-  if (totalUnits === 0) return "bg-muted text-muted-foreground";
-  if (available === 0) return "bg-destructive/10 text-destructive";
+  if (totalUnits === 0) {
+    return "bg-muted text-muted-foreground";
+  }
+
+  if (available === 0) {
+    return "bg-destructive/10 text-destructive";
+  }
+
   const pct = available / totalUnits;
-  if (pct <= 0.3) return "bg-warning/10 text-warning";
+  if (pct <= 0.3) {
+    return "bg-warning/10 text-warning";
+  }
+
   return "bg-success/10 text-success";
 }
 
 function prevMonth(month: string): string {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(y, m - 2, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const [year, monthNumber] = month.split("-").map(Number);
+  const previous = new Date(year, monthNumber - 2, 1);
+  return `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function nextMonth(month: string): string {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(y, m, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const [year, monthNumber] = month.split("-").map(Number);
+  const following = new Date(year, monthNumber, 1);
+  return `${following.getFullYear()}-${String(following.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function formatMonthLabel(month: string): string {
-  const [y, m] = month.split("-").map(Number);
-  return new Date(y, m - 1, 1).toLocaleString("en-US", {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return new Date(year, monthNumber - 1, 1).toLocaleString("en-US", {
     month: "long",
     year: "numeric",
   });
 }
-
-// ─── Override Dialog ──────────────────────────────────────────────────────────
 
 type SelectedCell = {
   propertyId: string;
@@ -67,22 +77,18 @@ function RateOverrideDialog({
   onClose: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [value, setValue] = useState(
-    (cell.currentRateCents / 100).toFixed(2)
-  );
+  const [value, setValue] = useState((cell.currentRateCents / 100).toFixed(2));
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const euros = parseFloat(value);
-    if (isNaN(euros) || euros < 0) return;
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    const euros = Number.parseFloat(value);
+    if (Number.isNaN(euros) || euros < 0) {
+      return;
+    }
+
     const cents = Math.round(euros * 100);
     startTransition(async () => {
-      await setRateOverride(
-        cell.propertyId,
-        cell.roomTypeId,
-        cell.date,
-        cents
-      );
+      await setRateOverride(cell.propertyId, cell.roomTypeId, cell.date, cents);
       onClose();
     });
   }
@@ -94,9 +100,9 @@ function RateOverrideDialog({
     });
   }
 
-  const dateLabel = new Date(cell.date + "T00:00:00Z").toLocaleDateString(
+  const dateLabel = new Date(`${cell.date}T00:00:00Z`).toLocaleDateString(
     "en-US",
-    { weekday: "short", year: "numeric", month: "short", day: "numeric" }
+    { weekday: "short", year: "numeric", month: "short", day: "numeric" },
   );
 
   return (
@@ -106,27 +112,29 @@ function RateOverrideDialog({
           <DialogTitle>Set Rate Override</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="rounded-md bg-muted p-3 text-sm">
+          <div className="rounded-lg border bg-muted/50 px-4 py-3 text-sm">
             <p className="font-medium">{cell.roomTypeName}</p>
             <p className="text-muted-foreground">{dateLabel}</p>
           </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <Label htmlFor="override-rate">Override Rate (€)</Label>
+            <FormField
+              label="Override Rate (EUR)"
+              htmlFor="override-rate"
+              description="This overrides rate plans and the base rate for this specific date."
+            >
               <Input
                 id="override-rate"
                 type="number"
                 min="0"
                 step="0.01"
                 value={value}
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(event) => setValue(event.target.value)}
                 autoFocus
               />
-              <p className="text-xs text-muted-foreground">
-                This overrides rate plans and base rate for this specific date.
-              </p>
-            </div>
-            <div className="flex gap-2 justify-between">
+            </FormField>
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
               <Button
                 type="button"
                 variant="outline"
@@ -148,11 +156,9 @@ function RateOverrideDialog({
   );
 }
 
-// ─── Main Calendar ────────────────────────────────────────────────────────────
-
 type Props = {
   propertyId: string;
-  month: string; // YYYY-MM
+  month: string;
   data: CalendarRoomTypeData[];
 };
 
@@ -160,21 +166,22 @@ export function AvailabilityCalendar({ propertyId, month, data }: Props) {
   const router = useRouter();
   const [selectedCell, setSelectedCell] = useState<SelectedCell | null>(null);
 
-  // Build list of days in this month
-  const [y, m] = month.split("-").map(Number);
-  const daysInMonth = new Date(y, m, 0).getDate();
-  const days = Array.from({ length: daysInMonth }, (_, i) => {
-    const day = String(i + 1).padStart(2, "0");
+  const [year, monthNumber] = month.split("-").map(Number);
+  const daysInMonth = new Date(year, monthNumber, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, index) => {
+    const day = String(index + 1).padStart(2, "0");
     return `${month}-${day}`;
   });
 
-  // Day-of-week labels for header
-  const dayLabels = days.map((d) => {
-    const date = new Date(d + "T00:00:00Z");
+  const dayLabels = days.map((dateValue) => {
+    const date = new Date(`${dateValue}T00:00:00Z`);
     return {
-      date: d,
+      date: dateValue,
       day: date.getUTCDate(),
-      weekday: date.toLocaleString("en-US", { weekday: "short", timeZone: "UTC" }),
+      weekday: date.toLocaleString("en-US", {
+        weekday: "short",
+        timeZone: "UTC",
+      }),
     };
   });
 
@@ -182,112 +189,117 @@ export function AvailabilityCalendar({ propertyId, month, data }: Props) {
     router.push(`/calendar?month=${newMonth}`);
   }
 
-  // Build lookup: roomTypeId → date → cell data
   const cellMap = new Map(
-    data.map((rt) => [
-      rt.roomTypeId,
-      new Map(rt.dates.map((d) => [d.date, d])),
-    ])
+    data.map((roomType) => [
+      roomType.roomTypeId,
+      new Map(roomType.dates.map((entry) => [entry.date, entry])),
+    ]),
   );
 
   return (
     <div className="space-y-4">
-      {/* Month navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button
+          type="button"
           variant="outline"
           size="sm"
           onClick={() => goTo(prevMonth(month))}
+          className="justify-start sm:w-auto"
         >
-          <ChevronLeft className="h-4 w-4 mr-1" />
+          <ChevronLeft className="mr-1 h-4 w-4" />
           {formatMonthLabel(prevMonth(month))}
         </Button>
         <h2 className="text-lg font-semibold">{formatMonthLabel(month)}</h2>
         <Button
+          type="button"
           variant="outline"
           size="sm"
           onClick={() => goTo(nextMonth(month))}
+          className="justify-end sm:w-auto"
         >
           {formatMonthLabel(nextMonth(month))}
-          <ChevronRight className="h-4 w-4 ml-1" />
+          <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="inline-block h-3 w-3 rounded bg-success/10 border border-success/20" />
+          <span className="inline-block h-3 w-3 rounded border border-success/20 bg-success/10" />
           Available
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-3 w-3 rounded bg-warning/10 border border-warning/20" />
-          Low availability (≤30%)
+          <span className="inline-block h-3 w-3 rounded border border-warning/20 bg-warning/10" />
+          Low availability ({"<="}30%)
         </span>
         <span className="flex items-center gap-1">
-          <span className="inline-block h-3 w-3 rounded bg-destructive/10 border border-destructive/20" />
+          <span className="inline-block h-3 w-3 rounded border border-destructive/20 bg-destructive/10" />
           Full
         </span>
-        <span className="ml-auto text-xs">Click any cell to set a rate override.</span>
+        <span className="text-xs sm:ml-auto">
+          Click any cell to set a rate override.
+        </span>
       </div>
 
-      {/* Grid */}
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full border-collapse text-xs">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th className="sticky left-0 z-10 bg-muted/50 px-3 py-2 text-left font-medium min-w-[150px]">
+              <th className="sticky left-0 z-10 min-w-[150px] bg-muted/50 px-3 py-2 text-left font-medium">
                 Room Type
               </th>
               {dayLabels.map(({ date, day, weekday }) => (
                 <th
                   key={date}
-                  className="px-1 py-2 text-center font-medium min-w-[56px]"
+                  className="min-w-[56px] px-1 py-2 text-center font-medium"
                 >
-                  <div className="text-[10px] text-muted-foreground">{weekday}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {weekday}
+                  </div>
                   <div>{day}</div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {data.map((rt) => (
-              <tr key={rt.roomTypeId} className="border-b last:border-0">
-                <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium border-r">
-                  <div>{rt.roomTypeName}</div>
-                  <div className="text-[10px] text-muted-foreground font-normal">
-                    Base: €{(rt.baseRateCents / 100).toFixed(0)}/night
+            {data.map((roomType) => (
+              <tr key={roomType.roomTypeId} className="border-b last:border-0">
+                <td className="sticky left-0 z-10 border-r bg-background px-3 py-2 font-medium">
+                  <div>{roomType.roomTypeName}</div>
+                  <div className="text-[10px] font-normal text-muted-foreground">
+                    Base: {formatRate(roomType.baseRateCents)}/night
                   </div>
                 </td>
                 {days.map((date) => {
-                  const cell = cellMap.get(rt.roomTypeId)?.get(date);
+                  const cell = cellMap.get(roomType.roomTypeId)?.get(date);
                   const available = cell?.available ?? 0;
                   const totalUnits = cell?.totalUnits ?? 0;
-                  const rateCents = cell?.rateCents ?? rt.baseRateCents;
+                  const rateCents = cell?.rateCents ?? roomType.baseRateCents;
                   const colorClass = getCellColor(available, totalUnits);
 
                   return (
                     <td key={date} className="p-0.5">
                       <button
+                        type="button"
                         onClick={() =>
                           setSelectedCell({
                             propertyId,
-                            roomTypeId: rt.roomTypeId,
-                            roomTypeName: rt.roomTypeName,
+                            roomTypeId: roomType.roomTypeId,
+                            roomTypeName: roomType.roomTypeName,
                             date,
                             currentRateCents: rateCents,
                           })
                         }
-                        className={`w-full rounded px-1 py-1.5 text-center transition-opacity hover:opacity-80 ${colorClass}`}
-                        title={`${rt.roomTypeName} — ${date}: ${available} available, ${formatRate(rateCents)}/night`}
+                        aria-label={`${roomType.roomTypeName}, ${date}: ${available} of ${totalUnits} available, ${formatRate(rateCents)} per night`}
+                        className={`w-full rounded px-1 py-1.5 text-center transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-default)] motion-reduce:transition-none hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${colorClass}`}
                       >
                         {totalUnits === 0 ? (
-                          <span className="text-[10px]">—</span>
+                          <span className="text-[10px]">-</span>
                         ) : (
                           <>
                             <div className="font-semibold leading-none">
                               {available}
                             </div>
-                            <div className="text-[10px] leading-none opacity-80 mt-0.5">
+                            <div className="mt-0.5 text-[10px] leading-none opacity-80">
                               {formatRate(rateCents)}
                             </div>
                           </>
@@ -302,7 +314,6 @@ export function AvailabilityCalendar({ propertyId, month, data }: Props) {
         </table>
       </div>
 
-      {/* Override dialog */}
       {selectedCell && (
         <RateOverrideDialog
           cell={selectedCell}

@@ -1,4 +1,5 @@
 import { asc, eq } from "drizzle-orm";
+import { Percent, TrendingUp } from "lucide-react";
 
 import {
   CreateDiscountDialog,
@@ -15,6 +16,7 @@ import {
   type DataTableColumn,
   DataTable,
 } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionHeader } from "@/components/ui/section-header";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -192,8 +194,13 @@ export default async function RatesPage() {
 
         {allRoomTypes.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
-              No room types found. Create a room type before adding rate plans.
+            <CardContent>
+              <EmptyState
+                icon={TrendingUp}
+                size="compact"
+                title="No room types found"
+                description="Create a room type before adding seasonal overrides or discount rules."
+              />
             </CardContent>
           </Card>
         ) : (
@@ -218,8 +225,10 @@ export default async function RatesPage() {
                       data={roomTypePlans}
                       getRowKey={(plan) => plan.id}
                       emptyState={{
+                        icon: TrendingUp,
                         title: "No rate plans",
                         description: "The base room rate applies until you add a seasonal override.",
+                        action: <CreateRatePlanDialog roomTypes={allRoomTypes} />,
                       }}
                     />
                   </CardContent>
@@ -241,8 +250,10 @@ export default async function RatesPage() {
           data={allDiscounts}
           getRowKey={(discount) => discount.id}
           emptyState={{
+            icon: Percent,
             title: "No discounts configured",
             description: "Create a discount to support promotions, packages, or seasonal offers.",
+            action: <CreateDiscountDialog roomTypes={allRoomTypes} />,
           }}
         />
       </section>

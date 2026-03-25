@@ -23,8 +23,8 @@ export function SettingsNav() {
             href={tab.href}
             className={
               isActive
-                ? "border-b-2 border-primary px-4 py-2 text-sm font-medium text-foreground"
-                : "border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+                ? "border-b-2 border-primary px-4 py-2 text-sm font-medium text-foreground transition-colors duration-[var(--duration-fast)] ease-[var(--ease-default)] motion-reduce:transition-none"
+                : "border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted-foreground transition-colors duration-[var(--duration-fast)] ease-[var(--ease-default)] motion-reduce:transition-none hover:text-foreground"
             }
           >
             {tab.label}

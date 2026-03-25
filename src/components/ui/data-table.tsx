@@ -4,7 +4,9 @@ import type {
   ReactNode,
   TableHTMLAttributes,
 } from "react";
+import type { LucideIcon } from "lucide-react";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -28,6 +30,7 @@ export interface DataTableColumn<T> {
 }
 
 export interface DataTableEmptyState {
+  icon?: LucideIcon;
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
@@ -83,8 +86,9 @@ export function DataTable<T>({
         className,
       )}
     >
+      <div className="overflow-x-auto">
       <Table
-        className={cn("min-w-full", tableClassName, tablePropsClassName)}
+        className={cn("min-w-[600px] w-full", tableClassName, tablePropsClassName)}
         {...restTableProps}
       >
         {caption && <TableCaption>{caption}</TableCaption>}
@@ -145,20 +149,32 @@ export function DataTable<T>({
                 colSpan={columns.length}
                 className={cn("px-4 py-12", emptyState.className)}
               >
-                <div className="mx-auto flex max-w-sm flex-col items-center gap-2 text-center">
-                  <div className="text-sm font-medium">{emptyState.title}</div>
-                  {emptyState.description && (
-                    <div className="text-sm text-muted-foreground">
-                      {emptyState.description}
-                    </div>
-                  )}
-                  {emptyState.action}
-                </div>
+                {emptyState.icon ? (
+                  <EmptyState
+                    icon={emptyState.icon}
+                    title={emptyState.title}
+                    description={emptyState.description}
+                    action={emptyState.action}
+                    size="table"
+                    className="py-0"
+                  />
+                ) : (
+                  <div className="mx-auto flex max-w-sm flex-col items-center gap-2 text-center">
+                    <div className="text-sm font-medium">{emptyState.title}</div>
+                    {emptyState.description && (
+                      <div className="text-sm text-muted-foreground">
+                        {emptyState.description}
+                      </div>
+                    )}
+                    {emptyState.action}
+                  </div>
+                )}
               </TableCell>
             </TableRow>
           ) : null}
         </TableBody>
       </Table>
+      </div>
       {footer && <div className="border-t px-4 py-3">{footer}</div>}
     </div>
   );

@@ -1,15 +1,15 @@
+import { Text } from "@react-email/components";
 import {
-  Html,
-  Head,
-  Body,
-  Container,
-  Heading,
-  Text,
-  Hr,
-  Section,
-  Preview,
-} from "@react-email/components";
-import { BRAND, MUTED, formatEmailDate } from "./shared";
+  EmailBodyText,
+  EmailDetailRow,
+  EmailDivider,
+  EmailDocument,
+  EmailPanel,
+  EmailSectionHeading,
+  EmailTitle,
+  MUTED,
+  formatEmailDate,
+} from "./shared";
 
 interface PreArrivalProps {
   guestFirstName: string;
@@ -35,115 +35,90 @@ export default function PreArrival({
   checkInInstructions,
 }: PreArrivalProps) {
   return (
-    <Html>
-      <Head />
-      <Preview>
-        Your check-in at {propertyName} is tomorrow — we&apos;re ready for you!
-      </Preview>
-      <Body style={{ backgroundColor: "#f5f5f4", fontFamily: "sans-serif" }}>
-        <Container
-          style={{
-            maxWidth: "600px",
-            margin: "40px auto",
-            backgroundColor: "#ffffff",
-            borderRadius: "8px",
-            overflow: "hidden",
-          }}
-        >
-          <Section style={{ backgroundColor: BRAND, padding: "32px 40px" }}>
-            <Heading
-              style={{ color: "#ffffff", fontSize: "20px", margin: 0 }}
-            >
-              {propertyName}
-            </Heading>
-          </Section>
+    <EmailDocument
+      preview={`Your check-in at ${propertyName} is tomorrow - we're ready for you!`}
+      propertyName={propertyName}
+    >
+      <EmailTitle>See you tomorrow</EmailTitle>
+      <EmailBodyText>
+        Hi {guestFirstName}, your stay at {propertyName} begins tomorrow.
+        Here&apos;s everything you need for a smooth arrival.
+      </EmailBodyText>
 
-          <Section style={{ padding: "40px" }}>
-            <Heading
-              as="h2"
-              style={{ color: BRAND, fontSize: "22px", marginTop: 0 }}
+      <EmailDivider />
+      <EmailSectionHeading>Check-in details</EmailSectionHeading>
+      <EmailPanel>
+        <EmailDetailRow label="Date" value={formatEmailDate(checkIn)} />
+        {checkInTime ? (
+          <EmailDetailRow label="Check-in from" value={checkInTime} />
+        ) : null}
+        <EmailDetailRow label="Room" value={roomTypeName} />
+        <EmailDetailRow label="Booking ref" value={confirmationCode} />
+      </EmailPanel>
+
+      {checkInInstructions ? (
+        <>
+          <EmailDivider />
+          <EmailSectionHeading>Check-in instructions</EmailSectionHeading>
+          <EmailPanel>
+            <Text
+              style={{
+                color: MUTED,
+                fontSize: "14px",
+                lineHeight: "22px",
+                margin: 0,
+                whiteSpace: "pre-line",
+              }}
             >
-              See you tomorrow!
-            </Heading>
-            <Text style={{ color: MUTED, fontSize: "15px" }}>
-              Hi {guestFirstName}, your stay at {propertyName} begins tomorrow.
-              Here&apos;s everything you need for a smooth arrival.
+              {checkInInstructions}
             </Text>
+          </EmailPanel>
+        </>
+      ) : null}
 
-            <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
-
-            <Heading
-              as="h3"
-              style={{ color: BRAND, fontSize: "14px", marginBottom: "12px" }}
+      {propertyAddress ? (
+        <>
+          <EmailDivider />
+          <EmailSectionHeading>How to find us</EmailSectionHeading>
+          <EmailPanel>
+            <Text
+              style={{
+                color: MUTED,
+                fontSize: "14px",
+                lineHeight: "22px",
+                margin: 0,
+              }}
             >
-              CHECK-IN DETAILS
-            </Heading>
-            <Text style={{ color: BRAND, fontSize: "14px", margin: "0 0 4px" }}>
-              <strong>Date:</strong> {formatEmailDate(checkIn)}
+              {propertyAddress}
             </Text>
-            {checkInTime && (
-              <Text style={{ color: BRAND, fontSize: "14px", margin: "4px 0" }}>
-                <strong>Check-in from:</strong> {checkInTime}
+            {propertyPhone ? (
+              <Text
+                style={{
+                  color: MUTED,
+                  fontSize: "13px",
+                  lineHeight: "20px",
+                  margin: "10px 0 0",
+                }}
+              >
+                Tel: {propertyPhone}
               </Text>
-            )}
-            <Text style={{ color: BRAND, fontSize: "14px", margin: "4px 0" }}>
-              <strong>Room:</strong> {roomTypeName}
-            </Text>
-            <Text style={{ color: BRAND, fontSize: "14px", margin: "4px 0" }}>
-              <strong>Booking ref:</strong> {confirmationCode}
-            </Text>
+            ) : null}
+          </EmailPanel>
+        </>
+      ) : null}
 
-            {checkInInstructions && (
-              <>
-                <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
-                <Heading
-                  as="h3"
-                  style={{
-                    color: BRAND,
-                    fontSize: "14px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  CHECK-IN INSTRUCTIONS
-                </Heading>
-                <Text style={{ color: BRAND, fontSize: "14px", margin: 0, whiteSpace: "pre-line" }}>
-                  {checkInInstructions}
-                </Text>
-              </>
-            )}
-
-            {propertyAddress && (
-              <>
-                <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
-                <Heading
-                  as="h3"
-                  style={{
-                    color: BRAND,
-                    fontSize: "14px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  HOW TO FIND US
-                </Heading>
-                <Text style={{ color: BRAND, fontSize: "14px", margin: 0 }}>
-                  {propertyAddress}
-                </Text>
-                {propertyPhone && (
-                  <Text style={{ color: MUTED, fontSize: "13px", margin: "4px 0 0" }}>
-                    Tel: {propertyPhone}
-                  </Text>
-                )}
-              </>
-            )}
-
-            <Hr style={{ borderColor: "#e7e5e4", margin: "24px 0" }} />
-            <Text style={{ color: MUTED, fontSize: "13px" }}>
-              If you have any questions before your arrival, simply reply to
-              this email and we&apos;ll be happy to help.
-            </Text>
-          </Section>
-        </Container>
-      </Body>
-    </Html>
+      <EmailDivider />
+      <Text
+        style={{
+          color: MUTED,
+          fontSize: "13px",
+          lineHeight: "21px",
+          margin: 0,
+        }}
+      >
+        If you have any questions before your arrival, simply reply to this
+        email and we&apos;ll be happy to help.
+      </Text>
+    </EmailDocument>
   );
 }

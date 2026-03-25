@@ -118,4 +118,28 @@ Avoids overlap with semantic colors (success green, error red, warning amber).
 
 ## Dark Mode
 
-Deferred to Session 7 (M13). Will be defined after all surfaces use tokens.
+Implemented in M13. All tokens have `.dark` counterparts in `globals.css`.
+
+| Token | Light | Dark |
+|---|---|---|
+| --background | #FBFBF9 | #0B0B09 |
+| --foreground | #11110F | #FBFBF9 |
+| --card | #FFFFFF | #1A1A17 |
+| --primary | #E2BD27 | #E2BD27 (unchanged) |
+| --secondary | #EFEEEC | #2A2A27 |
+| --secondary-foreground | #222220 | #CBCAC6 |
+| --muted | #EFEEEC | #222220 |
+| --muted-foreground | #51504D | #83827C |
+| --accent | #EFEEEC | #222220 |
+| --destructive | #A12222 | #C23030 |
+| --success | #1C7C5C | #24A070 |
+| --warning | #BD8600 | #D99900 |
+| --warning-foreground | #FFFFFF | #0B0B09 |
+| --info | #2563A0 | #4A8FD4 |
+| --border | #E5E3DC | #2E2E2B |
+| --sidebar | #FBFBF9 | #131311 |
+| --booking-card | #FFFFFF | #1A1A17 |
+| --booking-muted | #51504D | #83827C |
+
+**Theme toggle:** Light / Dark / System (auto). Persisted in localStorage via `next-themes`.
+**No-flash:** `suppressHydrationWarning` on `<html>` + `next-themes` script injection.

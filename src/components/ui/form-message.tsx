@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { InlineError } from "@/components/ui/inline-error";
 import { cn } from "@/lib/utils";
 
 type FormMessageProps = {
@@ -19,11 +20,15 @@ export function FormMessage({
   children,
   className,
 }: FormMessageProps) {
+  if (variant === "error") {
+    return <InlineError className={className}>{children}</InlineError>;
+  }
+
   return (
     <div
       className={cn(
         "rounded-md border p-3 text-sm",
-        variantStyles[variant],
+        variantStyles.success,
         className
       )}
     >

@@ -1,4 +1,5 @@
 import { desc, eq } from "drizzle-orm";
+import { Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -58,11 +59,13 @@ export default async function GuestsPage({ searchParams }: Props) {
       id: "name",
       header: "Guest",
       cell: (guest) => (
-        <div className="space-y-0.5">
-          <div className="font-medium">
+        <div className="max-w-[200px] space-y-0.5">
+          <div className="truncate font-medium" title={`${guest.firstName} ${guest.lastName}`}>
             {guest.firstName} {guest.lastName}
           </div>
-          <div className="text-xs text-muted-foreground">{guest.email}</div>
+          <div className="truncate text-xs text-muted-foreground" title={guest.email}>
+            {guest.email}
+          </div>
         </div>
       ),
     },
@@ -108,8 +111,9 @@ export default async function GuestsPage({ searchParams }: Props) {
         actions={query ? <FilterBarResetLink href="/guests">Clear search</FilterBarResetLink> : null}
       >
         <form action="/guests" className="flex w-full flex-wrap items-end gap-3">
-          <FilterBarField label="Guest Search" className="flex-1 min-w-[16rem]">
+          <FilterBarField label="Guest Search" htmlFor="guest-search" className="flex-1 min-w-[16rem]">
             <FilterBarInput
+              id="guest-search"
               name="query"
               defaultValue={sp.query ?? ""}
               placeholder="Search guests"
@@ -131,6 +135,7 @@ export default async function GuestsPage({ searchParams }: Props) {
           data={filteredGuests}
           getRowKey={(guest) => guest.id}
           emptyState={{
+            icon: Users,
             title: query ? "No guests matched your search" : "No guests yet",
             description: query
               ? "Try a broader search term."

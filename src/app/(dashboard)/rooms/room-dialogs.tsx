@@ -101,9 +101,13 @@ export function DeleteRoomButton({ room }: { room: Room }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" disabled={isPending}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          disabled={isPending}
+          aria-label="Delete room"
+        >
           <Trash2 className="h-4 w-4 text-destructive" />
-          <span className="sr-only">Delete</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

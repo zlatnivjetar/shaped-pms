@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { InlineError } from "@/components/ui/inline-error";
 import { RoomTypeForm } from "./room-type-form";
 
 export function CreateRoomTypeDialog() {
@@ -59,9 +60,8 @@ export function EditRoomTypeDialog({ roomType }: { roomType: RoomType }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon-sm" aria-label="Edit room type">
           <Pencil className="h-4 w-4" />
-          <span className="sr-only">Edit</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
@@ -107,9 +107,7 @@ function ManageAmenitiesForm({
   return (
     <form action={formAction} className="space-y-4">
       {state.error && (
-        <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-          {state.error}
-        </div>
+        <InlineError>{state.error}</InlineError>
       )}
       {allAmenities.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4">
@@ -153,9 +151,13 @@ export function ManageAmenitiesDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" title="Manage amenities">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Manage amenities"
+          aria-label="Manage amenities"
+        >
           <ListChecks className="h-4 w-4" />
-          <span className="sr-only">Manage amenities</span>
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -207,9 +209,7 @@ function BookingRuleForm({
     <form action={formAction} className="space-y-4 border-t border-border pt-4 mt-4">
       <p className="text-sm font-medium text-foreground">Add new rule</p>
       {state.error && (
-        <div className="rounded-md bg-destructive/10 border border-destructive/20 p-2 text-sm text-destructive">
-          {state.error}
-        </div>
+        <InlineError>{state.error}</InlineError>
       )}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
@@ -318,12 +318,13 @@ function BookingRulesContent({
                 )}
               </div>
               <button
+                type="button"
                 onClick={() =>
                   startTransition(() => deleteBookingRule(rule.id))
                 }
                 disabled={isPending}
-                className="text-destructive hover:text-destructive/80 text-xs shrink-0 mt-0.5 disabled:opacity-50"
-                title="Delete rule"
+                aria-label="Delete booking rule"
+                className="shrink-0 mt-0.5 rounded p-1 text-destructive hover:text-destructive/80 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -347,9 +348,13 @@ export function ManageBookingRulesDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" title="Manage booking rules">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          title="Manage booking rules"
+          aria-label="Manage booking rules"
+        >
           <CalendarDays className="h-4 w-4" />
-          <span className="sr-only">Manage booking rules</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
@@ -372,9 +377,13 @@ export function DeleteRoomTypeButton({ roomType }: { roomType: RoomType }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" disabled={isPending}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          disabled={isPending}
+          aria-label="Delete room type"
+        >
           <Trash2 className="h-4 w-4 text-destructive" />
-          <span className="sr-only">Delete</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

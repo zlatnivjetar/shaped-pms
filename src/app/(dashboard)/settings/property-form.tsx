@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { updateProperty, type UpdatePropertyState } from "./actions";
 import type { Property } from "@/db/schema";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -13,8 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormField } from "@/components/ui/form-field";
-import { FormMessage } from "@/components/ui/form-message";
 import { FormSection } from "@/components/ui/form-section";
+import { InlineError } from "@/components/ui/inline-error";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export function PropertyForm({ property }: { property: Property }) {
@@ -27,13 +28,11 @@ export function PropertyForm({ property }: { property: Property }) {
   return (
     <form action={formAction} className="space-y-6">
       {state.success && (
-        <FormMessage variant="success">
-          Property updated successfully.
-        </FormMessage>
+        <Alert variant="success">
+          <AlertDescription>Property updated successfully.</AlertDescription>
+        </Alert>
       )}
-      {state.error && (
-        <FormMessage variant="error">{state.error}</FormMessage>
-      )}
+      {state.error && <InlineError>{state.error}</InlineError>}
 
       <FormSection
         title="Basic Information"

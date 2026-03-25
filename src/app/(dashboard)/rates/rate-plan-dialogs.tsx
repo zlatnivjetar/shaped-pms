@@ -56,9 +56,8 @@ export function EditRatePlanDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon-sm" aria-label="Edit rate plan">
           <Pencil className="h-4 w-4" />
-          <span className="sr-only">Edit</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
@@ -81,9 +80,13 @@ export function DeleteRatePlanButton({ ratePlan }: { ratePlan: RatePlan }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" disabled={isPending}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          disabled={isPending}
+          aria-label="Delete rate plan"
+        >
           <Trash2 className="h-4 w-4 text-destructive" />
-          <span className="sr-only">Delete</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

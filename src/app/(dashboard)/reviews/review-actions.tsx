@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { publishReview, hideReview, respondToReview } from "./actions";
+
+import { hideReview, publishReview, respondToReview } from "./actions";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { showError, showSuccess } from "@/components/ui/toast";
 
 interface ReviewActionsProps {
   reviewId: string;
@@ -20,79 +24,106 @@ export default function ReviewActions({
   const [saved, setSaved] = useState(false);
 
   function handlePublish() {
-    startTransition(() => publishReview(reviewId));
+    startTransition(async () => {
+      try {
+        await publishReview(reviewId);
+        showSuccess("Review published");
+      } catch (caught) {
+        const message =
+          caught instanceof Error ? caught.message : "Could not publish review.";
+        showError("Publish failed", message);
+      }
+    });
   }
 
   function handleHide() {
-    startTransition(() => hideReview(reviewId));
+    startTransition(async () => {
+      try {
+        await hideReview(reviewId);
+        showSuccess("Review hidden");
+      } catch (caught) {
+        const message =
+          caught instanceof Error ? caught.message : "Could not hide review.";
+        showError("Hide failed", message);
+      }
+    });
   }
 
   function handleRespondSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!response.trim()) return;
+
     startTransition(async () => {
-      await respondToReview(reviewId, response);
-      setSaved(true);
-      setShowResponseForm(false);
+      try {
+        await respondToReview(reviewId, response);
+        setSaved(true);
+        setShowResponseForm(false);
+        showSuccess("Response saved");
+      } catch (caught) {
+        const message =
+          caught instanceof Error ? caught.message : "Could not save response.";
+        showError("Save failed", message);
+      }
     });
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-wrap gap-2">
         {currentStatus !== "published" && (
-          <button
-            onClick={handlePublish}
-            disabled={isPending}
-            className="text-xs px-2.5 py-1 rounded-md bg-success/10 text-success hover:bg-success/20 disabled:opacity-50 transition-colors"
-          >
+          <Button onClick={handlePublish} disabled={isPending} size="xs">
             Publish
-          </button>
+          </Button>
         )}
+
         {currentStatus !== "hidden" && (
-          <button
+          <Button
             onClick={handleHide}
             disabled={isPending}
-            className="text-xs px-2.5 py-1 rounded-md bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50 transition-colors"
+            size="xs"
+            variant="secondary"
           >
             Hide
-          </button>
+          </Button>
         )}
-        <button
+
+        <Button
           onClick={() => {
-            setShowResponseForm((v) => !v);
+            setShowResponseForm((value) => !value);
             setSaved(false);
           }}
-          className="text-xs px-2.5 py-1 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+          size="xs"
+          variant="outline"
         >
           {existingResponse || saved ? "Edit Response" : "Respond"}
-        </button>
+        </Button>
       </div>
 
       {showResponseForm && (
-        <form onSubmit={handleRespondSubmit} className="space-y-2 mt-1">
-          <textarea
+        <form onSubmit={handleRespondSubmit} className="mt-1 space-y-2">
+          <Textarea
             value={response}
             onChange={(e) => setResponse(e.target.value)}
             rows={3}
-            placeholder="Write your response to this review…"
-            className="w-full text-xs rounded border border-input px-2 py-1.5 focus:outline-none focus:border-ring resize-none"
+            placeholder="Write your response to this review..."
+            className="min-h-24 resize-none text-sm"
           />
           <div className="flex gap-2">
-            <button
+            <Button
               type="submit"
               disabled={isPending || !response.trim()}
-              className="text-xs px-3 py-1 rounded bg-foreground text-background hover:bg-foreground/80 disabled:opacity-50 transition-colors"
+              size="xs"
             >
-              {isPending ? "Saving…" : "Save Response"}
-            </button>
-            <button
+              {isPending ? "Saving..." : "Save Response"}
+            </Button>
+            <Button
               type="button"
               onClick={() => setShowResponseForm(false)}
-              className="text-xs px-3 py-1 rounded bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+              size="xs"
+              variant="secondary"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}

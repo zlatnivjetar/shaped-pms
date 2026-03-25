@@ -21,6 +21,7 @@ interface FilterBarFieldProps {
   children: ReactNode;
   hint?: ReactNode;
   className?: string;
+  htmlFor?: string;
 }
 
 interface FilterBarButtonProps extends ComponentProps<typeof Button> {
@@ -72,10 +73,16 @@ export function FilterBarField({
   children,
   hint,
   className,
+  htmlFor,
 }: FilterBarFieldProps) {
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
-      <span className="text-sm font-medium text-foreground">{label}</span>
+      <label
+        className="text-sm font-medium text-foreground"
+        htmlFor={htmlFor}
+      >
+        {label}
+      </label>
       <div className="min-w-0">{children}</div>
       {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
     </div>
