@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,18 +16,28 @@ import {
 
 function DetailsSkeleton() {
   return (
-    <div className="space-y-5">
-      <Skeleton className="h-20 w-full rounded-xl" />
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Skeleton className="h-9 w-full rounded-md" />
-          <Skeleton className="h-9 w-full rounded-md" />
+    <div className="space-y-4">
+      {[0, 1].map((index) => (
+        <div key={index} className={`${bookingCardClassName} p-5`}>
+          <div className="mb-4 space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-56" />
+            <Skeleton className="h-4 w-32" />
+            <div className="mt-3 flex gap-2">
+              <Skeleton className="h-6 w-16 rounded-full" />
+              <Skeleton className="h-6 w-16 rounded-full" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+          </div>
+          <div className="flex items-end justify-between">
+            <div className="space-y-1">
+              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-10 w-24 rounded-md" />
+          </div>
         </div>
-        <Skeleton className="h-9 w-full rounded-md" />
-        <Skeleton className="h-9 w-full rounded-md" />
-        <Skeleton className="h-20 w-full rounded-md" />
-        <Skeleton className="h-10 w-full rounded-md" />
-      </div>
+      ))}
     </div>
   );
 }
@@ -37,13 +45,15 @@ function DetailsSkeleton() {
 type AmenityInfo = { id: string; name: string; icon: string };
 
 interface Props {
-  propertySlug: string;
   checkIn: string;
   checkOut: string;
   adults: number;
   childCount: number;
   availableRoomTypes: AvailableRoomType[];
   amenitiesByRoomType: Record<string, AmenityInfo[]>;
+  isLoading?: boolean;
+  onBack: () => void;
+  onSelect: (roomTypeId: string) => void;
 }
 
 function formatCurrency(cents: number, currency = "EUR") {
@@ -66,67 +76,22 @@ function formatDate(dateString: string) {
 }
 
 export default function StepSelect({
-  propertySlug,
   checkIn,
   checkOut,
   adults,
   childCount,
   availableRoomTypes,
   amenitiesByRoomType,
+  isLoading = false,
+  onBack,
+  onSelect,
 }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [pendingRoomTypeId, setPendingRoomTypeId] = useState<string | null>(null);
-
-  useEffect(() => {
-    availableRoomTypes
-      .filter((roomType) => roomType.ruleViolation === null)
-      .forEach((roomType) => {
-        const params = new URLSearchParams({
-          step: "details",
-          check_in: checkIn,
-          check_out: checkOut,
-          adults: String(adults),
-          children: String(childCount),
-          room_type_id: roomType.roomTypeId,
-        });
-
-        router.prefetch(`/${propertySlug}?${params.toString()}`);
-      });
-  }, [adults, availableRoomTypes, checkIn, checkOut, childCount, propertySlug, router]);
-
-  function handleSelect(roomTypeId: string) {
-    const params = new URLSearchParams({
-      step: "details",
-      check_in: checkIn,
-      check_out: checkOut,
-      adults: String(adults),
-      children: String(childCount),
-      room_type_id: roomTypeId,
-    });
-
-    setPendingRoomTypeId(roomTypeId);
-    startTransition(() => router.push(`/${propertySlug}?${params.toString()}`));
-  }
-
-  function handleBack() {
-    const params = new URLSearchParams({
-      step: "search",
-      check_in: checkIn,
-      check_out: checkOut,
-      adults: String(adults),
-      children: String(childCount),
-    });
-
-    router.push(`/${propertySlug}?${params.toString()}`);
-  }
-
   const nights =
     (new Date(`${checkOut}T00:00:00Z`).getTime() -
       new Date(`${checkIn}T00:00:00Z`).getTime()) /
     86400000;
 
-  if (isPending) {
+  if (isLoading) {
     return <DetailsSkeleton />;
   }
 
@@ -136,7 +101,7 @@ export default function StepSelect({
         <Button
           type="button"
           variant="ghost"
-          onClick={handleBack}
+          onClick={onBack}
           className={`mb-3 px-0 ${bookingGhostButtonClassName}`}
         >
           ← Change dates
@@ -159,7 +124,7 @@ export default function StepSelect({
             action={(
               <button
                 type="button"
-                onClick={handleBack}
+                onClick={onBack}
                 className={bookingTextLinkClassName}
               >
                 Change dates
@@ -247,15 +212,11 @@ export default function StepSelect({
 
                   <Button
                     type="button"
-                    onClick={() => !blocked && handleSelect(roomType.roomTypeId)}
-                    disabled={blocked || isPending}
+                    onClick={() => !blocked && onSelect(roomType.roomTypeId)}
+                    disabled={blocked}
                     className={`h-10 shrink-0 ${bookingCtaButtonClassName}`}
                   >
-                    {pendingRoomTypeId === roomType.roomTypeId
-                      ? "Loading…"
-                      : blocked
-                        ? "Unavailable"
-                        : "Select"}
+                    {blocked ? "Unavailable" : "Select"}
                   </Button>
                 </div>
               </div>

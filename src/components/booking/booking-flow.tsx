@@ -1,21 +1,45 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { CircleAlert } from "lucide-react";
-import type { Property, RoomType, Review, Guest } from "@/db/schema";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StarRating } from "@/components/ui/star-rating";
-import type { AvailableRoomType } from "@/lib/availability";
+import type {
+  BookingCompletedReservation,
+  BookingFlowUrlState,
+  BookingPublishedReview,
+} from "@/lib/booking-contracts";
+import {
+  buildBookingFlowSearchParams,
+  hasValidBookingSearch,
+  parseBookingFlowState,
+} from "@/lib/booking-contracts";
+import { fetchBookingAvailability } from "@/lib/client-fetchers";
+import { bookingQueryKeys } from "@/lib/query-keys";
+import { BOOKING_AVAILABILITY_STALE_TIME } from "@/lib/react-query";
 import { SOURCE_LABELS } from "@/lib/reviews";
-import StepConfirm from "./step-confirm";
-import StepComplete from "./step-complete";
-import StepDetails from "./step-details";
+import type { Property, RoomType } from "@/db/schema";
 import StepSearch from "./step-search";
-import StepSelect from "./step-select";
 import { StepIndicator } from "./step-indicator";
 import { bookingCardClassName } from "./styles";
+
+const StepSelect = dynamic(() => import("./step-select"), {
+  loading: () => <StepLoadingSkeleton />,
+});
+const StepDetails = dynamic(() => import("./step-details"), {
+  loading: () => <StepLoadingSkeleton />,
+});
+const StepConfirm = dynamic(() => import("./step-confirm"), {
+  loading: () => <StepLoadingSkeleton />,
+});
+const StepComplete = dynamic(() => import("./step-complete"), {
+  loading: () => <StepLoadingSkeleton />,
+});
 
 export type GuestDetails = {
   firstName: string;
@@ -25,61 +49,64 @@ export type GuestDetails = {
   specialRequests: string;
 };
 
-export type CompletedReservation = {
-  confirmationCode: string;
-  checkIn: string;
-  checkOut: string;
-  nights: number;
-  adults: number;
-  children: number;
-  totalCents: number;
-  currency: string;
-  guest: { firstName: string; lastName: string; email: string } | null;
-  reservationRooms: Array<{ roomType: { name: string } | null }>;
-} | null;
-
-type PublishedReview = Review & { guest: Guest | null };
-
-type AmenityInfo = { id: string; name: string; icon: string };
-
 interface Props {
   property: Property;
-  step: string;
-  checkIn?: string;
-  checkOut?: string;
-  adults: number;
-  childCount: number;
-  roomTypeId?: string;
-  code?: string;
-  availableRoomTypes: AvailableRoomType[] | null;
-  selectedRoomType: RoomType | null;
-  confirmTotal: number;
-  completedReservation: CompletedReservation;
-  publishedReviews: PublishedReview[];
+  activeRoomTypes: RoomType[];
+  initialState: BookingFlowUrlState;
+  completedReservation: BookingCompletedReservation;
+  publishedReviews: BookingPublishedReview[];
   avgRating: number | null;
-  amenitiesByRoomType: Record<string, AmenityInfo[]>;
+  reviewCount: number;
+  amenitiesByRoomType: Record<string, { id: string; name: string; icon: string }[]>;
 }
 
 const STORAGE_KEY = "booking-guest-details";
 const bookingStepTransitionClassName =
   "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-[var(--duration-normal)] motion-safe:ease-[var(--ease-out)] motion-reduce:animate-none";
 
+function StepLoadingSkeleton() {
+  return (
+    <div className={`${bookingCardClassName} space-y-4 p-6`}>
+      <Skeleton className="h-6 w-40" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-4/5" />
+      <Skeleton className="h-10 w-full" />
+    </div>
+  );
+}
+
+function parseFlowStateFromLocation(): BookingFlowUrlState {
+  return parseBookingFlowState(
+    Object.fromEntries(new URLSearchParams(window.location.search).entries()),
+  );
+}
+
+function buildFlowUrl(propertySlug: string, state: BookingFlowUrlState) {
+  const params = buildBookingFlowSearchParams(state);
+  const query = params.toString();
+  return query ? `/${propertySlug}?${query}` : `/${propertySlug}`;
+}
+
+function isGuestDetailsValid(guestDetails: GuestDetails) {
+  return Boolean(
+    guestDetails.firstName.trim() &&
+      guestDetails.lastName.trim() &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestDetails.email),
+  );
+}
+
 export default function BookingFlow({
   property,
-  step,
-  checkIn,
-  checkOut,
-  adults,
-  childCount,
-  roomTypeId,
-  availableRoomTypes,
-  selectedRoomType,
-  confirmTotal,
+  activeRoomTypes,
+  initialState,
   completedReservation,
   publishedReviews,
   avgRating,
+  reviewCount,
   amenitiesByRoomType,
 }: Props) {
+  const queryClient = useQueryClient();
+  const [flowState, setFlowState] = useState(initialState);
   const [guestDetails, setGuestDetails] = useState<GuestDetails>({
     firstName: "",
     lastName: "",
@@ -87,6 +114,46 @@ export default function BookingFlow({
     phone: "",
     specialRequests: "",
   });
+
+  const hasSearch = hasValidBookingSearch(flowState);
+  const availabilityParams = hasSearch
+    ? {
+        slug: property.slug,
+        checkIn: flowState.checkIn!,
+        checkOut: flowState.checkOut!,
+        adults: flowState.adults,
+        children: flowState.children,
+      }
+    : null;
+
+  const availabilityQuery = useQuery({
+    queryKey: availabilityParams
+      ? bookingQueryKeys.availability(availabilityParams)
+      : ["booking", "availability", "idle"],
+    queryFn: ({ signal }) => fetchBookingAvailability(availabilityParams!, signal),
+    enabled: availabilityParams !== null && flowState.step !== "complete",
+    placeholderData: keepPreviousData,
+    staleTime: BOOKING_AVAILABILITY_STALE_TIME,
+  });
+
+  const availableRoomTypes = availabilityQuery.data?.roomTypes ?? [];
+  const selectedRoomType =
+    activeRoomTypes.find((roomType) => roomType.id === flowState.roomTypeId) ?? null;
+  const selectedAvailability =
+    availableRoomTypes.find((roomType) => roomType.roomTypeId === flowState.roomTypeId) ??
+    null;
+
+  const renderedStep =
+    flowState.step === "complete"
+      ? "complete"
+      : !hasSearch
+        ? "search"
+        : flowState.step === "search"
+          ? "search"
+          : (flowState.step === "details" || flowState.step === "confirm") &&
+              !selectedRoomType
+            ? "select"
+            : flowState.step;
 
   useEffect(() => {
     try {
@@ -108,14 +175,91 @@ export default function BookingFlow({
   }, [guestDetails]);
 
   useEffect(() => {
-    if (step === "complete") {
+    if (flowState.step === "complete") {
       try {
         sessionStorage.removeItem(STORAGE_KEY);
       } catch {
         // ignore
       }
     }
-  }, [step]);
+  }, [flowState.step]);
+
+  useEffect(() => {
+    const handlePopState = () => setFlowState(parseFlowStateFromLocation());
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (hasSearch) {
+      void import("./step-select");
+    }
+  }, [hasSearch]);
+
+  useEffect(() => {
+    if (selectedRoomType) {
+      void import("./step-details");
+    }
+  }, [selectedRoomType]);
+
+  useEffect(() => {
+    if (isGuestDetailsValid(guestDetails)) {
+      void import("./step-confirm");
+    }
+  }, [guestDetails]);
+
+  function updateFlowState(
+    nextState: BookingFlowUrlState,
+    mode: "push" | "replace" = "push",
+  ) {
+    setFlowState(nextState);
+    window.history[mode === "replace" ? "replaceState" : "pushState"](
+      {},
+      "",
+      buildFlowUrl(property.slug, nextState),
+    );
+  }
+
+  function warmAvailability(nextState: Pick<
+    BookingFlowUrlState,
+    "checkIn" | "checkOut" | "adults" | "children"
+  >) {
+    const searchState: BookingFlowUrlState = {
+      ...flowState,
+      ...nextState,
+      step: "select",
+      roomTypeId: undefined,
+      code: undefined,
+      paymentIntentId: undefined,
+      setupIntentId: undefined,
+    };
+
+    if (!hasValidBookingSearch(searchState)) {
+      return;
+    }
+
+    void queryClient.prefetchQuery({
+      queryKey: bookingQueryKeys.availability({
+        slug: property.slug,
+        checkIn: searchState.checkIn!,
+        checkOut: searchState.checkOut!,
+        adults: searchState.adults,
+        children: searchState.children,
+      }),
+      queryFn: ({ signal }) =>
+        fetchBookingAvailability(
+          {
+            slug: property.slug,
+            checkIn: searchState.checkIn!,
+            checkOut: searchState.checkOut!,
+            adults: searchState.adults,
+            children: searchState.children,
+          },
+          signal,
+        ),
+      staleTime: BOOKING_AVAILABILITY_STALE_TIME,
+    });
+  }
 
   return (
     <div className="min-h-screen">
@@ -153,74 +297,113 @@ export default function BookingFlow({
       </header>
 
       <main className="mx-auto max-w-lg px-4 py-8">
-        {step !== "complete" && <StepIndicator current={step} />}
+        {renderedStep !== "complete" && <StepIndicator current={renderedStep} />}
 
         <ErrorBoundary
           size="compact"
           title="Booking step unavailable"
           description="We could not render this booking step. Try again to continue."
         >
-          {step === "search" && (
+          {renderedStep === "search" && (
             <div className={bookingStepTransitionClassName}>
               <StepSearch
-                propertySlug={property.slug}
                 checkInTime={property.checkInTime ?? undefined}
                 checkOutTime={property.checkOutTime ?? undefined}
-                initialCheckIn={checkIn}
-                initialCheckOut={checkOut}
-                initialAdults={adults}
-                initialChildren={childCount}
+                initialCheckIn={flowState.checkIn}
+                initialCheckOut={flowState.checkOut}
+                initialAdults={flowState.adults}
+                initialChildren={flowState.children}
+                onWarmSearch={warmAvailability}
+                onSearch={(nextSearch) =>
+                  updateFlowState(
+                    {
+                      ...flowState,
+                      ...nextSearch,
+                      step: "select",
+                      roomTypeId: undefined,
+                      code: undefined,
+                      paymentIntentId: undefined,
+                      setupIntentId: undefined,
+                    },
+                    "push",
+                  )
+                }
               />
             </div>
           )}
 
-          {step === "select" && (
+          {renderedStep === "select" && hasSearch && (
             <div className={bookingStepTransitionClassName}>
               <StepSelect
-                propertySlug={property.slug}
-                checkIn={checkIn!}
-                checkOut={checkOut!}
-                adults={adults}
-                childCount={childCount}
-                availableRoomTypes={availableRoomTypes ?? []}
+                checkIn={flowState.checkIn!}
+                checkOut={flowState.checkOut!}
+                adults={flowState.adults}
+                childCount={flowState.children}
+                availableRoomTypes={availableRoomTypes}
                 amenitiesByRoomType={amenitiesByRoomType}
+                isLoading={availabilityQuery.isLoading && availableRoomTypes.length === 0}
+                onBack={() =>
+                  updateFlowState(
+                    {
+                      ...flowState,
+                      step: "search",
+                      roomTypeId: undefined,
+                    },
+                    "push",
+                  )
+                }
+                onSelect={(roomTypeId) =>
+                  updateFlowState(
+                    {
+                      ...flowState,
+                      step: "details",
+                      roomTypeId,
+                    },
+                    "push",
+                  )
+                }
               />
             </div>
           )}
 
-          {step === "details" && selectedRoomType && checkIn && checkOut && (
+          {renderedStep === "details" && selectedRoomType && hasSearch && (
             <div className={bookingStepTransitionClassName}>
               <StepDetails
-                propertySlug={property.slug}
                 selectedRoomType={selectedRoomType}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                adults={adults}
-                childCount={childCount}
-                roomTypeId={roomTypeId!}
+                checkIn={flowState.checkIn!}
+                checkOut={flowState.checkOut!}
+                adults={flowState.adults}
+                childCount={flowState.children}
+                roomTypeId={flowState.roomTypeId!}
                 guestDetails={guestDetails}
                 onGuestDetailsChange={setGuestDetails}
+                onBack={() => updateFlowState({ ...flowState, step: "select" }, "push")}
+                onContinue={() => updateFlowState({ ...flowState, step: "confirm" }, "push")}
               />
             </div>
           )}
 
-          {step === "confirm" && selectedRoomType && checkIn && checkOut && (
+          {renderedStep === "confirm" && selectedRoomType && hasSearch && (
             <div className={bookingStepTransitionClassName}>
               <StepConfirm
                 property={property}
                 selectedRoomType={selectedRoomType}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                adults={adults}
-                childCount={childCount}
-                roomTypeId={roomTypeId!}
-                totalCents={confirmTotal}
+                checkIn={flowState.checkIn!}
+                checkOut={flowState.checkOut!}
+                adults={flowState.adults}
+                childCount={flowState.children}
+                roomTypeId={flowState.roomTypeId!}
+                totalCents={selectedAvailability?.totalCents ?? 0}
                 guestDetails={guestDetails}
+                returnState={flowState}
+                onBackToDetails={() =>
+                  updateFlowState({ ...flowState, step: "details" }, "push")
+                }
               />
             </div>
           )}
 
-          {step === "complete" && completedReservation && (
+          {renderedStep === "complete" && completedReservation && (
             <StepComplete
               reservation={completedReservation}
               propertyName={property.name}
@@ -228,7 +411,7 @@ export default function BookingFlow({
             />
           )}
 
-          {step === "complete" && !completedReservation && (
+          {renderedStep === "complete" && !completedReservation && (
             <div className={bookingCardClassName}>
               <EmptyState
                 icon={CircleAlert}
@@ -240,7 +423,7 @@ export default function BookingFlow({
           )}
         </ErrorBoundary>
 
-        {step === "search" && publishedReviews.length > 0 && (
+        {renderedStep === "search" && publishedReviews.length > 0 && (
           <section className="mt-12 space-y-6">
             <div className="mb-2 flex flex-col items-center gap-2 text-center">
               {avgRating !== null && (
@@ -256,7 +439,7 @@ export default function BookingFlow({
                   aria-label={`Average rating ${avgRating?.toFixed(1) ?? "0"} out of 5`}
                 />
                 <span className="text-xs text-muted-foreground">
-                  {publishedReviews.length} review{publishedReviews.length !== 1 ? "s" : ""}
+                  {reviewCount} review{reviewCount !== 1 ? "s" : ""}
                 </span>
               </div>
               <h2 className="mt-1 text-lg font-semibold text-foreground">Guest Reviews</h2>

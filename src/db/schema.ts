@@ -251,6 +251,11 @@ export const ratePlans = pgTable(
   (t) => [
     index("rate_plans_property_id_idx").on(t.propertyId),
     index("rate_plans_room_type_id_idx").on(t.roomTypeId),
+    index("rate_plans_property_room_type_status_idx").on(
+      t.propertyId,
+      t.roomTypeId,
+      t.status
+    ),
   ]
 );
 
@@ -286,6 +291,7 @@ export const inventory = pgTable(
     ),
     index("inventory_property_id_idx").on(t.propertyId),
     index("inventory_date_idx").on(t.date),
+    index("inventory_property_date_idx").on(t.propertyId, t.date),
   ]
 );
 
@@ -358,6 +364,15 @@ export const reservations = pgTable(
     index("reservations_guest_id_idx").on(t.guestId),
     index("reservations_check_in_idx").on(t.checkIn),
     index("reservations_status_idx").on(t.status),
+    index("reservations_property_updated_at_idx").on(
+      t.propertyId,
+      t.updatedAt.desc()
+    ),
+    index("reservations_property_status_created_at_idx").on(
+      t.propertyId,
+      t.status,
+      t.createdAt.desc()
+    ),
   ]
 );
 
@@ -499,6 +514,12 @@ export const reviews = pgTable(
     index("reviews_guest_id_idx").on(t.guestId),
     index("reviews_status_idx").on(t.status),
     index("reviews_source_idx").on(t.source),
+    index("reviews_property_status_source_created_at_idx").on(
+      t.propertyId,
+      t.status,
+      t.source,
+      t.createdAt.desc()
+    ),
     uniqueIndex("reviews_property_external_id_idx").on(
       t.propertyId,
       t.externalId
@@ -652,6 +673,11 @@ export const discounts = pgTable(
   (t) => [
     index("discounts_property_id_idx").on(t.propertyId),
     index("discounts_room_type_id_idx").on(t.roomTypeId),
+    index("discounts_property_status_room_type_idx").on(
+      t.propertyId,
+      t.status,
+      t.roomTypeId
+    ),
   ]
 );
 

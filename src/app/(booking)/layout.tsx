@@ -1,4 +1,5 @@
 import { Playfair_Display } from "next/font/google";
+import { QueryProvider } from "@/components/providers/query-provider";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -12,8 +13,10 @@ export default function BookingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`${playfair.variable} min-h-screen bg-booking-background`}>
-      {children}
-    </div>
+    <QueryProvider>
+      <div className={`${playfair.variable} min-h-screen bg-booking-background`}>
+        {children}
+      </div>
+    </QueryProvider>
   );
 }

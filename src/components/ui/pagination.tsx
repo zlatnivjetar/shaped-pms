@@ -10,7 +10,8 @@ type PaginationItem = number | "ellipsis";
 interface TablePaginationProps {
   page: number;
   pageCount: number;
-  hrefForPage: (page: number) => string;
+  hrefForPage?: (page: number) => string;
+  onPageChange?: (page: number) => void;
   totalItems?: number;
   pageSize?: number;
   itemLabel?: string;
@@ -47,18 +48,49 @@ function buildPaginationItems(page: number, pageCount: number): PaginationItem[]
 
 function PaginationLink({
   href,
+  onClick,
   children,
   isActive = false,
   size = "sm",
   disabled = false,
 }: {
-  href: string;
+  href?: string;
+  onClick?: () => void;
   children: ReactNode;
   isActive?: boolean;
   size?: "sm" | "icon-sm";
   disabled?: boolean;
 }) {
   if (disabled) {
+    return (
+      <Button
+        variant={isActive ? "default" : "outline"}
+        size={size}
+        className="shrink-0"
+        disabled
+        aria-current={isActive ? "page" : undefined}
+      >
+        {children}
+      </Button>
+    );
+  }
+
+  if (onClick) {
+    return (
+      <Button
+        type="button"
+        variant={isActive ? "default" : "outline"}
+        size={size}
+        className="shrink-0"
+        aria-current={isActive ? "page" : undefined}
+        onClick={onClick}
+      >
+        {children}
+      </Button>
+    );
+  }
+
+  if (!href) {
     return (
       <Button
         variant={isActive ? "default" : "outline"}
@@ -89,6 +121,7 @@ export function TablePagination({
   page,
   pageCount,
   hrefForPage,
+  onPageChange,
   totalItems,
   pageSize,
   itemLabel = "items",
@@ -111,6 +144,10 @@ export function TablePagination({
     hasSummary && totalItems > 0 && safePage > 0
       ? Math.min(totalItems, safePage * pageSize)
       : 0;
+  const getHref = (pageNumber: number) =>
+    hrefForPage ? hrefForPage(pageNumber) : undefined;
+  const getOnClick = (pageNumber: number) =>
+    onPageChange ? () => onPageChange(pageNumber) : undefined;
 
   return (
     <div
@@ -144,7 +181,8 @@ export function TablePagination({
       {safePageCount > 0 && (
         <div className={cn("flex items-center gap-1.5", controlsClassName)}>
           <PaginationLink
-            href={hrefForPage(Math.max(1, safePage - 1))}
+            href={getHref(Math.max(1, safePage - 1))}
+            onClick={getOnClick(Math.max(1, safePage - 1))}
             size="icon-sm"
             disabled={safePage <= 1}
           >
@@ -164,7 +202,8 @@ export function TablePagination({
             ) : (
               <PaginationLink
                 key={item}
-                href={hrefForPage(item)}
+                href={getHref(item)}
+                onClick={getOnClick(item)}
                 isActive={item === safePage}
                 size="sm"
               >
@@ -174,7 +213,8 @@ export function TablePagination({
           )}
 
           <PaginationLink
-            href={hrefForPage(Math.min(safePageCount || 1, safePage + 1))}
+            href={getHref(Math.min(safePageCount || 1, safePage + 1))}
+            onClick={getOnClick(Math.min(safePageCount || 1, safePage + 1))}
             size="icon-sm"
             disabled={safePage >= safePageCount}
           >

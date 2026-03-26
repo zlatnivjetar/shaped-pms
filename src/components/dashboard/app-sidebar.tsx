@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
   CalendarDays,
@@ -14,7 +16,24 @@ import {
   LogOut,
 } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
-
+import {
+  currentMonthStr,
+  normalizeGuestsParams,
+  normalizeReservationsParams,
+  normalizeReviewsParams,
+} from "@/lib/dashboard-contracts";
+import {
+  fetchDashboardCalendar,
+  fetchDashboardGuests,
+  fetchDashboardReservations,
+  fetchDashboardReviews,
+  fetchDashboardSummary,
+} from "@/lib/client-fetchers";
+import { dashboardQueryKeys } from "@/lib/query-keys";
+import {
+  CALENDAR_QUERY_STALE_TIME,
+  DASHBOARD_QUERY_STALE_TIME,
+} from "@/lib/react-query";
 import {
   Sidebar,
   SidebarContent,
@@ -86,9 +105,24 @@ const settingsNav = {
   roles: ["owner", "manager"] as Role[],
 };
 
+function canPrewarm() {
+  const connection = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+
+  return !(
+    connection?.saveData ||
+    connection?.effectiveType === "2g" ||
+    connection?.effectiveType === "slow-2g"
+  );
+}
+
 export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   function isActive(url: string) {
     if (url === "/dashboard") return pathname === "/dashboard";
@@ -96,12 +130,96 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
   }
 
   const primaryNav = allPrimaryNav.filter((item) =>
-    item.roles.includes(userRole)
+    item.roles.includes(userRole),
   );
   const secondaryNav = allSecondaryNav.filter((item) =>
-    item.roles.includes(userRole)
+    item.roles.includes(userRole),
   );
   const showSettings = settingsNav.roles.includes(userRole);
+
+  function prewarm(url: string) {
+    router.prefetch(url);
+
+    if (!canPrewarm()) {
+      return;
+    }
+
+    if (url === "/dashboard") {
+      void queryClient.prefetchQuery({
+        queryKey: dashboardQueryKeys.summary,
+        queryFn: ({ signal }) => fetchDashboardSummary(signal),
+        staleTime: DASHBOARD_QUERY_STALE_TIME,
+      });
+      return;
+    }
+
+    if (url === "/reservations") {
+      const params = normalizeReservationsParams({});
+      void queryClient.prefetchQuery({
+        queryKey: dashboardQueryKeys.reservations(params),
+        queryFn: ({ signal }) => fetchDashboardReservations(params, signal),
+        staleTime: DASHBOARD_QUERY_STALE_TIME,
+      });
+      return;
+    }
+
+    if (url === "/guests") {
+      const params = normalizeGuestsParams({});
+      void queryClient.prefetchQuery({
+        queryKey: dashboardQueryKeys.guests(params),
+        queryFn: ({ signal }) => fetchDashboardGuests(params, signal),
+        staleTime: DASHBOARD_QUERY_STALE_TIME,
+      });
+      return;
+    }
+
+    if (url === "/reviews") {
+      const params = normalizeReviewsParams({});
+      void queryClient.prefetchQuery({
+        queryKey: dashboardQueryKeys.reviews(params),
+        queryFn: ({ signal }) => fetchDashboardReviews(params, signal),
+        staleTime: DASHBOARD_QUERY_STALE_TIME,
+      });
+      return;
+    }
+
+    if (url === "/calendar") {
+      const month = currentMonthStr();
+      void queryClient.prefetchQuery({
+        queryKey: dashboardQueryKeys.calendar({ month }),
+        queryFn: ({ signal }) => fetchDashboardCalendar(month, signal),
+        staleTime: CALENDAR_QUERY_STALE_TIME,
+      });
+    }
+  }
+
+  useEffect(() => {
+    if (!canPrewarm()) {
+      return;
+    }
+
+    const prewarmRoutes = () => {
+      for (const item of primaryNav) {
+        prewarm(item.url);
+      }
+
+      for (const item of secondaryNav) {
+        router.prefetch(item.url);
+      }
+
+      if (showSettings) {
+        router.prefetch(settingsNav.url);
+      }
+    };
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(prewarmRoutes);
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = setTimeout(prewarmRoutes, 500);
+    return () => clearTimeout(timeoutId);
+  }, [primaryNav, queryClient, router, secondaryNav, showSettings]);
 
   async function handleSignOut() {
     await signOut();
@@ -139,7 +257,11 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
                     isActive={isActive(item.url)}
                     tooltip={item.title}
                   >
-                    <Link href={item.url}>
+                    <Link
+                      href={item.url}
+                      onMouseEnter={() => prewarm(item.url)}
+                      onFocus={() => prewarm(item.url)}
+                    >
                       <item.icon className="size-4 shrink-0" />
                       <span>{item.title}</span>
                     </Link>
@@ -164,7 +286,11 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
                         isActive={isActive(item.url)}
                         tooltip={item.title}
                       >
-                        <Link href={item.url}>
+                        <Link
+                          href={item.url}
+                          onMouseEnter={() => prewarm(item.url)}
+                          onFocus={() => prewarm(item.url)}
+                        >
                           <item.icon className="size-4 shrink-0" />
                           <span>{item.title}</span>
                         </Link>
@@ -187,7 +313,11 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
                 isActive={pathname.startsWith("/settings")}
                 tooltip="Settings"
               >
-                <Link href="/settings">
+                <Link
+                  href="/settings"
+                  onMouseEnter={() => prewarm("/settings")}
+                  onFocus={() => prewarm("/settings")}
+                >
                   <Settings className="size-4 shrink-0" />
                   <span>Settings</span>
                 </Link>

@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DetailRow } from "@/components/ui/detail-row";
-import type { CompletedReservation } from "./booking-flow";
+import type { BookingCompletedReservation } from "@/lib/booking-contracts";
 import { bookingCardClassName } from "./styles";
 
-type ReservationData = NonNullable<CompletedReservation>;
+type ReservationData = NonNullable<BookingCompletedReservation>;
 
 interface Props {
   reservation: ReservationData;

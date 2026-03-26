@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import type { CalendarRoomTypeData } from "@/lib/availability";
@@ -74,7 +73,7 @@ function RateOverrideDialog({
   onClose,
 }: {
   cell: SelectedCell;
-  onClose: () => void;
+  onClose: (didMutate?: boolean) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [value, setValue] = useState((cell.currentRateCents / 100).toFixed(2));
@@ -89,14 +88,14 @@ function RateOverrideDialog({
     const cents = Math.round(euros * 100);
     startTransition(async () => {
       await setRateOverride(cell.propertyId, cell.roomTypeId, cell.date, cents);
-      onClose();
+      onClose(true);
     });
   }
 
   function handleClear() {
     startTransition(async () => {
       await setRateOverride(cell.propertyId, cell.roomTypeId, cell.date, null);
-      onClose();
+      onClose(true);
     });
   }
 
@@ -160,10 +159,19 @@ type Props = {
   propertyId: string;
   month: string;
   data: CalendarRoomTypeData[];
+  isLoading?: boolean;
+  onMonthChange?: (month: string) => void;
+  onRefresh?: () => void;
 };
 
-export function AvailabilityCalendar({ propertyId, month, data }: Props) {
-  const router = useRouter();
+export function AvailabilityCalendar({
+  propertyId,
+  month,
+  data,
+  isLoading = false,
+  onMonthChange,
+  onRefresh,
+}: Props) {
   const [selectedCell, setSelectedCell] = useState<SelectedCell | null>(null);
 
   const [year, monthNumber] = month.split("-").map(Number);
@@ -186,7 +194,7 @@ export function AvailabilityCalendar({ propertyId, month, data }: Props) {
   });
 
   function goTo(newMonth: string) {
-    router.push(`/calendar?month=${newMonth}`);
+    onMonthChange?.(newMonth);
   }
 
   const cellMap = new Map(
@@ -204,6 +212,7 @@ export function AvailabilityCalendar({ propertyId, month, data }: Props) {
           variant="outline"
           size="sm"
           onClick={() => goTo(prevMonth(month))}
+          disabled={isLoading}
           className="justify-start sm:w-auto"
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
@@ -215,6 +224,7 @@ export function AvailabilityCalendar({ propertyId, month, data }: Props) {
           variant="outline"
           size="sm"
           onClick={() => goTo(nextMonth(month))}
+          disabled={isLoading}
           className="justify-end sm:w-auto"
         >
           {formatMonthLabel(nextMonth(month))}
@@ -317,9 +327,11 @@ export function AvailabilityCalendar({ propertyId, month, data }: Props) {
       {selectedCell && (
         <RateOverrideDialog
           cell={selectedCell}
-          onClose={() => {
+          onClose={(didMutate) => {
             setSelectedCell(null);
-            router.refresh();
+            if (didMutate) {
+              onRefresh?.();
+            }
           }}
         />
       )}

@@ -1,56 +1,37 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { CalendarIcon, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { InlineError } from "@/components/ui/inline-error";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   bookingCardClassName,
   bookingCtaButtonClassName,
   bookingSecondaryButtonClassName,
 } from "./styles";
 
-function SelectSkeleton() {
-  return (
-    <div className="space-y-4">
-      {[0, 1].map((index) => (
-        <div key={index} className={`${bookingCardClassName} p-5`}>
-          <div className="mb-4 space-y-2">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-4 w-56" />
-            <Skeleton className="h-4 w-32" />
-            <div className="mt-3 flex gap-2">
-              <Skeleton className="h-6 w-16 rounded-full" />
-              <Skeleton className="h-6 w-16 rounded-full" />
-              <Skeleton className="h-6 w-20 rounded-full" />
-            </div>
-          </div>
-          <div className="flex items-end justify-between">
-            <div className="space-y-1">
-              <Skeleton className="h-7 w-24" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-            <Skeleton className="h-10 w-24 rounded-md" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 interface Props {
-  propertySlug: string;
   checkInTime?: string;
   checkOutTime?: string;
   initialCheckIn?: string;
   initialCheckOut?: string;
   initialAdults: number;
   initialChildren: number;
+  onWarmSearch: (params: {
+    checkIn: string;
+    checkOut: string;
+    adults: number;
+    children: number;
+  }) => void;
+  onSearch: (params: {
+    checkIn: string;
+    checkOut: string;
+    adults: number;
+    children: number;
+  }) => void;
 }
 
 const todayStr = new Date().toISOString().slice(0, 10);
@@ -78,16 +59,15 @@ function formatDisplay(dateString: string): string {
 }
 
 export default function StepSearch({
-  propertySlug,
   checkInTime,
   checkOutTime,
   initialCheckIn,
   initialCheckOut,
   initialAdults,
   initialChildren,
+  onWarmSearch,
+  onSearch,
 }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [checkIn, setCheckIn] = useState(initialCheckIn ?? tomorrowStr);
   const [checkOut, setCheckOut] = useState(initialCheckOut ?? dayAfterStr);
   const [adults, setAdults] = useState(initialAdults);
@@ -108,21 +88,19 @@ export default function StepSearch({
       return;
     }
 
-    const params = new URLSearchParams({
-      step: "select",
-      check_in: checkIn,
-      check_out: checkOut,
-      adults: String(adults),
-      children: String(children),
-    });
-
-    const timeout = setTimeout(
-      () => router.prefetch(`/${propertySlug}?${params.toString()}`),
+    const timeout = window.setTimeout(
+      () =>
+        onWarmSearch({
+          checkIn,
+          checkOut,
+          adults,
+          children,
+        }),
       300,
     );
 
-    return () => clearTimeout(timeout);
-  }, [adults, checkIn, checkOut, children, propertySlug, router]);
+    return () => window.clearTimeout(timeout);
+  }, [adults, checkIn, checkOut, children, onWarmSearch]);
 
   function handleCheckInSelect(date: Date | undefined) {
     if (!date) {
@@ -169,19 +147,12 @@ export default function StepSearch({
       return;
     }
 
-    const params = new URLSearchParams({
-      step: "select",
-      check_in: checkIn,
-      check_out: checkOut,
-      adults: String(adults),
-      children: String(children),
+    onSearch({
+      checkIn,
+      checkOut,
+      adults,
+      children,
     });
-
-    startTransition(() => router.push(`/${propertySlug}?${params.toString()}`));
-  }
-
-  if (isPending) {
-    return <SelectSkeleton />;
   }
 
   return (

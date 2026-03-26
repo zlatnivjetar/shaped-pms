@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DetailRow } from "@/components/ui/detail-row";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import type { RoomType } from "@/db/schema";
 import type { GuestDetails } from "./booking-flow";
@@ -17,29 +15,7 @@ import {
   bookingInputClassName,
 } from "./styles";
 
-function ConfirmSkeleton() {
-  return (
-    <div className="space-y-5">
-      <div className={`${bookingCardClassName} divide-y divide-border`}>
-        {[5, 3, 2].map((rows, index) => (
-          <div key={index} className="space-y-3 p-4">
-            <Skeleton className="h-4 w-16" />
-            {Array.from({ length: rows }).map((_, rowIndex) => (
-              <div key={rowIndex} className="flex justify-between">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-      <Skeleton className="h-10 w-full rounded-md" />
-    </div>
-  );
-}
-
 interface Props {
-  propertySlug: string;
   selectedRoomType: RoomType;
   checkIn: string;
   checkOut: string;
@@ -48,6 +24,8 @@ interface Props {
   roomTypeId: string;
   guestDetails: GuestDetails;
   onGuestDetailsChange: (details: GuestDetails) => void;
+  onBack: () => void;
+  onContinue: () => void;
 }
 
 function formatDate(dateString: string) {
@@ -60,7 +38,6 @@ function formatDate(dateString: string) {
 }
 
 export default function StepDetails({
-  propertySlug,
   selectedRoomType,
   checkIn,
   checkOut,
@@ -69,40 +46,15 @@ export default function StepDetails({
   roomTypeId,
   guestDetails,
   onGuestDetailsChange,
+  onBack,
+  onContinue,
 }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    const params = new URLSearchParams({
-      step: "confirm",
-      check_in: checkIn,
-      check_out: checkOut,
-      adults: String(adults),
-      children: String(childCount),
-      room_type_id: roomTypeId,
-    });
-
-    router.prefetch(`/${propertySlug}?${params.toString()}`);
-  }, [adults, checkIn, checkOut, childCount, propertySlug, roomTypeId, router]);
 
   const nights =
     (new Date(`${checkOut}T00:00:00Z`).getTime() -
       new Date(`${checkIn}T00:00:00Z`).getTime()) /
     86400000;
-
-  function handleBack() {
-    const params = new URLSearchParams({
-      step: "select",
-      check_in: checkIn,
-      check_out: checkOut,
-      adults: String(adults),
-      children: String(childCount),
-    });
-
-    router.push(`/${propertySlug}?${params.toString()}`);
-  }
 
   function validate() {
     const nextErrors: Record<string, string> = {};
@@ -133,16 +85,7 @@ export default function StepDetails({
       return;
     }
 
-    const params = new URLSearchParams({
-      step: "confirm",
-      check_in: checkIn,
-      check_out: checkOut,
-      adults: String(adults),
-      children: String(childCount),
-      room_type_id: roomTypeId,
-    });
-
-    startTransition(() => router.push(`/${propertySlug}?${params.toString()}`));
+    onContinue();
   }
 
   function update(field: keyof GuestDetails, value: string) {
@@ -153,17 +96,13 @@ export default function StepDetails({
     }
   }
 
-  if (isPending) {
-    return <ConfirmSkeleton />;
-  }
-
   return (
     <div>
       <div className="mb-6">
         <Button
           type="button"
           variant="ghost"
-          onClick={handleBack}
+          onClick={onBack}
           className={`mb-3 px-0 ${bookingGhostButtonClassName}`}
         >
           ← Back to rooms
@@ -193,11 +132,11 @@ export default function StepDetails({
       <form onSubmit={handleContinue} className="space-y-4" noValidate>
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField
-            label={
+            label={(
               <>
                 First name <span className="text-destructive">*</span>
               </>
-            }
+            )}
             htmlFor="firstName"
             error={errors.firstName}
           >
@@ -212,11 +151,11 @@ export default function StepDetails({
           </FormField>
 
           <FormField
-            label={
+            label={(
               <>
                 Last name <span className="text-destructive">*</span>
               </>
-            }
+            )}
             htmlFor="lastName"
             error={errors.lastName}
           >
@@ -232,11 +171,11 @@ export default function StepDetails({
         </div>
 
         <FormField
-          label={
+          label={(
             <>
               Email address <span className="text-destructive">*</span>
             </>
-          }
+          )}
           htmlFor="email"
           error={errors.email}
         >
@@ -252,11 +191,11 @@ export default function StepDetails({
         </FormField>
 
         <FormField
-          label={
+          label={(
             <>
               Phone number <span className="text-muted-foreground">(optional)</span>
             </>
-          }
+          )}
           htmlFor="phone"
         >
           <Input
@@ -271,11 +210,11 @@ export default function StepDetails({
         </FormField>
 
         <FormField
-          label={
+          label={(
             <>
               Special requests <span className="text-muted-foreground">(optional)</span>
             </>
-          }
+          )}
           htmlFor="specialRequests"
           description="Share arrival notes or accessibility requests. We’ll pass them to the property."
         >

@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -15,8 +14,9 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DetailRow } from "@/components/ui/detail-row";
 import { InlineError } from "@/components/ui/inline-error";
+import type { BookingFlowUrlState } from "@/lib/booking-contracts";
 import type { Property, RoomType } from "@/db/schema";
-import { hexTokens, darkHexTokens } from "@/lib/design-tokens";
+import { darkHexTokens, hexTokens } from "@/lib/design-tokens";
 import {
   createPaymentIntentForBooking,
   createReservation,
@@ -88,6 +88,8 @@ interface Props {
   roomTypeId: string;
   totalCents: number;
   guestDetails: GuestDetails;
+  returnState: BookingFlowUrlState;
+  onBackToDetails: () => void;
 }
 
 type PaymentInfo =
@@ -294,9 +296,9 @@ export default function StepConfirm({
   roomTypeId,
   totalCents,
   guestDetails,
+  returnState,
+  onBackToDetails,
 }: Props) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, formAction, isPending] = useActionState(createReservation, null);
   const formRef = useRef<HTMLFormElement>(null);
   const { resolvedTheme } = useTheme();
@@ -314,9 +316,9 @@ export default function StepConfirm({
     86400000;
 
   useEffect(() => {
-    const paymentIntentId = searchParams.get("payment_intent");
-    const setupIntentId = searchParams.get("setup_intent");
-    const code = searchParams.get("code");
+    const paymentIntentId = returnState.paymentIntentId;
+    const setupIntentId = returnState.setupIntentId;
+    const code = returnState.code;
 
     if (paymentIntentId && code) {
       setPaymentInfo({
@@ -340,7 +342,7 @@ export default function StepConfirm({
       });
       setAutoSubmit(true);
     }
-  }, [searchParams]);
+  }, [returnState.code, returnState.paymentIntentId, returnState.setupIntentId]);
 
   useEffect(() => {
     if (autoSubmit && paymentInfo) {
@@ -383,19 +385,6 @@ export default function StepConfirm({
     }
   }
 
-  function handleBack() {
-    const params = new URLSearchParams({
-      step: "details",
-      check_in: checkIn,
-      check_out: checkOut,
-      adults: String(adults),
-      children: String(childCount),
-      room_type_id: roomTypeId,
-    });
-
-    router.push(`/${property.slug}?${params.toString()}`);
-  }
-
   if (
     autoSubmit ||
     (isPending && paymentInfo !== null && paymentInfo.clientSecret === "")
@@ -415,7 +404,7 @@ export default function StepConfirm({
         <Button
           type="button"
           variant="ghost"
-          onClick={stage === "payment" ? () => setStage("summary") : handleBack}
+          onClick={stage === "payment" ? () => setStage("summary") : onBackToDetails}
           disabled={isPending || isCreatingPI}
           className={`mb-3 px-0 ${bookingGhostButtonClassName}`}
         >
@@ -460,11 +449,11 @@ export default function StepConfirm({
             {guestDetails.specialRequests && (
               <DetailRow
                 label="Requests"
-                value={
+                value={(
                   <span className="max-w-[16rem] whitespace-pre-wrap break-words text-right">
                     {guestDetails.specialRequests}
                   </span>
-                }
+                )}
               />
             )}
           </div>
