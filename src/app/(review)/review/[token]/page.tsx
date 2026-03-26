@@ -81,7 +81,7 @@ export default async function ReviewPage({ params }: Props) {
             {property.city}
             {property.country ? `, ${property.country}` : ""}
           </p>
-          <h1 className="font-[family-name:--font-playfair] text-xl font-semibold text-foreground">
+          <h1 className="font-display text-xl font-semibold text-foreground">
             {property.name}
           </h1>
         </div>
