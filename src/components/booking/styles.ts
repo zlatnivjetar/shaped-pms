@@ -2,7 +2,7 @@ export const bookingCardClassName =
   "rounded-xl border border-border bg-booking-card shadow-sm transition-[border-color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-default)] motion-reduce:transition-none";
 
 export const bookingCtaButtonClassName =
-  "bg-booking-cta text-booking-cta-foreground transition-[background-color,color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-default)] motion-reduce:transition-none hover:bg-booking-cta/90";
+  "bg-booking-cta text-booking-cta-foreground transition-[background-color,color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-default)] motion-reduce:transition-none hover:bg-primary-hover";
 
 export const bookingSecondaryButtonClassName =
   "border-border bg-booking-card text-booking-accent transition-[background-color,color,box-shadow,transform] duration-[var(--duration-fast)] ease-[var(--ease-default)] motion-reduce:transition-none hover:bg-muted hover:text-booking-accent";

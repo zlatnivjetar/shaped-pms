@@ -64,7 +64,12 @@ export function DashboardOverview({
       header: "Code",
       className: "font-mono text-xs font-semibold",
       cell: (reservation) => (
-        <Button asChild variant="link" size="sm" className="h-auto p-0 font-mono text-xs">
+        <Button
+          asChild
+          variant="link"
+          size="sm"
+          className="h-auto p-0 font-mono text-xs font-semibold text-primary-hover dark:text-primary dark:hover:text-primary"
+        >
           <Link href={`/reservations/${reservation.id}`}>
             {reservation.confirmationCode}
           </Link>

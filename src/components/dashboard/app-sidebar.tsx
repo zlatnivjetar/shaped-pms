@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -137,7 +137,7 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
   );
   const showSettings = settingsNav.roles.includes(userRole);
 
-  function prewarm(url: string) {
+  const prewarm = useCallback((url: string) => {
     router.prefetch(url);
 
     if (!canPrewarm()) {
@@ -191,7 +191,7 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
         staleTime: CALENDAR_QUERY_STALE_TIME,
       });
     }
-  }
+  }, [queryClient, router]);
 
   useEffect(() => {
     if (!canPrewarm()) {
@@ -219,7 +219,7 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
 
     const timeoutId = setTimeout(prewarmRoutes, 500);
     return () => clearTimeout(timeoutId);
-  }, [primaryNav, queryClient, router, secondaryNav, showSettings]);
+  }, [prewarm, primaryNav, router, secondaryNav, showSettings]);
 
   async function handleSignOut() {
     await signOut();
@@ -230,7 +230,7 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
   return (
     <Sidebar>
       <SidebarHeader className="border-b px-3 py-4">
-        <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-sidebar-accent/40 px-3 py-2.5">
+        <div className="flex items-center gap-3 rounded-xl border border-sidebar-border/70 bg-primary/10 px-3 py-2.5">
           <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
             <Building2 className="size-4" />
           </div>
@@ -325,7 +325,7 @@ export function AppSidebar({ userName, userEmail, userRole }: AppSidebarProps) {
             </SidebarMenuItem>
           )}
           <SidebarMenuItem>
-            <div className="rounded-lg border border-sidebar-border/70 bg-sidebar-accent/30 px-3 py-2">
+            <div className="rounded-lg border border-sidebar-border/70 bg-primary/10 px-3 py-2">
               <p className="truncate text-sm font-medium">{userName}</p>
               <p className="truncate text-xs text-sidebar-foreground/70">
                 {userEmail}
